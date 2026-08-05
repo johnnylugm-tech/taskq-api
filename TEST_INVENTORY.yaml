@@ -8,6 +8,71 @@
 # Every tc_id below resolves to a single row in TRACEABILITY_MATRIX.md §3 or §4 forward trace.
 format_version: "1.1"
 
+# ---------------------------------------------------------------------------
+# fr_tests — flat per-FR test name registry consumed by validate-handoff and
+# spec-coverage. Mirrors the `tests:` block below but indexed by FR-NN so the
+# handoff validator can answer "does each declared FR have at least one named
+# test?" without re-walking the tc_id array. NFR rows live in cross_cutting.
+# ---------------------------------------------------------------------------
+fr_tests:
+  FR-01:
+    - test_fr01_create_rejects_invalid_command_with_422
+    - test_fr01_duplicate_name_returns_409
+    - test_fr01_get_unknown_id_returns_404
+    - test_fr01_list_paginates_by_cursor_not_offset
+    - test_fr01_limit_defaults_50_and_rejects_over_200
+    - test_fr01_crud_chain_end_to_end
+  FR-02:
+    - test_fr02_run_returns_202_with_run_id
+    - test_fr02_spawns_via_exec_not_shell
+    - test_fr02_status_state_machine_transitions
+    - test_fr02_result_row_persists_all_columns
+    - test_fr02_runs_history_newest_first
+  FR-03:
+    - test_fr03_missing_api_key_returns_401
+    - test_fr03_api_keys_table_stores_64_hex_hash_only
+    - test_fr03_key_compare_is_constant_time
+    - test_fr03_key_create_prints_plaintext_once
+    - test_fr03_revoked_key_is_rejected
+    - test_fr03_health_endpoints_skip_auth
+  FR-04:
+    - test_fr04_scope_hierarchy_is_inclusive
+    - test_fr04_403_body_does_not_reveal_resource_existence
+    - test_fr04_every_v1_route_uses_same_auth_dependency
+  FR-05:
+    - test_fr05_bucket_capacity_and_refill_rate
+    - test_fr05_burst_over_limit_returns_429_with_retry_after
+    - test_fr05_bucket_update_holds_row_lock
+    - test_fr05_health_endpoints_exempt_from_rate_limit
+  FR-06:
+    - test_fr06_service_layer_holds_no_session
+    - test_fr06_transaction_commits_on_success_rolls_back_on_error
+    - test_fr06_queries_are_orm_or_parameterised
+    - test_fr06_relationship_load_is_explicitly_eager
+    - test_fr06_engine_sets_pool_size_and_pre_ping
+  FR-07:
+    - test_fr07_upgrade_head_then_downgrade_base_exit_zero
+    - test_fr07_v3_round_trip_preserves_every_column
+    - test_fr07_downgrade_has_no_destructive_shortcut
+    - test_fr07_offline_sql_generation_matches_expected
+    - test_fr07_data_move_verified_on_real_sqlite_file
+  FR-08:
+    - test_fr08_shutdown_drains_then_marks_interrupted
+    - test_fr08_concurrency_cap_queues_excess
+    - test_fr08_timeout_kills_child_leaving_no_orphan
+    - test_fr08_cancelled_error_propagates
+  FR-09:
+    - test_fr09_healthz_returns_200_ok
+    - test_fr09_readyz_returns_503_when_db_unreachable
+    - test_fr09_readyz_fails_closed_when_migration_behind_head
+    - test_fr09_metrics_requires_admin_and_reports_counters
+  FR-10:
+    - test_fr10_all_non_2xx_use_problem_json_content_type
+    - test_fr10_problem_body_has_all_six_fields
+    - test_fr10_error_body_contains_no_stack_or_sql_or_path
+    - test_fr10_correlation_id_round_trips_header_and_log
+    - test_fr10_status_code_mapping_matches_spec_section_7
+
 test_inventory:
   metadata:
     phase: P1

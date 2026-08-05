@@ -1,0 +1,26 @@
+{
+  "fr": "TEST_SPEC.md",
+  "review_status": "APPROVE",
+  "reason": "TEST_SPEC.md covers all 10 FRs (FR-01..FR-10) with Classification, Active Patterns, sub-assertion tables, and 38 NFR cross-cutting tests under the Integration layer per the layering hard rule. NP pattern activation Step 1/1b/1c is consistent with SRS §3-4 and SAD §3-5 (NP-01..04, NP-06..08, NP-12..15 active; NP-05/09/10/11/14 correctly deactivated with stated rationale). Architecture-risk triggers from SPEC §10 each map to a named case (runner→NP-15, auth→NP-01, session→NP-13, v3_split→NP-13). FR-07 round-trip reversibility property is declared as P7-roundtrip-bytes-equal with explicit acknowledgement in the doc that the placeholder is a degenerate tautology and the stronger hypothesis @given invariant binds at P4. Inputs are concrete key=value pairs; Q1..Q5 derivations used; every FR has ",
+  "citations": [
+    "02-architecture/TEST_SPEC.md:15",
+    "02-architecture/TEST_SPEC.md:21",
+    "02-architecture/TEST_SPEC.md:236",
+    "02-architecture/TEST_SPEC.md:341",
+    "02-architecture/TEST_SPEC.md:444",
+    "02-architecture/TEST_SPEC.md:455",
+    "02-architecture/TEST_SPEC.md:476",
+    "02-architecture/SAD.md:113",
+    "02-architecture/SAD.md:524",
+    "01-requirements/SRS.md:64",
+    "02-architecture/adr/ADR.md:524"
+  ],
+  "docs_embedded": [
+    "SRS.md",
+    "SAD.md",
+    "TEST_SPEC.md",
+    "ADR.md",
+    "TEST_INVENTORY.yaml"
+  ],
+  "confidence": 0.9
+}

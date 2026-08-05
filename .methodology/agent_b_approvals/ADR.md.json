@@ -1,0 +1,33 @@
+{
+  "fr": "ADR.md",
+  "review_status": "APPROVE",
+  "reason": "ADR collection (ADR-001..ADR-017) comprehensively documents all 17 architecture decisions for taskq-api. Format matches harness/templates/ADR.md: each ADR carries Status, Context, Decision, Rationale, Alternatives Considered, Consequences. Every ADR cites FR/NFR IDs and SAD module names, aligning with the binding §5 SAB and §6 security-design contracts. Upstream SAD review caveats are addressed where applicable: ADR.md consistently uses 03-development/tests/ throughout (ADR-011, ADR-016) consistent with SPEC §6 and SAD §4 NFR-09/10/11, so the SAD §2.3.11 'taskq_api/tests/' inconsistency does not propagate into this deliverable. The T-10 owner_module mismatch in SAD §5 (taskq_api.app not listed in SAB api-layer modules) is an upstream SAD gap, not an ADR gap, so ADR.md need not fix it. One ",
+  "citations": [
+    "02-architecture/adr/ADR.md:11",
+    "02-architecture/adr/ADR.md:68",
+    "02-architecture/adr/ADR.md:121",
+    "02-architecture/adr/ADR.md:169",
+    "02-architecture/adr/ADR.md:215",
+    "02-architecture/adr/ADR.md:261",
+    "02-architecture/adr/ADR.md:301",
+    "02-architecture/adr/ADR.md:339",
+    "02-architecture/adr/ADR.md:379",
+    "02-architecture/adr/ADR.md:419",
+    "02-architecture/adr/ADR.md:457",
+    "02-architecture/adr/ADR.md:500",
+    "02-architecture/adr/ADR.md:513",
+    "02-architecture/adr/ADR.md:538",
+    "02-architecture/adr/ADR.md:575",
+    "02-architecture/adr/ADR.md:613",
+    "02-architecture/adr/ADR.md:652",
+    "02-architecture/adr/ADR.md:692",
+    "02-architecture/SAD.md:442",
+    "02-architecture/SAD.md:718"
+  ],
+  "docs_embedded": [
+    "SRS.md",
+    "SAD.md",
+    "ADR.md"
+  ],
+  "confidence": 0.9
+}
