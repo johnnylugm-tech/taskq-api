@@ -17,11 +17,30 @@
       }
     },
     "2": {
-      "sha": "d06138728b82c63cfbf4b7a0d6f6a88bbe9358ff",
-      "timestamp": "2026-08-05T16:28:14.674115+00:00"
+      "sha": "cadbd6a0044b5f015a7de40187bae492f7da961d",
+      "timestamp": "2026-08-05T18:45:30.633004+00:00",
+      "enforcer_sha": "e57d86c550bc1d8f0df6063c1352b849e124660b",
+      "enforcer_surface": {
+        "core/quality_gate": "392c713dd5280876ac55b951c32199073c077115",
+        "harness/harness_bridge.py": "e617f4d179352d7708aa458399d097eba47d44f5",
+        "harness/gate_configs": "ceaa48942d7a61abaa8d1612061f6a8868ad7c5b"
+      },
+      "recovered_from_sha": "d06138728b82c63cfbf4b7a0d6f6a88bbe9358ff",
+      "recovered_at": "2026-08-05T18:45:30.581873+00:00"
     }
   },
   "test_inventory_checksum": "1a0f37b752c2e0d4bd1927c03becd1b23b1392aa6428e86963fe711d09af8da4",
   "phase_truth_passed": true,
-  "last_milestone_command": "advance-phase --completed-phase 2"
+  "last_milestone_command": "advance-phase --completed-phase 2",
+  "phase_completed_recovery_log": [
+    {
+      "phase": 2,
+      "from_sha": "d06138728b82c63cfbf4b7a0d6f6a88bbe9358ff",
+      "to_sha": "3836985f526b429aab5a65c31ae12751b735b223",
+      "at": "2026-08-05T18:45:30.594204+00:00",
+      "observed_head": "89d743ab497b6cd5e2c2cf162f3f309a88f3da9b",
+      "marker": "phase2(review-complete)",
+      "enforcer_sha": "e57d86c550bc1d8f0df6063c1352b849e124660b"
+    }
+  ]
 }
