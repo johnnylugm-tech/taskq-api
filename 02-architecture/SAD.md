@@ -445,7 +445,7 @@ sab:
         - name: "taskq_api.api.deps"
         - name: "taskq_api.app"
         - name: "taskq_api.__main__"
-      allowed_dependencies: ["service", "repository", "models", "errors", "config"]
+      allowed_dependencies: ["service", "repository", "models", "independence"]
 
     - name: service
       modules:
@@ -453,7 +453,7 @@ sab:
         - name: "taskq_api.service.runner"
         - name: "taskq_api.service.auth"
         - name: "taskq_api.service.ratelimit"
-      allowed_dependencies: ["repository", "models", "errors", "config"]
+      allowed_dependencies: ["repository", "models", "independence"]
 
     - name: repository
       modules:
@@ -461,13 +461,13 @@ sab:
         - name: "taskq_api.repository.task_repo"
         - name: "taskq_api.repository.key_repo"
         - name: "taskq_api.repository.rate_repo"
-      allowed_dependencies: ["models", "errors", "config"]
+      allowed_dependencies: ["models", "independence"]
 
     - name: models
       modules:
         - name: "taskq_api.models.orm"
         - name: "taskq_api.models.schemas"
-      allowed_dependencies: ["errors", "config"]
+      allowed_dependencies: ["independence"]
 
     - name: independence
       modules:
@@ -482,16 +482,20 @@ sab:
       to: repository
     - from: api
       to: models
+    - from: api
+      to: independence
     - from: service
       to: repository
     - from: service
       to: models
+    - from: service
+      to: independence
     - from: repository
       to: models
+    - from: repository
+      to: independence
     - from: models
-      to: errors
-    - from: models
-      to: config
+      to: independence
 
   quality_targets:
     max_complexity: 10        # per-function CC, NFR-11 AC-11.1

@@ -15,12 +15,19 @@
         },
         {
           "name": "taskq_api.api.deps"
+        },
+        {
+          "name": "taskq_api.app"
+        },
+        {
+          "name": "taskq_api.__main__"
         }
       ],
       "allowed_dependencies": [
         "service",
         "repository",
-        "models"
+        "models",
+        "independence"
       ]
     },
     {
@@ -41,7 +48,8 @@
       ],
       "allowed_dependencies": [
         "repository",
-        "models"
+        "models",
+        "independence"
       ]
     },
     {
@@ -61,7 +69,8 @@
         }
       ],
       "allowed_dependencies": [
-        "models"
+        "models",
+        "independence"
       ]
     },
     {
@@ -75,8 +84,7 @@
         }
       ],
       "allowed_dependencies": [
-        "errors",
-        "config"
+        "independence"
       ]
     },
     {
@@ -96,18 +104,20 @@
     "api": [
       "service",
       "repository",
-      "models"
+      "models",
+      "independence"
     ],
     "service": [
       "repository",
-      "models"
+      "models",
+      "independence"
     ],
     "repository": [
-      "models"
+      "models",
+      "independence"
     ],
     "models": [
-      "errors",
-      "config"
+      "independence"
     ]
   },
   "quality_targets": {
@@ -139,19 +149,19 @@
     "NFR-02": {
       "type": "security",
       "dimension": "security",
-      "target": ">=0 bandit HIGH; >=0 bandit MEDIUM",
+      "target": "==0 bandit HIGH; ==0 bandit MEDIUM",
       "module": "taskq_api.api.deps"
     },
     "NFR-03": {
       "type": "reliability",
       "dimension": "error_handling",
-      "target": ">=0 bare-except / swallow",
+      "target": "==0 bare-except / swallow",
       "module": "taskq_api.repository.session"
     },
     "NFR-04": {
       "type": "security",
       "dimension": "security",
-      "target": ">=0 secret-leak events",
+      "target": "==0 secret-leak events",
       "module": "taskq_api.errors"
     },
     "NFR-05": {
@@ -169,7 +179,7 @@
     "NFR-07": {
       "type": "licensing",
       "dimension": "license_compliance",
-      "target": ">=0 license violations",
+      "target": "==0 license violations",
       "module": "taskq_api.config"
     },
     "NFR-08": {
@@ -185,7 +195,7 @@
     "NFR-09": {
       "type": "testability",
       "dimension": "test_assertion_quality",
-      "target": ">=0 skipped; >=0 zero-assert tests",
+      "target": "==0 skipped; ==0 zero-assert tests",
       "module": "taskq_api.repository.session"
     },
     "NFR-10": {
