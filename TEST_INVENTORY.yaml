@@ -1,20 +1,956 @@
-# TEST_INVENTORY.yaml — P1 Naming Authority
-# Maps every FR to expected test function names. These are the AUTHORITATIVE names
-# that derive_test_cases.md preserves in TEST_SPEC.md (P2 single source of truth).
-# Specified per FR and per test category (unit/integration/cross_cutting).
-# If no name is specified for a category, derive_test_cases.md fills the gap with
-# names derived via the 7-Question Protocol.
+# TEST_INVENTORY.yaml — P1 Naming Authority (per-FR test function names from TRACEABILITY_MATRIX.md §3/§4)
+# This file is the AUTHORITATIVE test name registry for Phase 1.
+# TEST_SPEC.md (P2) is generated FROM this file by derive_test_cases.md; on conflict, this file wins.
+# Naming convention: pytest `test_frNN_xxx` (functional) / `test_<verb>_<subject>` (cross-cutting NFR).
+# Layer vocabulary matches the matrix's `Verification` column (unit / integration / benchmark /
+# grep_gate / ast_scan / static_scan / config_assertion / artifact_assertion / suite_assertion /
+# scan / lint_imports / matrix_assertion / tool_gate / radon / tool_config).
+# Every tc_id below resolves to a single row in TRACEABILITY_MATRIX.md §3 or §4 forward trace.
 format_version: "1.1"
 
-fr_tests:
-  FR-01:
-    unit:
-      - test_fr01_example_unit
-    integration:
-      - test_fr01_example_integration
+test_inventory:
+  metadata:
+    phase: P1
+    language: python
+    test_runner: pytest
+    matrix_source: 01-requirements/TRACEABILITY_MATRIX.md
+    spec_source: SPEC.md
+    naming_convention:
+      functional: "test_frNN_<verb>_<subject>"     # NN = 2-digit FR id (01..10)
+      cross_cutting_nfr: "test_<verb>_<subject>"   # NFR tests, no frNN prefix
+      auth_scope_403: "test_403_body_*"            # §4.2 / §5.1 cross-ref to FR-04
+      error_body_500: "test_500_body_*"            # §4.2 / §5.1 cross-ref to FR-10
+    unique_test_count: 85                          # 89 enumerated rows in matrix − 4 cross-referenced duplicates
+    matrix_row_count: 89                           # verbatim count of named test rows in §3/§4 forward trace
+    matrix_section2_count: 89                      # §2 "Tests" column total = 89 (sum of per-FR counts)
+    enumerated_count: 85                           # tc_ids in `tests:` block (1:1 with unique matrix test names)
+    duplicate_cross_cuts_excluded:
+      - test_fr03_key_compare_is_constant_time      # also named in §4.2 (NFR-02 AC-02.3); primary owner FR-03
+      - test_fr03_key_create_prints_plaintext_once  # also named in §4.4 (NFR-04 AC-04.3); primary owner FR-03
+      - test_fr06_transaction_commits_on_success_rolls_back_on_error  # also in §4.3 (NFR-03 AC-03.1); primary FR-06
+      - test_fr08_timeout_kills_child_leaving_no_orphan  # also in §4.3 (NFR-03 AC-03.5); primary FR-08
 
-cross_cutting:
-  security:
-    - test_security_example
-  deployment:
-    - test_deployment_example
+  # ---------------------------------------------------------------------------
+  # Forward trace — every tc_id below corresponds to a named test in matrix §3/§4.
+  # Cross-cutting coverage is signalled via cross_ref_frs / cross_ref_nfrs
+  # metadata; no matrix entry is omitted, no sub-case is collapsed.
+  # ---------------------------------------------------------------------------
+  tests:
+    # ── FR-01 (6 tests) ──────────────────────────────────────────────────────
+    - tc_id: TC-FR01-01
+      test_name: test_fr01_create_rejects_invalid_command_with_422
+      fr: FR-01
+      ac_ids: [AC-1.1]
+      layer: integration
+      design_element: taskq_api.models.schemas::TaskCreate
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#4"
+    - tc_id: TC-FR01-02
+      test_name: test_fr01_duplicate_name_returns_409
+      fr: FR-01
+      ac_ids: [AC-1.1]
+      layer: integration
+      design_element: taskq_api.service.tasks::create_task
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#8"
+    - tc_id: TC-FR01-03
+      test_name: test_fr01_get_unknown_id_returns_404
+      fr: FR-01
+      ac_ids: [AC-1.2]
+      layer: integration
+      design_element: taskq_api.service.tasks::get_task
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#7"
+    - tc_id: TC-FR01-04
+      test_name: test_fr01_list_paginates_by_cursor_not_offset
+      fr: FR-01
+      ac_ids: [AC-1.3]
+      layer: integration              # matrix says "unit + integration"; integration is primary layer
+      design_element: taskq_api.repository.task_repo::list_tasks_by_cursor
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      dual_layer: true
+      spec_section_8_ref: null
+    - tc_id: TC-FR01-05
+      test_name: test_fr01_limit_defaults_50_and_rejects_over_200
+      fr: FR-01
+      ac_ids: [AC-1.4]
+      layer: unit
+      design_element: taskq_api.models.schemas::TaskListQuery
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR01-06
+      test_name: test_fr01_crud_chain_end_to_end
+      fr: FR-01
+      ac_ids: [AC-1.1, AC-1.2, AC-1.3, AC-1.4]
+      layer: integration
+      design_element: taskq_api.api.tasks::create_task
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#4"
+
+    # ── FR-02 (5 tests) ──────────────────────────────────────────────────────
+    - tc_id: TC-FR02-01
+      test_name: test_fr02_run_returns_202_with_run_id
+      fr: FR-02
+      ac_ids: [AC-2.1]
+      layer: integration
+      design_element: taskq_api.api.tasks::run_task
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR02-02
+      test_name: test_fr02_spawns_via_exec_not_shell
+      fr: FR-02
+      ac_ids: [AC-2.2]
+      layer: unit
+      design_element: taskq_api.service.runner::spawn_process
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR02-03
+      test_name: test_fr02_status_state_machine_transitions
+      fr: FR-02
+      ac_ids: [AC-2.3]
+      layer: unit
+      design_element: taskq_api.service.runner::transition_status
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR02-04
+      test_name: test_fr02_result_row_persists_all_columns
+      fr: FR-02
+      ac_ids: [AC-2.4]
+      layer: integration
+      design_element: taskq_api.repository.task_repo::insert_task_result
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR02-05
+      test_name: test_fr02_runs_history_newest_first
+      fr: FR-02
+      ac_ids: [AC-2.5]
+      layer: integration
+      design_element: taskq_api.api.tasks::list_task_runs
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── FR-03 (6 tests, including 2 cross-referenced NFRs) ────────────────────
+    - tc_id: TC-FR03-01
+      test_name: test_fr03_missing_api_key_returns_401
+      fr: FR-03
+      ac_ids: [AC-3.1]
+      layer: integration
+      design_element: taskq_api.api.deps::require_api_key
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#5"
+    - tc_id: TC-FR03-02
+      test_name: test_fr03_api_keys_table_stores_64_hex_hash_only
+      fr: FR-03
+      ac_ids: [AC-3.2]
+      layer: integration
+      design_element: taskq_api.repository.key_repo::get_by_key_hash
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#18"
+    - tc_id: TC-FR03-03
+      test_name: test_fr03_key_compare_is_constant_time
+      fr: FR-03
+      ac_ids: [AC-3.2]
+      layer: unit
+      design_element: taskq_api.service.auth::verify_key
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]        # §4.2 AC-02.3; §5.1 cross-ref
+      spec_section_8_ref: "#18"
+    - tc_id: TC-FR03-04
+      test_name: test_fr03_key_create_prints_plaintext_once
+      fr: FR-03
+      ac_ids: [AC-3.3]
+      layer: unit
+      design_element: taskq_api.__main__::key_create
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-04]        # §4.4 AC-04.3; §5.1 cross-ref
+      spec_section_8_ref: null
+    - tc_id: TC-FR03-05
+      test_name: test_fr03_revoked_key_is_rejected
+      fr: FR-03
+      ac_ids: [AC-3.4]
+      layer: unit
+      design_element: taskq_api.service.auth::is_revoked
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR03-06
+      test_name: test_fr03_health_endpoints_skip_auth
+      fr: FR-03
+      ac_ids: [AC-3.5]
+      layer: integration
+      design_element: taskq_api.api.health::healthz
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── FR-04 (3 tests) ──────────────────────────────────────────────────────
+    - tc_id: TC-FR04-01
+      test_name: test_fr04_scope_hierarchy_is_inclusive
+      fr: FR-04
+      ac_ids: [AC-4.1]
+      layer: unit
+      design_element: taskq_api.service.auth::scope_satisfies
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR04-02
+      test_name: test_fr04_403_body_does_not_reveal_resource_existence
+      fr: FR-04
+      ac_ids: [AC-4.2]
+      layer: integration
+      design_element: taskq_api.api.deps::require_scope
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]        # §4.2 AC-02.4 sibling; §5.1 cross-ref
+      spec_section_8_ref: "#6"
+    - tc_id: TC-FR04-03
+      test_name: test_fr04_every_v1_route_uses_same_auth_dependency
+      fr: FR-04
+      ac_ids: [AC-4.3]
+      layer: integration
+      design_element: taskq_api.app::register_v1_routes
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── FR-05 (4 tests) ──────────────────────────────────────────────────────
+    - tc_id: TC-FR05-01
+      test_name: test_fr05_bucket_capacity_and_refill_rate
+      fr: FR-05
+      ac_ids: [AC-5.1]
+      layer: unit
+      design_element: taskq_api.service.ratelimit::consume_token
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR05-02
+      test_name: test_fr05_burst_over_limit_returns_429_with_retry_after
+      fr: FR-05
+      ac_ids: [AC-5.2]
+      layer: integration
+      design_element: taskq_api.errors::rate_limited
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#9"
+    - tc_id: TC-FR05-03
+      test_name: test_fr05_bucket_update_holds_row_lock
+      fr: FR-05
+      ac_ids: [AC-5.3]
+      layer: integration
+      design_element: taskq_api.repository.rate_repo::lock_bucket_for_update
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR05-04
+      test_name: test_fr05_health_endpoints_exempt_from_rate_limit
+      fr: FR-05
+      ac_ids: [AC-5.4]
+      layer: integration
+      design_element: taskq_api.api.deps::rate_limit_guard
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── FR-06 (5 tests, including 1 cross-referenced NFR) ────────────────────
+    - tc_id: TC-FR06-01
+      test_name: test_fr06_service_layer_holds_no_session
+      fr: FR-06
+      ac_ids: [AC-6.1]
+      layer: unit
+      design_element: taskq_api.repository.session::get_session
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR06-02
+      test_name: test_fr06_transaction_commits_on_success_rolls_back_on_error
+      fr: FR-06
+      ac_ids: [AC-6.2]
+      layer: unit
+      design_element: taskq_api.repository.session::transaction
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-03]        # §4.3 AC-03.1; §5.1 cross-ref
+      spec_section_8_ref: null
+    - tc_id: TC-FR06-03
+      test_name: test_fr06_queries_are_orm_or_parameterised
+      fr: FR-06
+      ac_ids: [AC-6.3]
+      layer: unit
+      design_element: taskq_api.repository.task_repo::list_tasks_by_cursor
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#17"
+    - tc_id: TC-FR06-04
+      test_name: test_fr06_relationship_load_is_explicitly_eager
+      fr: FR-06
+      ac_ids: [AC-6.4]
+      layer: integration
+      design_element: taskq_api.repository.task_repo::load_with_results
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-01]        # §4.1 AC-01.3; §5.1 cross-ref
+      spec_section_8_ref: "#14"
+    - tc_id: TC-FR06-05
+      test_name: test_fr06_engine_sets_pool_size_and_pre_ping
+      fr: FR-06
+      ac_ids: [AC-6.5]
+      layer: unit
+      design_element: taskq_api.repository.session::create_engine_from_config
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── FR-07 (5 tests) ──────────────────────────────────────────────────────
+    - tc_id: TC-FR07-01
+      test_name: test_fr07_upgrade_head_then_downgrade_base_exit_zero
+      fr: FR-07
+      ac_ids: [AC-7.1]
+      layer: integration
+      design_element: migrations.versions.v1_initial::upgrade
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#13"
+    - tc_id: TC-FR07-02
+      test_name: test_fr07_v3_round_trip_preserves_every_column
+      fr: FR-07
+      ac_ids: [AC-7.2]
+      layer: integration
+      design_element: migrations.versions.v3_split_results::downgrade
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-09]        # §4.9 AC-09.5 sibling via test_migration_round_trip_against_real_sqlite_file; §5.1 cross-ref
+      spec_section_8_ref: "#12"
+    - tc_id: TC-FR07-03
+      test_name: test_fr07_downgrade_has_no_destructive_shortcut
+      fr: FR-07
+      ac_ids: [AC-7.3]
+      layer: unit
+      design_element: migrations.versions.v2_tags::downgrade
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR07-04
+      test_name: test_fr07_offline_sql_generation_matches_expected
+      fr: FR-07
+      ac_ids: [AC-7.4]
+      layer: unit
+      design_element: migrations.env::run_migrations_offline
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR07-05
+      test_name: test_fr07_data_move_verified_on_real_sqlite_file
+      fr: FR-07
+      ac_ids: [AC-7.5]
+      layer: integration
+      design_element: migrations.versions.v3_split_results::upgrade
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-09]        # §5.1 cross-ref (AC-09.5)
+      spec_section_8_ref: "#12"
+
+    # ── FR-08 (4 tests, including 1 cross-referenced NFR) ────────────────────
+    - tc_id: TC-FR08-01
+      test_name: test_fr08_shutdown_drains_then_marks_interrupted
+      fr: FR-08
+      ac_ids: [AC-8.1]
+      layer: integration
+      design_element: taskq_api.service.runner::drain_on_shutdown
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#25"
+    - tc_id: TC-FR08-02
+      test_name: test_fr08_concurrency_cap_queues_excess
+      fr: FR-08
+      ac_ids: [AC-8.2]
+      layer: unit
+      design_element: taskq_api.service.runner::acquire_slot
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR08-03
+      test_name: test_fr08_timeout_kills_child_leaving_no_orphan
+      fr: FR-08
+      ac_ids: [AC-8.3]
+      layer: integration
+      design_element: taskq_api.service.runner::run_with_timeout
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-03]        # §4.3 AC-03.5; §5.1 cross-ref
+      spec_section_8_ref: "#25"
+    - tc_id: TC-FR08-04
+      test_name: test_fr08_cancelled_error_propagates
+      fr: FR-08
+      ac_ids: [AC-8.4]
+      layer: unit
+      design_element: taskq_api.service.runner::execute
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── FR-09 (4 tests) ──────────────────────────────────────────────────────
+    - tc_id: TC-FR09-01
+      test_name: test_fr09_healthz_returns_200_ok
+      fr: FR-09
+      ac_ids: []                       # endpoint-only row in §3.9
+      layer: integration
+      design_element: taskq_api.api.health::healthz
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR09-02
+      test_name: test_fr09_readyz_returns_503_when_db_unreachable
+      fr: FR-09
+      ac_ids: []                       # endpoint-only row in §3.9 (also closes AC-03.4 in NFR-03)
+      layer: integration
+      design_element: taskq_api.api.health::readyz
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-03]        # §4.3 AC-03.4; §5.1 cross-ref
+      spec_section_8_ref: "#10"
+    - tc_id: TC-FR09-03
+      test_name: test_fr09_readyz_fails_closed_when_migration_behind_head
+      fr: FR-09
+      ac_ids: [AC-9.1]
+      layer: integration
+      design_element: taskq_api.api.health::check_migration_at_head
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#11"
+    - tc_id: TC-FR09-04
+      test_name: test_fr09_metrics_requires_admin_and_reports_counters
+      fr: FR-09
+      ac_ids: []                       # endpoint-only row in §3.9
+      layer: integration
+      design_element: taskq_api.api.health::metrics
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── FR-10 (5 tests) ──────────────────────────────────────────────────────
+    - tc_id: TC-FR10-01
+      test_name: test_fr10_all_non_2xx_use_problem_json_content_type
+      fr: FR-10
+      ac_ids: [AC-10.1]
+      layer: integration
+      design_element: taskq_api.errors::problem_response
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR10-02
+      test_name: test_fr10_problem_body_has_all_six_fields
+      fr: FR-10
+      ac_ids: [AC-10.2]
+      layer: unit
+      design_element: taskq_api.errors::ProblemDetail
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR10-03
+      test_name: test_fr10_error_body_contains_no_stack_or_sql_or_path
+      fr: FR-10
+      ac_ids: [AC-10.3]
+      layer: integration
+      design_element: taskq_api.errors::sanitize_detail
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]        # §4.2 AC-02.5 sibling; §5.1 cross-ref
+      spec_section_8_ref: "#19"
+    - tc_id: TC-FR10-04
+      test_name: test_fr10_correlation_id_round_trips_header_and_log
+      fr: FR-10
+      ac_ids: [AC-10.4]
+      layer: integration
+      design_element: taskq_api.app::correlation_id_middleware
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-FR10-05
+      test_name: test_fr10_status_code_mapping_matches_spec_section_7
+      fr: FR-10
+      ac_ids: [AC-10.5]
+      layer: unit
+      design_element: taskq_api.errors::STATUS_TITLE_MAP
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-01 (3 tests) ─────────────────────────────────────────────────────
+    - tc_id: TC-NFR01-01
+      test_name: test_kpi_p95_get_by_id_under_30ms_at_10k
+      fr: NFR-01
+      ac_ids: [AC-01.1]
+      layer: benchmark
+      design_element: taskq_api.api.tasks::get_task
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#15"
+    - tc_id: TC-NFR01-02
+      test_name: test_kpi_p95_list_under_80ms_at_10k
+      fr: NFR-01
+      ac_ids: [AC-01.2]
+      layer: benchmark
+      design_element: taskq_api.api.tasks::list_tasks
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR01-03
+      test_name: test_n_plus_one_sql_count_constant_within_list_endpoint
+      fr: NFR-01
+      ac_ids: [AC-01.3]
+      layer: integration
+      design_element: taskq_api.repository.task_repo::load_with_results
+      cross_ref_frs: [FR-06]           # §5.1 cross-ref (AC-6.4)
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#14"
+
+    # ── NFR-02 (5 tests after dedup; AC-02.7 has no test function) ───────────
+    - tc_id: TC-NFR02-01
+      test_name: test_grep_no_shell_true_or_eval_or_exec
+      fr: NFR-02
+      ac_ids: [AC-02.1]
+      layer: grep_gate
+      design_element: taskq_api.service.runner::spawn_process
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#16"
+    - tc_id: TC-NFR02-02
+      test_name: test_grep_no_string_concatenated_sql
+      fr: NFR-02
+      ac_ids: [AC-02.2]
+      layer: grep_gate
+      design_element: taskq_api.repository.task_repo::list_tasks_by_cursor
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#17"
+    - tc_id: TC-NFR02-03
+      test_name: test_403_body_does_not_leak_resource_existence
+      fr: NFR-02
+      ac_ids: [AC-02.4]
+      layer: integration
+      design_element: taskq_api.api.deps::require_scope
+      cross_ref_frs: [FR-04]           # §5.1 cross-ref (AC-4.2)
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#6"
+    - tc_id: TC-NFR02-04
+      test_name: test_500_body_contains_no_stack_or_sql_or_path
+      fr: NFR-02
+      ac_ids: [AC-02.5]
+      layer: integration
+      design_element: taskq_api.errors::sanitize_detail
+      cross_ref_frs: [FR-10]           # §5.1 cross-ref (AC-10.3)
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#19"
+    - tc_id: TC-NFR02-05
+      test_name: test_cors_default_deny_all_origins
+      fr: NFR-02
+      ac_ids: [AC-02.6]
+      layer: integration
+      design_element: taskq_api.app::configure_cors
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-03 (5 tests after dedup; AC-03.1, AC-03.5 are owned by FR-06/FR-08)
+    - tc_id: TC-NFR03-01
+      test_name: test_no_bare_except_or_silent_swallow_in_src
+      fr: NFR-03
+      ac_ids: [AC-03.2]
+      layer: ast_scan
+      design_element: taskq_api.service.runner::execute
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR03-02
+      test_name: test_cancelled_error_propagates_under_async_runner
+      fr: NFR-03
+      ac_ids: [AC-03.3]
+      layer: unit
+      design_element: taskq_api.service.runner::run_with_timeout
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR03-03
+      test_name: test_readyz_returns_503_when_db_unreachable
+      fr: NFR-03
+      ac_ids: [AC-03.4]
+      layer: integration
+      design_element: taskq_api.api.health::readyz
+      cross_ref_frs: [FR-09]           # §5.1 cross-ref (FR-09 endpoint row)
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#10"
+    - tc_id: TC-NFR03-04
+      test_name: test_failed_migration_rolls_back_to_previous_revision
+      fr: NFR-03
+      ac_ids: [AC-03.6]
+      layer: integration
+      design_element: migrations.env::run_migrations_online
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-04 (2 tests after dedup; AC-04.3 owned by FR-03) ─────────────────
+    - tc_id: TC-NFR04-01
+      test_name: test_log_redacts_sk_token_bearer_dburl
+      fr: NFR-04
+      ac_ids: [AC-04.1]
+      layer: unit
+      design_element: taskq_api.errors::redact
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR04-02
+      test_name: test_metrics_response_omits_db_url_password
+      fr: NFR-04
+      ac_ids: [AC-04.2]
+      layer: integration
+      design_element: taskq_api.config::safe_settings_repr
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#20"
+
+    # ── NFR-05 (2 tests) ─────────────────────────────────────────────────────
+    - tc_id: TC-NFR05-01
+      test_name: test_docstrings_cite_fr_or_nfr_marker
+      fr: NFR-05
+      ac_ids: [AC-05.1]
+      layer: ast_scan
+      design_element: taskq_api.api.tasks::create_task
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR05-02
+      test_name: test_openapi_schema_has_summary_and_description_per_endpoint
+      fr: NFR-05
+      ac_ids: [AC-05.2]
+      layer: integration
+      design_element: taskq_api.app::build_app
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-06 (3 tests; AC-06.3 has no test function) ───────────────────────
+    - tc_id: TC-NFR06-01
+      test_name: test_importlinter_declares_layer_order
+      fr: NFR-06
+      ac_ids: [AC-06.1]
+      layer: config_assertion
+      design_element: "root config: .importlinter"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR06-02
+      test_name: test_sqlalchemy_import_outside_repository_blocked
+      fr: NFR-06
+      ac_ids: [AC-06.2]
+      layer: lint_imports
+      design_element: taskq_api.repository.session::get_session
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#21"
+    - tc_id: TC-NFR06-03
+      test_name: test_importlinter_has_no_wildcard_ignore
+      fr: NFR-06
+      ac_ids: [AC-06.4]
+      layer: config_assertion
+      design_element: "root config: .importlinter"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-07 (4 tests; AC-07.3 has no test function) ───────────────────────
+    - tc_id: TC-NFR07-01
+      test_name: test_requirements_txt_pins_with_double_equals
+      fr: NFR-07
+      ac_ids: [AC-07.1]
+      layer: config_assertion
+      design_element: "root config: requirements.txt"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR07-02
+      test_name: test_requirements_lock_present_and_pinned
+      fr: NFR-07
+      ac_ids: [AC-07.1]
+      layer: config_assertion
+      design_element: "root config: requirements.lock"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR07-03
+      test_name: test_all_runtime_dependencies_license_in_allowlist
+      fr: NFR-07
+      ac_ids: [AC-07.2]
+      layer: scan
+      design_element: "dependency tree"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#22"
+    - tc_id: TC-NFR07-04
+      test_name: test_sbom_markdown_present_at_08_config_path
+      fr: NFR-07
+      ac_ids: [AC-07.4]
+      layer: artifact_assertion
+      design_element: "build artifact: 08-config/SBOM.json"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-08 (2 tests; AC-08.2 has no test function) ───────────────────────
+    - tc_id: TC-NFR08-01
+      test_name: test_harness_config_enables_mutation_testing
+      fr: NFR-08
+      ac_ids: [AC-08.1]
+      layer: config_assertion
+      design_element: ".methodology/harness_config.json"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR08-02
+      test_name: test_mutation_scope_matches_configured_layers
+      fr: NFR-08
+      ac_ids: [AC-08.3]
+      layer: config_assertion
+      design_element: ".methodology/harness_config.json"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-09 (6 tests) ─────────────────────────────────────────────────────
+    - tc_id: TC-NFR09-01
+      test_name: test_no_skip_or_xfail_markers_in_test_tree
+      fr: NFR-09
+      ac_ids: [AC-09.1]
+      layer: ast_scan
+      design_element: "whole test tree"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#1"
+    - tc_id: TC-NFR09-02
+      test_name: test_no_skipped_tests_in_pytest_q_output
+      fr: NFR-09
+      ac_ids: [AC-09.2]
+      layer: tool_gate
+      design_element: "whole test tree"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#1"
+    - tc_id: TC-NFR09-03
+      test_name: test_every_test_function_has_at_least_one_assert
+      fr: NFR-09
+      ac_ids: [AC-09.3]
+      layer: ast_scan
+      design_element: "whole test tree"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR09-04
+      test_name: test_no_tests_excluded_via_ignore_k_deselect
+      fr: NFR-09
+      ac_ids: [AC-09.4]
+      layer: config_assertion
+      design_element: "pytest config"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR09-05
+      test_name: test_migration_round_trip_against_real_sqlite_file
+      fr: NFR-09
+      ac_ids: [AC-09.5]
+      layer: integration
+      design_element: migrations.versions.v3_split_results::upgrade
+      cross_ref_frs: [FR-07]           # §5.1 cross-ref (AC-7.5)
+      cross_ref_nfrs: []
+      spec_section_8_ref: "#12"
+    - tc_id: TC-NFR09-06
+      test_name: test_traceability_verified_only_after_green_run
+      fr: NFR-09
+      ac_ids: [AC-09.6]
+      layer: matrix_assertion
+      design_element: "this matrix"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-10 (2 tests; AC-10.1 has no test function) ───────────────────────
+    - tc_id: TC-NFR10-01
+      test_name: test_integration_client_uses_asgi_transport
+      fr: NFR-10
+      ac_ids: [AC-10.2]
+      layer: integration
+      design_element: taskq_api.app::build_app
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR10-02
+      test_name: test_integration_suite_covers_required_scenarios
+      fr: NFR-10
+      ac_ids: [AC-10.3]
+      layer: suite_assertion
+      design_element: "integration suite"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-11 (4 tests) ─────────────────────────────────────────────────────
+    - tc_id: TC-NFR11-01
+      test_name: test_per_function_cc_le_10
+      fr: NFR-11
+      ac_ids: [AC-11.1]
+      layer: radon
+      design_element: "whole src tree"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR11-02
+      test_name: test_per_file_lines_le_400
+      fr: NFR-11
+      ac_ids: [AC-11.2]
+      layer: static_scan
+      design_element: "whole src tree"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR11-03
+      test_name: test_per_dir_files_le_15
+      fr: NFR-11
+      ac_ids: [AC-11.2]
+      layer: static_scan
+      design_element: "whole src tree"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+    - tc_id: TC-NFR11-04
+      test_name: test_per_api_handler_lines_le_40
+      fr: NFR-11
+      ac_ids: [AC-11.3]
+      layer: static_scan
+      design_element: taskq_api.api.tasks::create_task
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+    # ── NFR-12 (1 test; AC-12.2 has no test function) ───────────────────────
+    - tc_id: TC-NFR12-01
+      test_name: test_makefile_verify_system_chains_four_steps
+      fr: NFR-12
+      ac_ids: [AC-12.1]
+      layer: config_assertion
+      design_element: "Makefile target"
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+      spec_section_8_ref: null
+
+  # ---------------------------------------------------------------------------
+  # Coverage summary — every tc_count here is the verbatim count of tests
+  # in the `tests:` block whose `fr` field equals the key.
+  # Sum of by_fr MUST equal enumerated_count (no arithmetic drift).
+  # ---------------------------------------------------------------------------
+  by_fr:
+    FR-01: 6
+    FR-02: 5
+    FR-03: 6
+    FR-04: 3
+    FR-05: 4
+    FR-06: 5
+    FR-07: 5
+    FR-08: 4
+    FR-09: 4
+    FR-10: 5
+    NFR-01: 3
+    NFR-02: 5
+    NFR-03: 4
+    NFR-04: 2
+    NFR-05: 2
+    NFR-06: 3
+    NFR-07: 4
+    NFR-08: 2
+    NFR-09: 6
+    NFR-10: 2
+    NFR-11: 4
+    NFR-12: 1
+    by_fr_total: 85
+  by_layer:
+    unit: 20
+    integration: 39
+    benchmark: 2
+    grep_gate: 2
+    ast_scan: 4
+    config_assertion: 8
+    artifact_assertion: 1
+    suite_assertion: 1
+    radon: 1
+    static_scan: 3
+    scan: 1
+    lint_imports: 1
+    matrix_assertion: 1
+    tool_gate: 1
+    by_layer_total: 85
+  total_test_cases: 85
+
+  # ---------------------------------------------------------------------------
+  # Cross-cutting tests — those tests whose primary owner is one requirement
+  # but which also close one or more ACs in a different FR/NFR (per §5.1).
+  # ---------------------------------------------------------------------------
+  cross_cutting:
+    security:
+      - test_fr03_key_compare_is_constant_time         # FR-03 ↔ NFR-02 (AC-02.3)
+      - test_fr03_key_create_prints_plaintext_once     # FR-03 ↔ NFR-04 (AC-04.3)
+      - test_fr04_403_body_does_not_reveal_resource_existence  # FR-04 ↔ NFR-02 (AC-02.4)
+      - test_fr10_error_body_contains_no_stack_or_sql_or_path  # FR-10 ↔ NFR-02 (AC-02.5)
+      - test_403_body_does_not_leak_resource_existence # NFR-02 ↔ FR-04 (AC-4.2)
+      - test_500_body_contains_no_stack_or_sql_or_path # NFR-02 ↔ FR-10 (AC-10.3)
+    data_layer:
+      - test_fr06_transaction_commits_on_success_rolls_back_on_error  # FR-06 ↔ NFR-03 (AC-03.1)
+      - test_fr06_relationship_load_is_explicitly_eager                # FR-06 ↔ NFR-01 (AC-01.3)
+    migration:
+      - test_fr07_data_move_verified_on_real_sqlite_file  # FR-07 ↔ NFR-09 (AC-09.5)
+      - test_fr07_v3_round_trip_preserves_every_column    # FR-07 ↔ NFR-09 (AC-09.5 sibling)
+    async_runtime:
+      - test_fr08_timeout_kills_child_leaving_no_orphan  # FR-08 ↔ NFR-03 (AC-03.5)
+      - test_cancelled_error_propagates_under_async_runner  # NFR-03 (AC-03.3)
+    observability:
+      - test_fr09_readyz_returns_503_when_db_unreachable  # FR-09 ↔ NFR-03 (AC-03.4)
+      - test_readyz_returns_503_when_db_unreachable       # NFR-03 ↔ FR-09 endpoint row
+    auth_scope:
+      - test_fr03_missing_api_key_returns_401            # FR-03 → NFR-02 (401 problem+json)
+      - test_fr05_burst_over_limit_returns_429_with_retry_after  # FR-05 → NFR-02 (429 problem+json)
+
+  # ---------------------------------------------------------------------------
+  # Tool-gate / no-test-function ACs — these ACs are verified by a command's
+  # exit status, not by an assertion inside a test function (per matrix §6).
+  # They are listed here so TEST_SPEC.md can preserve the AC -> verification
+  # mapping 88/88 even though they are not in the `tests:` block.
+  # ---------------------------------------------------------------------------
+  tool_gates_no_test_function:
+    - ac_id: AC-01.4
+      verification: tool_config           # pytest-benchmark is the configured tool (exercised by TC-NFR01-01/02)
+    - ac_id: AC-02.7
+      verification: tool_gate             # bandit run
+    - ac_id: AC-06.3
+      verification: tool_gate             # lint-imports run
+    - ac_id: AC-07.3
+      verification: tool_gate             # pip-licenses whole-tree scan
+    - ac_id: AC-08.2
+      verification: tool_gate             # mutmut mutation score
+    - ac_id: AC-10.1
+      verification: tool_gate             # coverage.py total coverage run
+    - ac_id: AC-12.2
+      verification: tool_gate             # make verify-system exit 0
+
+  # ---------------------------------------------------------------------------
+  # Naming-convention audit — every test_name above matches one of these
+  # regexes. derive_test_cases.md MUST reject any test that fails the audit.
+  # ---------------------------------------------------------------------------
+  naming_convention_audit:
+    fr_pattern: '^test_fr\d{2}_[a-z0-9_]+$'              # FR-01..FR-10 (2-digit id)
+    nfr_pattern: '^test_[a-z][a-z0-9_]+$'                # NFR / cross-cutting (no frNN prefix)
+    forbidden_patterns:
+      - '^test_fr\d{2}_'                                 # applies to NFR tests, not to FR tests
+      - '^test_TC_'                                      # no TC-prefixed names
+      - '__'                                             # no double-underscore
