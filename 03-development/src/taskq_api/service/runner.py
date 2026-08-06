@@ -280,25 +280,27 @@ class AsyncExecutor:
         the awaiting task propagates through, with the in-flight worker
         cancelled and reaped so the subprocess cannot outlive the
         caller (AC-8.3 / AC-8.4).
+
+        The worker runs inside an ``asyncio.TaskGroup`` (SPEC §3 FR-08:
+        "背景執行以 asyncio.TaskGroup 管理"), so the group guarantees the
+        worker is cancelled and awaited on every exit path from this
+        scope. ``TaskGroup`` reports a failed child as an
+        ``ExceptionGroup``; the single-child group is unwrapped so
+        callers keep seeing the underlying error, not a wrapper.
         """
         task_id = task["id"]
-        work_coro = self._execute(task, timeout=timeout, task_id=task_id)
-        work_fut: asyncio.Future[dict] = asyncio.ensure_future(work_coro)
-        self._inflight[work_fut] = task_id
         try:
-            return await work_fut
-        finally:
-            # If the outer await was cancelled (or errored) before
-            # ``work_fut`` finished, ensure the worker is also stopped
-            # and the subprocess is reaped — AC-8.3 / AC-8.4 require that
-            # ``CancelledError`` reach the child, not just the coroutine.
-            if not work_fut.done():
-                work_fut.cancel()
+            async with asyncio.TaskGroup() as group:
+                work_fut = group.create_task(
+                    self._execute(task, timeout=timeout, task_id=task_id)
+                )
+                self._inflight[work_fut] = task_id
                 try:
-                    await work_fut
-                except BaseException:
-                    pass
-            self._inflight.pop(work_fut, None)
+                    return await work_fut
+                finally:
+                    self._inflight.pop(work_fut, None)
+        except* Exception as group_error:
+            raise group_error.exceptions[0] from None
 
     async def _execute(
         self,
@@ -332,10 +334,7 @@ class AsyncExecutor:
                 # child MUST be reaped regardless of how ``_execute``
                 # exits (AC-8.3 anti-orphan, NFR-03).
                 await self._reap_subprocess(process)
-                try:
-                    await self._on_finish()
-                except BaseException:
-                    pass
+                await self._on_finish()
 
     async def drain(self) -> None:
         """Wait for every in-flight ``submit`` and reap the stragglers. [FR-08]
@@ -377,19 +376,14 @@ class AsyncExecutor:
             if not fut.done():
                 fut.cancel()
             if not self._is_terminal(task_id):
-                try:
-                    self._repository.set_status(task_id, "interrupted")
-                except Exception:
-                    pass
+                self._repository.set_status(task_id, "interrupted")
 
         # Reap: await each cancelled worker so its ``finally`` runs the
-        # kill+wait before ``drain`` returns. Any exception (Cancel or
-        # otherwise) is part of structured shutdown and is swallowed.
-        for fut, _ in items:
-            try:
-                await fut
-            except BaseException:
-                pass
+        # kill+wait before ``drain`` returns. ``return_exceptions=True``
+        # collects each outcome (including the ``CancelledError`` this
+        # drain just caused) instead of discarding it in an except-pass,
+        # which NFR-03 forbids.
+        await asyncio.gather(*futs, return_exceptions=True)
 
     @staticmethod
     async def _reap_subprocess(
@@ -400,8 +394,10 @@ class AsyncExecutor:
         ``returncode`` is ``None`` only while the subprocess is still
         running, so the gate skips reaping a child that already
         finished through the normal exit path. ``ProcessLookupError``
-        and any error from ``wait`` are swallowed: either outcome is
-        "process is no longer running", which is the entire contract.
+        means the child is already gone — the only condition this
+        method treats as "nothing left to reap". Every other error
+        (and ``CancelledError`` from ``wait``) propagates: NFR-03
+        forbids swallowing them.
         """
         if process is None or process.returncode is not None:
             return
@@ -409,10 +405,7 @@ class AsyncExecutor:
             process.kill()
         except ProcessLookupError:
             return
-        try:
-            await process.wait()
-        except BaseException:
-            pass
+        await process.wait()
 
     @staticmethod
     def _terminal_statuses() -> frozenset[str]:
@@ -420,12 +413,13 @@ class AsyncExecutor:
         return frozenset({"done", "failed", "timeout"})
 
     def _is_terminal(self, task_id: str) -> bool:
-        """Return ``True`` iff the task's run row is already a terminal status."""
-        try:
-            current = self._repository._tasks.get(task_id, {}).get("status")
-        except Exception:
-            return False
-        return current in self._terminal_statuses()
+        """Return ``True`` iff the task's run row is already a terminal status.
+
+        Reads through the repository's public accessor — the service layer
+        must not touch persistence internals (NFR-06 layering).
+        """
+        row = self._repository.get(task_id)
+        return row is not None and row["status"] in self._terminal_statuses()
 
     async def aclose(self) -> None:
         """Drain and discard. [FR-08] — FastAPI lifespan exit hook.
