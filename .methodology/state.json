@@ -31,7 +31,7 @@
   },
   "test_inventory_checksum": "1a0f37b752c2e0d4bd1927c03becd1b23b1392aa6428e86963fe711d09af8da4",
   "phase_truth_passed": true,
-  "last_milestone_command": "push-milestone --type p3-mid",
+  "last_milestone_command": "push-milestone --type p3-pre-gate2",
   "phase_completed_recovery_log": [
     {
       "phase": 2,
@@ -43,5 +43,5 @@
       "enforcer_sha": "e57d86c550bc1d8f0df6063c1352b849e124660b"
     }
   ],
-  "last_milestone_at": "2026-08-06T10:22:38.622130+00:00"
+  "last_milestone_at": "2026-08-06T13:09:29.445068+00:00"
 }
