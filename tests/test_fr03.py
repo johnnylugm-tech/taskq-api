@@ -58,7 +58,7 @@ from taskq_api.app import app
 #   taskq_api.service.auth.is_key_revoked(record: dict) -> bool
 #       — Returns True when ``record["revoked_at"]`` is non-null
 #         (AC-3.4 / NFR-02).
-from taskq_api.api.deps import require_api_key  # noqa: F401,E402
+from taskq_api.api.deps import ApiKeyIdentity, require_api_key  # noqa: F401,E402
 from taskq_api.service.auth import (  # noqa: F401,E402
     create_api_key,
     hash_key,
@@ -336,3 +336,47 @@ def test_fr03_health_endpoints_skip_auth(app_client: httpx.Client) -> None:
     # AC-3.5 forbids the 401 path — auth MUST be skipped on these routes.
     assert healthz.status_code != 401, healthz.text
     assert readyz.status_code != 401, readyz.text
+
+
+# ---------------------------------------------------------------------------
+# FR-03 / coverage — require_api_key success path (deps.py:66)
+# ---------------------------------------------------------------------------
+
+
+# NFR-02 — security: the success branch of ``require_api_key`` (the line that
+# builds ``ApiKeyIdentity``) is the only piece of the auth boundary that the
+# 401-only tests do not exercise. Without a test that reaches line 66 the FR's
+# declared modules drop below the per-FR coverage floor.
+#
+# Stub ``Request`` mirrors the minimum surface ``require_api_key`` actually
+# touches (``request.headers.get``); instantiating the real ``fastapi.Request``
+# requires an ASGI scope/transport which is heavy for a unit test.
+class _StubRequest:
+    """Minimal ``Request`` stand-in exposing only ``headers.get``."""
+
+    def __init__(self, headers: dict[str, str]) -> None:
+        self.headers = _StubHeaders(headers)
+
+
+class _StubHeaders:
+    def __init__(self, headers: dict[str, str]) -> None:
+        self._headers = headers
+
+    def get(self, name: str, default: str | None = None) -> str | None:
+        return self._headers.get(name, default)
+
+
+def test_fr03_require_api_key_success_returns_identity() -> None:
+    """AC-3.1 (positive path): a valid X-API-Key yields an ``ApiKeyIdentity``.
+
+    Coverage gate: exercises ``deps.py`` line 66 (``return ApiKeyIdentity(...)``),
+    the only line in the FR-03 modules that is not reached by the 401 case.
+    """
+    plaintext = "sk-valid-plaintext"
+    request = _StubRequest({"X-API-Key": plaintext})
+
+    identity = require_api_key(request)  # type: ignore[arg-type]
+
+    assert isinstance(identity, ApiKeyIdentity)
+    assert identity.plaintext == plaintext
+    assert identity.scope is None
