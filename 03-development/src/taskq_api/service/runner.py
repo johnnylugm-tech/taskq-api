@@ -117,8 +117,9 @@ async def execute_task(task: dict[str, str], repository: TaskRepository) -> dict
     :func:`transition`, keeping the state machine the single mutation point
     for the run lifecycle (NFR-03).
     """
+    task_id = task["id"]
     status = transition(_INITIAL_RUN_STATUS, "start")
-    repository.set_status(task["id"], status)
+    repository.set_status(task_id, status)
 
     started_at = time.monotonic()
     process = await spawn_process(task["command"])
@@ -137,9 +138,9 @@ async def execute_task(task: dict[str, str], repository: TaskRepository) -> dict
         status = transition(status, "success" if exit_code == 0 else "exit_nonzero")
 
     duration_ms = int((time.monotonic() - started_at) * 1000)
-    repository.set_status(task["id"], status)
+    repository.set_status(task_id, status)
     return record_result(
-        task_id=task["id"],
+        task_id=task_id,
         exit_code=exit_code,
         stdout_tail=_tail(stdout),
         stderr_tail=_tail(stderr),
