@@ -34,6 +34,14 @@ def app_client() -> httpx.Client:
     Resets the in-memory task repository before each test so cases are
     order-independent: pagination tests assert specific page sizes against
     a clean store, not whatever previous tests left behind.
+
+    A default X-API-Key header is included so the FR-03 auth boundary
+    (mounted globally on the /v1 router) does not reject these FR-01 cases
+    with 401 — FR-01 test bodies make no claim about auth, they only
+    exercise CRUD semantics. The placeholder key is fine because the auth
+    dependency only checks for header presence at this layer; full key
+    validation lives in service.auth.verify_key and is not exercised by
+    FR-01.
     """
     app.state.task_service._repository._tasks.clear()
     app.state.task_service._repository._ordered_ids.clear()
@@ -41,6 +49,7 @@ def app_client() -> httpx.Client:
     return httpx.Client(
         transport=httpx.ASGITransport(app=app),
         base_url="http://testserver",
+        headers={"X-API-Key": "fr01-fixture-placeholder"},
     )
 
 

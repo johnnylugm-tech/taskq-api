@@ -68,6 +68,11 @@ def app_client() -> httpx.Client:
     Mirrors the fixture used by ``test_fr01.py`` so the per-test repository
     reset is mechanical and order-independent: every FR-02 case starts from
     a clean store regardless of the order pytest collected earlier cases.
+
+    A default X-API-Key header is included so the FR-03 auth boundary
+    (mounted globally on the /v1 router) does not reject these FR-02 cases
+    with 401 — FR-02 test bodies make no claim about auth, they only
+    exercise the task-run semantics.
     """
     repository = app.state.task_service._repository
     if hasattr(repository, "_tasks"):
@@ -81,6 +86,7 @@ def app_client() -> httpx.Client:
     return httpx.Client(
         transport=httpx.ASGITransport(app=app),
         base_url="http://testserver",
+        headers={"X-API-Key": "fr02-fixture-placeholder"},
     )
 
 
