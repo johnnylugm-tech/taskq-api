@@ -10,6 +10,8 @@ from taskq_api.errors import ConflictProblem, NotFoundProblem
 from taskq_api.models.schemas import TaskCreate
 from taskq_api.repository.task_repo import TaskRepository
 
+_TASK_NOT_FOUND_DETAIL = "Task not found"
+
 
 class TaskService:
     """Coordinate task CRUD and uniqueness rules. [FR-01]
@@ -36,7 +38,7 @@ class TaskService:
         """
         task = self._repository.get(task_id)
         if task is None:
-            raise NotFoundProblem("Task not found")
+            raise NotFoundProblem(_TASK_NOT_FOUND_DETAIL)
         return task
 
     def list_by_cursor(
@@ -55,4 +57,4 @@ class TaskService:
         Citations: SPEC.md lines 84, 89.
         """
         if not self._repository.delete(task_id):
-            raise NotFoundProblem("Task not found")
+            raise NotFoundProblem(_TASK_NOT_FOUND_DETAIL)
