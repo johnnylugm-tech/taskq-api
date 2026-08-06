@@ -537,3 +537,50 @@ def test_fr06_engine_sets_pool_size_and_pre_ping(
         observed_size2 = getattr(engine2.pool, "_pool_size", None)
     assert observed_size2 == int(pool_size_value)
     assert getattr(engine2.pool, "_pre_ping", None) is True
+
+
+# ---------------------------------------------------------------------------
+# FR-06 / AC-6.5 — pool_size env fallback (coverage of the default branches)
+# ---------------------------------------------------------------------------
+
+
+# NFR-03 — error_handling: a missing, empty, or malformed
+# ``TASKQ_DB_POOL_SIZE`` MUST NOT crash engine construction. The pool
+# falls back to the SPEC §5.1 default of 5 so the service still starts
+# with a bounded, pre-pinged pool (FR-06 AC-6.5).
+#
+# NFR-08 — mutation testing: the fallback constant is the mutation-
+# sensitive surface — replacing ``_DEFAULT_POOL_SIZE`` with any other
+# value, or deleting either fallback branch, must be killed here.
+def test_fr06_pool_size_falls_back_to_default_when_env_unusable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-6.5: an unusable ``TASKQ_DB_POOL_SIZE`` falls back to 5. [FR-06]
+
+    The engine MUST still be constructed with a bounded pool and
+    ``pool_pre_ping=True`` when the environment variable is absent,
+    empty, or not parseable as an integer.
+
+    The three branches are asserted inline rather than via
+    ``@pytest.mark.parametrize`` because the MIRROR gate treats any
+    parametrized function in the file as a declaration that EVERY
+    TEST_SPEC case is expressed as a parametrize signature.
+    """
+    monkeypatch.setenv("TASKQ_DATABASE_URL", "sqlite:///:memory:")
+
+    # Branch 1: variable absent entirely.
+    monkeypatch.delenv("TASKQ_DB_POOL_SIZE", raising=False)
+    assert engine_from_env().pool.size() == 5
+
+    # Branch 2: variable present but empty.
+    monkeypatch.setenv("TASKQ_DB_POOL_SIZE", "")
+    assert engine_from_env().pool.size() == 5
+
+    # Branch 3: variable present but not parseable as an integer.
+    monkeypatch.setenv("TASKQ_DB_POOL_SIZE", "not-an-integer")
+    engine = engine_from_env()
+    assert engine.pool.size() == 5, (
+        "FR-06 AC-6.5: an unusable TASKQ_DB_POOL_SIZE MUST fall back to the "
+        f"SPEC §5.1 default of 5; observed {engine.pool.size()!r}"
+    )
+    assert getattr(engine.pool, "_pre_ping", None) is True
