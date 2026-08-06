@@ -1,0 +1,72 @@
+{
+  "gate": 1,
+  "phase": 3,
+  "fr_id": "FR-01",
+  "overall_score": 100.0,
+  "quality_complete": true,
+  "rounds_used": 1,
+  "breakdown": {
+    "linting": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "All checks passed!\n"
+    },
+    "type_safety": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1785992008711\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 12,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 0.558\n    }\n}\n\n"
+    },
+    "test_coverage": {
+      "score": 100.0,
+      "threshold": 100,
+      "tests_passed": 10,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nplugins: benchmark-5.2.3, cov-7.1.0, anyio-4.14.2\ncollected 10 items\n============================== 10 passed in 0.34s ==================="
+    },
+    "architecture_constraints": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "lint-imports (PYTHONPATH=03-development/src) exit=0\n=============\nImport Linter\n=============\n\n---------\nContracts\n---------\n\nAnalyzed 12 files, 10 dependencies.\n-----------------------------------\n\nLayered architecture KEPT\n\nContracts: 1 kept, 0 broken."
+    }
+  },
+  "enforcer_sha": "6a206d6f57351dba8d71d0c685b9c225a180bbe2",
+  "enforcer_surface": {
+    "core/quality_gate": "cd3e9c32af6b31a4463dcdbc2d30abec9880eecb",
+    "harness/harness_bridge.py": "917682fefbee69794b515e6a14d47446416560af",
+    "harness/gate_configs": "ceaa48942d7a61abaa8d1612061f6a8868ad7c5b"
+  },
+  "evidence_digest": {
+    "linting": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "f0d0b1081d9d3ebb26c4c93543053ecdc0a58998f22c071dc4ddb26021b57645",
+      "bytes": 18,
+      "head": "All checks passed!"
+    },
+    "type_safety": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "52b97c86d22ee8fa23e8faa9b36d37361ff64c07b71608f27d31dba05d72f985",
+      "bytes": 250,
+      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1785992008711\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 12,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 0.558\n    }\n}"
+    },
+    "test_coverage": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "e970f96641bda0f8bfad5ed7f190d7847d53642d8b6422e33804bd1b6912761d",
+      "bytes": 500,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nplugins: benchmark-5.2.3, cov-7.1.0, anyio-4.14.2\ncollected 10 items\n============================== 10 passed in 0.34s ==================="
+    },
+    "architecture_constraints": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "3f2b4fdcd8450264dfc5a88b9a22e482ee69ba955eb0950cb87b8b880e8b8c62",
+      "bytes": 254,
+      "head": "lint-imports (PYTHONPATH=03-development/src) exit=0\n=============\nImport Linter\n=============\n\n---------\nContracts\n---------\n\nAnalyzed 12 files, 10 dependencies.\n-----------------------------------\n\nLayered architecture KEPT\n\nContracts: 1 kept, 0 broken."
+    }
+  },
+  "composite_score": 100.0,
+  "verdict": "PASS",
+  "passed": true
+}
