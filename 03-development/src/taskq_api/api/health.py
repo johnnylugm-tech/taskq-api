@@ -33,6 +33,7 @@ effect during the in-process tests.
 from __future__ import annotations
 
 import os
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -297,14 +298,11 @@ def _count_tasks_by_status(repository: Any | None = None) -> dict[str, int]:
             repository = app.state.task_service._repository
         except (AttributeError, KeyError):
             return {}
-    counts: dict[str, int] = {}
-    for task_id in getattr(repository, "_ordered_ids", []):
-        task = repository._tasks.get(task_id)
-        if not task:
-            continue
-        status = task.get("status", "unknown")
-        counts[status] = counts.get(status, 0) + 1
-    return counts
+    return dict(Counter(
+        task.get("status", "unknown")
+        for task_id in getattr(repository, "_ordered_ids", [])
+        if (task := repository._tasks.get(task_id)) is not None
+    ))
 
 
 def _percentile(sorted_values: list[float], percentile: float) -> float:
@@ -404,7 +402,7 @@ def _require_admin(
     return identity
 
 
-def _measures_response(
+def _readyz_response_body(
     request: Request,
     database_check: CheckResult,
     migration_check: CheckResult,
@@ -485,7 +483,7 @@ def readyz_route(request: Request) -> Any:
     are ok. AC-9.1 fail-closed: any probe failure surfaces as 503 with
     a body naming the failed check.
     """
-    return _measures_response(
+    return _readyz_response_body(
         request,
         check_database(),
         check_migration(),
@@ -494,7 +492,6 @@ def readyz_route(request: Request) -> Any:
 
 @router.get("/v1/metrics")
 def metrics_route(
-    request: Request,
     identity: ApiKeyIdentity = Depends(_require_admin),
 ) -> dict[str, object]:
     """Operational metrics — admin-scoped JSON snapshot. [FR-09]
@@ -503,12 +500,15 @@ def metrics_route(
 
     The ``_require_admin`` dependency layers the admin scope check
     INSIDE the ``require_api_key`` boundary so the route carries a
-    single ``Depends`` declaration (AC-4.3). The handler reads the
-    task store directly off the request's application state so the
-    snapshot reflects the test's per-fixture clear cycle.
+    single ``Depends`` declaration (AC-4.3). The snapshot is built
+    without an explicit ``Request`` because ``_count_tasks_by_status``
+    already falls back to ``app.state.task_service._repository`` when
+    the caller does not pass a repository — both the request handler
+    and the in-process test path share the same lookup, so a per-test
+    fixture reset of ``_tasks`` / ``_ordered_ids`` is reflected
+    regardless of which path runs.
     """
-    repository = request.app.state.task_service._repository
-    return metrics_snapshot(repository=repository)
+    return metrics_snapshot()
 
 
 __all__ = [
