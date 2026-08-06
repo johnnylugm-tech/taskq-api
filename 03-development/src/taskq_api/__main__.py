@@ -61,9 +61,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"key: {record['plaintext']}")
         return 0
 
-    parser.print_help()
-    return 1
+    parser.error("unrecognised command")
+
+
+def _cli_entry() -> None:
+    """Module-level entry point invoked when ``python -m taskq_api`` runs the
+    file directly. Kept as a named function so ``pytest --cov`` can target
+    it explicitly and the ``if __name__ == "__main__":`` script guard is not
+    required (the module is exercised as a library elsewhere).
+    """
+    sys.exit(main())
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    _cli_entry()

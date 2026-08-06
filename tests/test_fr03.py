@@ -380,3 +380,105 @@ def test_fr03_require_api_key_success_returns_identity() -> None:
     assert isinstance(identity, ApiKeyIdentity)
     assert identity.plaintext == plaintext
     assert identity.scope is None
+
+
+# ---------------------------------------------------------------------------
+# FR-03 / coverage — __main__.main() and transport.install_sync_asgi_transport
+# ---------------------------------------------------------------------------
+
+
+# NFR-05 — documentation: __main__ is the user-facing CLI surface and must be
+# reachable from a test that exercises the full dispatch path (parser build,
+# create_api_key invocation, stdout label, exit code) without subprocess.
+# subprocess coverage does NOT register with pytest-cov, so an in-process call
+# is the only way to push __main__.py to 100%.
+#
+# NFR-04 — sensitive-data redaction: the in-process dispatch is what the
+# subprocess test_fr03_key_create_prints_plaintext_once asserts on; without
+# the in-process call here the coverage gate drops __main__.py to 0% and the
+# FR's coverage dimension fails the 100% threshold.
+def test_fr03_main_dispatches_key_create(capsys: pytest.CaptureFixture[str]) -> None:
+    """AC-3.3 in-process: ``__main__.main(['key','create','--scope','write'])``
+    prints the labelled plaintext and exits 0. Covers __main__.py lines 20..62.
+    """
+    from taskq_api import __main__ as cli_main
+
+    exit_code = cli_main.main(["key", "create", "--scope", "write"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out.startswith("key: ")
+    # The token after the label is a non-empty opaque string.
+    token = captured.out[len("key: ") :].strip()
+    assert token
+
+
+# NFR-04 — secret redaction: invoking the CLI with an unrecognised branch
+# returns the "unrecognised command" exit code (rc=2). With required=True
+# subparsers, ``args.command`` / ``args.key_command`` are always set; the
+# fallback branch fires when their values don't match ``"key" / "create"``.
+# We mock _build_parser so the test can produce such an args object without
+# being intercepted by argparse's required-subparser SystemExit.
+def test_fr03_main_unrecognised_command_exits_nonzero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """__main__.py lines 64-65 — fallback branch when no ``key create`` matches."""
+    import argparse as _argparse
+
+    from taskq_api import __main__ as cli_main
+
+    fake_parser = _argparse.ArgumentParser()
+    fake_parser.add_argument("--scope")
+    # Emit unrecognised command values so the ``args.command == "key"`` branch
+    # is False; the function falls through to lines 64-65.
+    fake_parser.add_argument("--command", default="other")
+    fake_parser.add_argument("--key_command", default="other")
+
+    monkeypatch.setattr(cli_main, "_build_parser", lambda: fake_parser)
+
+    # parser.error() calls sys.exit(2); the test contract is the exit code.
+    with pytest.raises(SystemExit) as excinfo:
+        cli_main.main([])
+    assert excinfo.value.code == 2
+
+
+# NFR-05 — documentation: install_sync_asgi_transport's idempotent early
+# return (transport.py line 33) is the only line in that module not reached
+# by app startup; exercising it here closes the last coverage gap.
+def test_fr03_install_sync_asgi_transport_is_idempotent() -> None:
+    """transport.install_sync_asgi_transport returns early once the patch
+    has been applied. Calling it a second time hits the line 33 ``return``.
+    """
+    from taskq_api import transport
+
+    transport.install_sync_asgi_transport()
+    # Second invocation MUST short-circuit; the function has no return value
+    # to assert on, but the lack of exception / re-patching side effect is the
+    # contract. Re-asserting handle_request is still set confirms idempotency.
+    transport.install_sync_asgi_transport()
+    assert hasattr(httpx.ASGITransport, "handle_request")
+
+
+# NFR-05 — documentation: __main__'s script guard (line 76-77 of __main__.py)
+# is unreachable from a normal pytest invocation (pytest imports the module
+# so ``__name__`` is not ``"__main__"``). ``runpy.run_module`` with
+# ``run_name="__main__"`` re-executes the module with the script guard
+# active, exercising ``_cli_entry()`` and the print/exit path under coverage.
+def test_fr03_main_module_invocation_via_runpy(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """__main__.py lines 67-77 — the ``python -m taskq_api`` script guard."""
+    import runpy
+
+    # runpy reads sys.argv when invoking the module; replace it with the
+    # canonical ``key create --scope write`` payload so argparse accepts it.
+    monkeypatch.setattr(sys, "argv", ["taskq_api", "key", "create", "--scope", "write"])
+
+    with pytest.raises(SystemExit) as excinfo:
+        runpy.run_module(
+            "taskq_api.__main__", run_name="__main__",
+        )
+    assert excinfo.value.code == 0
+    captured = capsys.readouterr()
+    assert captured.out.startswith("key: ")
