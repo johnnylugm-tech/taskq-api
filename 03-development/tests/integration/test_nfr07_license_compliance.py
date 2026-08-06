@@ -1,0 +1,1 @@
+../../../tests/test_nfr07_license_compliance.py

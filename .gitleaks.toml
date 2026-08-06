@@ -1,0 +1,29 @@
+# gitleaks configuration for the taskq-api project.
+#
+# Allowlist rationale:
+#   - tests/ files contain deliberate fixture values. The strings carry
+#     obvious placeholder words ("fixture-key", "candidate-fixture-key",
+#     all-zero 64-hex) and exist ONLY to exercise the auth / hash boundary.
+#     They are not secrets: production key material never enters this
+#     repository.
+#   - 02-architecture/TEST_SPEC.md is documentation listing fixture inputs
+#     for traceability; the same placeholder rules apply.
+#   - Earlier commits (3b9e6ce3, e5c6dac8) added lines matching the
+#     generic-api-key rule. Subsequent commits (this round) rewrite those
+#     values to non-matching placeholders; rewriting alone cannot remove
+#     the matches from git history, hence the path-level allowlist.
+
+title = "taskq-api gitleaks config"
+
+[allowlist]
+paths = [
+  '''tests/test_fr\d+\.py$''',
+  '''02-architecture/TEST_SPEC\.md$''',
+]
+description = "test fixtures and traceability docs use obvious placeholder values; not secrets"
+regexes = [
+  '''fixture-key''',
+  '''candidate-fixture-key''',
+  '''sample-fixture-secret''',
+  '''"0"\s*\*\s*64''',
+]

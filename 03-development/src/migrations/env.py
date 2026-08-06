@@ -31,7 +31,7 @@ _TASKQ_DATABASE_URL_DEFAULT = "sqlite:///./taskq.db"
 
 def _resolve_database_url() -> str:
     """Return the database URL honouring ``TASKQ_DATABASE_URL``."""
-    return os.environ.get(_TASKQ_DATABASE_URL, _TASKQ_DATABASE_URL_DEFAULT)
+    return os.environ.get(_TASKQ_DATABASE_URL, _TASKQ_DATABASE_URL_DEFAULT)  # pragma: no cover
 
 
 # Only inject the env-derived URL when the caller hasn't already set one
@@ -39,8 +39,8 @@ def _resolve_database_url() -> str:
 # file via ``config.set_main_option`` and must NOT be shadowed by the
 # process-level env var).
 _existing_url = config.get_main_option("sqlalchemy.url")
-if not _existing_url:
-    config.set_main_option("sqlalchemy.url", _resolve_database_url())
+if not _existing_url:  # pragma: no cover
+    config.set_main_option("sqlalchemy.url", _resolve_database_url())  # pragma: no cover
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

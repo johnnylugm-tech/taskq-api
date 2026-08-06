@@ -1,0 +1,11 @@
+# gitleaks: known false positives (test fixtures + documentation placeholders).
+# Each entry is a `<file>:<rule>:<line>` fingerprint from a single scan;
+# the harness rerun verifies the fingerprint is stable across runs.
+# Entries below are deliberately distinct from real secrets: every fixture
+# carries an obvious token word (fixture / placeholder / sample / sk-once /
+# sk-secret-plain / the all-zero 64-hex) and never appears in production code.
+tests/test_fr01.py:generic-api-key:52
+tests/test_fr02.py:generic-api-key:88
+tests/test_fr03.py:generic-api-key:184
+02-architecture/TEST_SPEC.md:generic-api-key:124
+02-architecture/TEST_SPEC.md:generic-api-key:344

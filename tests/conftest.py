@@ -5,8 +5,8 @@
 The FR-04 GREEN wiring of ``require_api_key`` (see ``taskq_api.app``)
 made the X-API-Key dependency actually run on every ``/v1/*`` request.
 Earlier FR tests (``test_fr01``, ``test_fr02``, ``test_fr03``) carry
-placeholder key strings (``fr01-fixture-placeholder``,
-``fr02-fixture-placeholder``, ``sk-stub`` …) in their request
+placeholder key strings (``fr01-fixture-key``,
+``fr02-fixture-key``, ``sk-stub`` …) in their request
 headers. Without a registration hook those placeholders now surface
 as 403 "Insufficient scope" and break FR-01/FR-02 happy paths.
 
@@ -33,10 +33,10 @@ from taskq_api.api.deps import register_key, reset_buckets
 # with ``admin`` scope so the fixtures exercise both auth (FR-03) and
 # the scope hierarchy (FR-04).
 _FIXTURE_KEYS: tuple[str, ...] = (
-    "fr01-fixture-placeholder",
-    "fr02-fixture-placeholder",
+    "fr01-fixture-key",
+    "fr02-fixture-key",
+    "candidate-fixture-key",
     "sk-plaintext-never-stored",
-    "sk-secret-plain",
     "sk-once-print",
     "sk-revoked-example",
     "sk-active-example",

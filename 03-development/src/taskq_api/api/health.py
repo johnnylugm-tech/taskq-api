@@ -146,6 +146,15 @@ def head_revision() -> str | None:
             from alembic.script import ScriptDirectory
 
             config = Config(str(_ALEMBIC_INI))
+            # alembic resolves ``script_location`` (an INI setting) against
+            # the process cwd, not against the ini file's own directory —
+            # so a launch from a different cwd (e.g. mutmut's temp workdir)
+            # silently walks off-tree and returns None. Anchor the path to
+            # the project root (where the ini lives) before handing it to
+            # ScriptDirectory.
+            script_location = config.get_main_option("script_location") or _DEFAULT_SCRIPT_LOCATION
+            absolute_script_dir = _PROJECT_ROOT / script_location
+            config.set_main_option("script_location", str(absolute_script_dir))
             script_dir = ScriptDirectory.from_config(config)
             return script_dir.get_current_head()
         # Fallback: locate the script directory directly. The path is

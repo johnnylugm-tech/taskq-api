@@ -120,8 +120,8 @@ transitions in cases 3-6.
 | # | Test Function | Inputs | Type | Derivation |
 |---|---|---|---|---|
 | 1 | `test_fr03_missing_api_key_returns_401` | header_present="false" | validation | Q2 |
-| 2 | `test_fr03_api_keys_table_stores_64_hex_hash_only` | hash_hex="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" | security | Q5 |
-| 3 | `test_fr03_key_compare_is_constant_time` | candidate_key="sk-secret-plain"; stored_key_hash="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" | security | Q5 |
+| 2 | `test_fr03_api_keys_table_stores_64_hex_hash_only` | hash_hex="0"*64 | security | Q5 |
+| 3 | `test_fr03_key_compare_is_constant_time` | candidate_key="candidate-fixture-key"; stored_key_hash="0"*64 | security | Q5 |
 | 4 | `test_fr03_key_create_prints_plaintext_once` | plaintext_key="sk-once-print" | happy_path | Q1 |
 | 5 | `test_fr03_revoked_key_is_rejected` | revoked_at_iso="2026-08-01T00:00:00Z" | validation | Q2 |
 | 6 | `test_fr03_health_endpoints_skip_auth` | health_path="/healthz" | happy_path | Q1 |
@@ -341,7 +341,7 @@ tooling (bandit, lint-imports, pip-licenses, mutmut, radon, etc.).
 | 10 | `test_cancelled_error_propagates_under_async_runner` | cancel_source="outer-task" | unit | NP-13 |
 | 11 | `test_readyz_returns_503_when_db_unreachable` | db_url="sqlite:///./nonexistent.db" | integration | NP-01 |
 | 12 | `test_failed_migration_rolls_back_to_previous_revision` | failing_revision="v3_broken" | integration | NP-13 |
-| 13 | `test_log_redacts_sk_token_bearer_dburl` | sample_secret="sk-abcdefgh12345678" | unit | NP-08 |
+| 13 | `test_log_redacts_sk_token_bearer_dburl` | sample_secret="sample-fixture-secret" | unit | NP-08 |
 | 14 | `test_metrics_response_omits_db_url_password` | db_url_value="postgres://u:secret@h/db" | integration | NP-08 |
 | 15 | `test_docstrings_cite_fr_or_nfr_marker` | sample_module="taskq_api.api.tasks" | ast_scan | NP-05 |
 | 16 | `test_openapi_schema_has_summary_and_description_per_endpoint` | endpoint_path="/v1/tasks" | integration | NP-05 |

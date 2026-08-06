@@ -1,0 +1,28 @@
+{
+  "community_cohesion": {
+    "score": 100.0,
+    "healthy": 9,
+    "total": 9,
+    "total_all": 26,
+    "excluded_test_communities": 17,
+    "unhealthy": [],
+    "_cohesion_threshold": 0.15,
+    "_community_oversized": 50,
+    "_community_min_size": 5,
+    "_extra_excludes": [
+      ".claude/*",
+      "*.mjs",
+      ".sessi-work/*",
+      "harness/*"
+    ]
+  },
+  "large_functions_critical": [],
+  "large_functions_penalty": 0,
+  "architecture_score": 100.0,
+  "_source": "framework-independent",
+  "_graph_files": 38,
+  "_source_files": 40,
+  "_build_type": "build",
+  "_baseline_sha": "aba8bdc4c41862428789e0359d9bed85eeb40cc0",
+  "_baseline_phase": 3
+}

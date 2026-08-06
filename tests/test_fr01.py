@@ -49,7 +49,7 @@ def app_client() -> httpx.Client:
     return httpx.Client(
         transport=httpx.ASGITransport(app=app),
         base_url="http://testserver",
-        headers={"X-API-Key": "fr01-fixture-placeholder"},
+        headers={"X-API-Key": "fr01-fixture-key"},
     )
 
 
@@ -122,7 +122,20 @@ def test_fr01_get_unknown_id_returns_404(app_client: httpx.Client) -> None:
 
 # NFR-01 — performance: keyset pagination keeps page cost O(limit) regardless of depth
 # NFR-08 — mutation testing: cursor advancement must not rely on offset arithmetic
-def test_fr01_list_paginates_by_cursor_not_offset(app_client: httpx.Client) -> None:
+def test_fr01_list_paginates_by_cursor_not_offset(
+    app_client: httpx.Client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # FR-01 pagination test issues 51 POSTs to seed enough rows to
+    # exercise cursor walk across the 50-item default page. The default
+    # rate-limit burst (20) would 429 the loop; raise it for this test.
+    monkeypatch.setenv("TASKQ_RATE_BURST", "200")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "100")
+    # Reset and reseed buckets now that the env has been updated.
+    from taskq_api.api.deps import reset_buckets, register_key
+    reset_buckets()
+    register_key("fr01-fixture-key", "admin")
+
     cursor = "opaque-cursor"
     limit_value = "50"
     assert cursor != ""  # AC1.3-cursor-not-offset

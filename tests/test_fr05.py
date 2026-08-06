@@ -311,10 +311,6 @@ def test_fr05_bucket_update_holds_row_lock() -> None:
     metadata.create_all(engine)
 
     captured_sql: list[str] = []
-    sqlalchemy_engine = _sa.create_engine(
-        "sqlite:///:memory:",
-        listeners=[],
-    )
 
     with Session(engine) as session:
         session.execute(

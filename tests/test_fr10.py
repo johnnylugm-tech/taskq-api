@@ -501,8 +501,6 @@ def test_fr10_not_ready_problem_envelope() -> None:
     coverage gap on its ``__init__`` (line 125 of ``errors.py``) without
     coupling to FR-09's health probe wiring.
     """
-    from taskq_api.errors import NotReadyProblem
-
     problem = NotReadyProblem("dependency-not-met")
     assert problem.status == 503
     assert problem.title == "Not Ready"

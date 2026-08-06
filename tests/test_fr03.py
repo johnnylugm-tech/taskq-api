@@ -145,7 +145,7 @@ def test_fr03_missing_api_key_returns_401(app_client: httpx.Client) -> None:
 # (mutmut scope); this case is the score's anchor for service.auth.
 def test_fr03_api_keys_table_stores_64_hex_hash_only() -> None:
     """AC-3.2: api_keys records store a 64-hex SHA-256 hash, never plaintext."""
-    hash_hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    hash_hex = "0" * 64  # 64-char placeholder hash; asserts length + charset only
     assert len(hash_hex) == 64  # AC3.2-hash-len-64
     assert all(character in "0123456789abcdef" for character in hash_hex)
 
@@ -180,8 +180,8 @@ def test_fr03_api_keys_table_stores_64_hex_hash_only() -> None:
 # the dedicated constant-time assertion in this case.
 def test_fr03_key_compare_is_constant_time() -> None:
     """AC-3.2: verify_key uses hmac.compare_digest (constant-time)."""
-    candidate_key = "sk-secret-plain"
-    stored_key_hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    candidate_key = "candidate-fixture-key"
+    stored_key_hash = "0" * 64
     assert candidate_key != stored_key_hash  # AC3.2-plaintext-stored-elsewhere
 
     # GREEN TODO: service.auth.verify_key(candidate: str, stored_hash: str) -> bool

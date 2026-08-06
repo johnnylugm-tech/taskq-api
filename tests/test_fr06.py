@@ -270,13 +270,7 @@ def test_fr06_queries_are_orm_or_parameterised() -> None:
 
     # Regex: a SQL keyword at the start of a string, optionally followed
     # by a quoted continuation and a string-concatenation operator.
-    # Permits multi-line strings as long as the entire literal starts
-    # with a SQL keyword.
     sql_keyword = r"(?:SELECT|INSERT\s+INTO|UPDATE\s+\w+|DELETE\s+FROM|WHERE\s+)"
-    sql_concat_pattern = re.compile(
-        rf"""(['"fFrRbB]){sql_keyword}[^'"\\n]*""".replace("'", "'"),
-        re.IGNORECASE,
-    )
 
     # A simpler, more direct pattern: a string literal that begins with a
     # SQL keyword AND is concatenated with anything (``+`` / ``%`` /

@@ -299,8 +299,25 @@ class AsyncExecutor:
                     return await work_fut
                 finally:
                     self._inflight.pop(work_fut, None)
-        except* Exception as group_error:
-            raise group_error.exceptions[0] from None
+        # ``asyncio.TaskGroup`` re-raises a failed child as an
+        # ``ExceptionGroup`` (BaseException, not Exception — so a plain
+        # ``except Exception`` would silently let the group escape).
+        # We can't write ``except* Exception`` because mutmut 2.x's pinned
+        # parso predates Python 3.11's ``except*`` syntax and raises a
+        # ``ReservedString(*)`` KeyError on it; this block replicates the
+        # same semantics without using ``except*``:
+        #   * BaseExceptionGroup subclasses BaseException, so this branch
+        #     catches the group (and is the documented way to do it
+        #     without ``except*``).
+        #   * Single-child groups unwrap to the underlying error so
+        #     callers keep seeing the original exception.
+        # Mutating this branch (e.g. deleting ``.exceptions[0]``) breaks
+        # the unwrap; the FR-08 acceptance tests assert on the wrapped
+        # error type.
+        except BaseException as group_error:
+            if isinstance(group_error, BaseExceptionGroup):
+                raise group_error.exceptions[0] from None
+            raise
 
     async def _execute(
         self,

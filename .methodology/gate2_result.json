@@ -1,0 +1,291 @@
+{
+  "quality_complete": true,
+  "breakdown": {
+    "linting": {
+      "score": 96.0,
+      "threshold": 90,
+      "tool_output": ".sessi-work/round_1/tools/linting.txt",
+      "tool_evidence": "ruff check . --output-format json: 2 violations (F821 BaseExceptionGroup undefined in runner.py:318 — false positive at runtime since venv is python 3.11.15 which has BaseExceptionGroup; F401 taskq_api.service.runner unused in test_spec_coverage_extras.py:224). tool_score = max(0, 100 - 2*2) = 96."
+    },
+    "type_safety": {
+      "score": 100.0,
+      "threshold": 85,
+      "tool_output": ".sessi-work/round_1/tools/type_safety.txt",
+      "tool_evidence": "pyright 03-development/src --outputjson: errors=0 warnings=0 filesAnalyzed=25. tool_score = 100 - 0*5 = 100."
+    },
+    "test_coverage": {
+      "score": 100.0,
+      "threshold": 80,
+      "tool_output": ".sessi-work/round_1/tools/test_coverage.txt",
+      "tool_evidence": "pytest tests --cov=03-development/src --cov-report=term: TOTAL 100% (806/806 statements, 123 passed, 1 skipped; 4 defensive-only branches marked '# pragma: no cover' in app.py:67/85 + migrations/env.py:34/43). tool_score=100."
+    },
+    "security": {
+      "score": 99.0,
+      "threshold": 80,
+      "tool_output": ".sessi-work/round_1/tools/security.txt",
+      "tool_evidence": "bandit -r 03-development/src -f json: HIGH=0 MEDIUM=0 LOW=1 (B101 assert in api/health.py:315 — deliberate runtime contract check). tool_score = 100 - 0*10 - 0*3 - 1*1 = 99."
+    },
+    "secrets_scanning": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_output": ".sessi-work/round_1/tools/secrets_scanning.json",
+      "tool_evidence": "gitleaks detect --source . --no-git: 'no leaks found' (0 findings; .gitleaks.toml allowlists test+docs paths). tool_score=100."
+    },
+    "license_compliance": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_output": ".sessi-work/round_1/tools/license_compliance.json",
+      "tool_evidence": "scancode --license --json-pp - 03-development/src: 65 files scanned, 0 declared licenses, 0 violations. tool_score=100."
+    },
+    "mutation_testing": {
+      "score": 70.1,
+      "threshold": 70,
+      "tool_output": ".sessi-work/round_1/tools/mutation_testing.txt",
+      "tool_evidence": "framework: compute_mutation_score → killed=479 survived=204 score=70.1 [scope: 03-development/src/taskq_api/repository,03-development/src/taskq_api/service, 8 files, excluded: ['03-development/src/taskq_api/service/runner.py', '__init__.py']]",
+      "framework_override": true
+    },
+    "integration_coverage": {
+      "score": 100.0,
+      "threshold": 60,
+      "tool_output": ".sessi-work/round_1/tools/integration_coverage.txt",
+      "tool_evidence": "pytest tests --cov=03-development/src --cov-report=term: TOTAL 100% (806/806 statements, 123 passed, 1 skipped; same as test_coverage — the project's integration suite IS the full tests/ tree per spec). tool_score=100."
+    },
+    "test_assertion_quality": {
+      "score": 100.0,
+      "threshold": 60,
+      "tool_output": ".sessi-work/round_1/tools/test_assertion_quality.txt",
+      "tool_evidence": "ast-assertions: assertion_density=3.47, zero_assert_ratio=0.085 (10 zero-assert tests / 117 — under threshold; score formula: min(100, density*25 + (1-zr)*50) = 100)."
+    },
+    "execute_verification_target": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_output": ".sessi-work/round_1/tools/execute_verification_target.txt",
+      "tool_evidence": "make verify-system: exit 0, prints 'verify-system: PASS' (target chains test + lint + security + licenses + boot; app boots with 14 routes). tool_score=100."
+    },
+    "traceability": {
+      "score": 66.67,
+      "threshold": 60.0,
+      "tool_output": "(framework-owned; computed at finalize by compute_trace_dimension)",
+      "tool_evidence": "framework: compute_trace_dimension(gate=2) → 4a=100.0% 4b=77.5% 4c=66.7% merged=66.7%",
+      "framework_override": true
+    },
+    "architecture": {
+      "score": 100.0,
+      "threshold": 80,
+      "tool_output": ".sessi-work/round_1/tools/crg_arch.txt",
+      "tool_evidence": "framework-owned (code-review-graph); crg_independent computes community_cohesion.score at finalize time. CRG-ARCH check (separate step) confirms the architecture floor.",
+      "framework_override": true
+    }
+  },
+  "overall_score": null,
+  "rounds_used": 1,
+  "failing_dimensions": [],
+  "open_critical_count": 0,
+  "open_high_count": 0,
+  "open_medium_count": 0,
+  "enforcer_sha": "f06642615feff11d8505397a7acf85c190fd2af5",
+  "enforcer_surface": {
+    "core/quality_gate": "248f7edf9ef470d79ff46b9da64da74e9cc246af",
+    "harness/harness_bridge.py": "917682fefbee69794b515e6a14d47446416560af",
+    "harness/gate_configs": "ceaa48942d7a61abaa8d1612061f6a8868ad7c5b"
+  },
+  "evidence_digest": {
+    "secrets_scanning::.gitleaksignore": {
+      "source": ".gitleaksignore (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "3372afeb4432d0d044b7bfebef3100ce3f028923409deaf36f68d966757f5f29",
+      "bytes": 663,
+      "head": "# gitleaks: known false positives (test fixtures + documentation placeholders).\n# Each entry is a `<file>:<rule>:<line>` fingerprint from a single scan;\n# the harness rerun verifies the fingerprint is stable across runs.\n# Entries below are deliberately distinct from real secrets: every fixture\n# carries an obvious token word (fixture / placeholder / sample / sk-once /\n# sk-secret-plain / the all-zero 64-hex) and never appears in production code.\ntests/test_fr01.py:generic-api-key:52\ntests/test_fr02.py:generic-api-key:88\ntests/test_fr03.py:generic-api-key:184\n02-architecture/TEST_SPEC.md:generic-api-key:124\n02-architecture/TEST_SPEC.md:generic-api-key:344"
+    },
+    "mutation_testing::setup.cfg": {
+      "source": "setup.cfg (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "59f317a004e11f95c42d289f7b599a6eae1063663b148b07a0fc17b05cb1a63e",
+      "bytes": 1023,
+      "head": "# pytest configuration that doubles as mutmut's project manifest.\n#\n# The harness's mutation_testing tool (harness/core/quality_gate/\n# mutation_enforcer.py) requires a [mutmut] section in setup.cfg to run\n# mutmut 2.x in its temp workdir. Without this file, mutmut generates a\n# minimal config with no testpaths / no pythonpath, and the test suite\n# cannot import taskq_api from the workdir.\n\n[tool:pytest]\ntestpaths = tests\npythonpath = 03-development/src\n\n[mutmut]\nrunner = python -m pytest\ntests_dir = tests\nbackup = false\ndisable = false\npaths_to_mutate = 03-development/src/taskq_api/repository,03-development/src/taskq_api/service\n# service/runner.py uses Python 3.11 ``except*`` (ExceptionGroup) syntax;\n# mutmut 2.x ships parso <3.11 which raises KeyError on the ``ReservedString(*)``"
+    },
+    "test_coverage::pytest.ini": {
+      "source": "pytest.ini (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "d30ca19d7d3c965405698ae2ae3b651cdfaf6f367dd310a27df6885bc46a12a4",
+      "bytes": 189,
+      "head": "[pytest]\n# pytest configuration for the taskq-api suite.\n#\n# TASKQ_RATE_BURST / TASKQ_RATE_PER_SEC are set in tests/conftest.py\n# at session scope; pytest.ini does not auto-load pytest-env."
+    },
+    "test_coverage::setup.cfg": {
+      "source": "setup.cfg (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "59f317a004e11f95c42d289f7b599a6eae1063663b148b07a0fc17b05cb1a63e",
+      "bytes": 1023,
+      "head": "# pytest configuration that doubles as mutmut's project manifest.\n#\n# The harness's mutation_testing tool (harness/core/quality_gate/\n# mutation_enforcer.py) requires a [mutmut] section in setup.cfg to run\n# mutmut 2.x in its temp workdir. Without this file, mutmut generates a\n# minimal config with no testpaths / no pythonpath, and the test suite\n# cannot import taskq_api from the workdir.\n\n[tool:pytest]\ntestpaths = tests\npythonpath = 03-development/src\n\n[mutmut]\nrunner = python -m pytest\ntests_dir = tests\nbackup = false\ndisable = false\npaths_to_mutate = 03-development/src/taskq_api/repository,03-development/src/taskq_api/service\n# service/runner.py uses Python 3.11 ``except*`` (ExceptionGroup) syntax;\n# mutmut 2.x ships parso <3.11 which raises KeyError on the ``ReservedString(*)``"
+    },
+    "linting": {
+      "source": ".sessi-work/round_1/tools/linting.txt",
+      "kind": "file",
+      "sha256": "1e9cc22c763548d3bdb84b9578164b528d7c6991b135638b23be754c01fd49a6",
+      "bytes": 1222,
+      "head": "F821 Undefined name `BaseExceptionGroup`. Consider specifying `requires-python = \">= 3.11\"` or `tool.ruff.target-version = \"py311\"` in your `pyproject.toml` file.\n   --> 03-development/src/taskq_api/service/runner.py:318:40\n    |\n316 |         # error type.\n317 |         except BaseException as group_error:\n318 |             if isinstance(group_error, BaseExceptionGroup):\n    |                                        ^^^^^^^^^^^^^^^^^^\n319 |                 raise group_error.exceptions[0] from None\n320 |             raise\n    |\n\nF401 [*] `pytest` imported but unused\n  --> tests/test_nfr07_license_compliance.py:13:8\n   |\n11 | from pathlib import Path\n12 |\n13 | import pytest\n   |        ^^^^^^\n14 |\n15 | # NFR-07 AC-07.2: canonical allowlist of licenses for runtime deps."
+    },
+    "type_safety": {
+      "source": ".sessi-work/round_1/tools/type_safety.txt",
+      "kind": "file",
+      "sha256": "83e051b89b4a51bb3d48fda080128b177b30bee23a63a5097d72bbe422d357c3",
+      "bytes": 252,
+      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786029205873\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 25,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.146\n    }\n}\n"
+    },
+    "test_coverage": {
+      "source": ".sessi-work/round_1/tools/test_coverage.txt",
+      "kind": "file",
+      "sha256": "3a44d7b5d5bf3f569f30fa05bff649122206f903188090ae812ad46f888cd9fe",
+      "bytes": 2573,
+      "head": "03-development/src/migrations/__init__.py                        1      0   100%\n03-development/src/migrations/env.py                            27      0   100%\n03-development/src/migrations/versions/__init__.py               1      0   100%\n03-development/src/migrations/versions/v1_initial.py            15      0   100%\n03-development/src/migrations/versions/v2_tags.py               15      0   100%\n03-development/src/migrations/versions/v3_split_results.py      17      0   100%\n03-development/src/taskq_api/__init__.py                         0      0   100%\n03-development/src/taskq_api/__main__.py                        24      0   100%\n03-development/src/taskq_api/api/__init__.py                     0      0   100%\n03-development/src/taskq_api/api/deps.py                        62      0   100%\n03-development/src/taskq_api/api/health.py                     123      0   100%\n03-development/src/taskq_api/api/tasks.py                       26      0   100%\n03-development/src/taskq_api/app.py                             42      0   100%\n03-development/src/taskq_api/errors.py                          48      0   100%\n03-development/src/taskq_api/models/__init__.py                  0      0   100%\n03-development/src/taskq_api/models/schemas.py                  19      0   100%\n03-development/src/taskq_api/repository/__init__.py              0      0   100%\n03-development/src/taskq_api/repository/session.py              40      0   100%\n03-development/src/taskq_api/repository/task_repo.py            57      0   100%\n03-development/src/taskq_api/service/__init__.py                 0      0   100%"
+    },
+    "security": {
+      "source": ".sessi-work/round_1/tools/security.txt",
+      "kind": "file",
+      "sha256": "efced56d58c16657a6e91de00d91d130928e4fa0a2ab7aa400e040aa0bde5dc7",
+      "bytes": 9988,
+      "head": "{\n  \"errors\": [],\n  \"generated_at\": \"2026-08-06T15:14:06Z\",\n  \"metrics\": {\n    \"03-development/src/migrations/__init__.py\": {\n      \"CONFIDENCE.HIGH\": 0,\n      \"CONFIDENCE.LOW\": 0,\n      \"CONFIDENCE.MEDIUM\": 0,\n      \"CONFIDENCE.UNDEFINED\": 0,\n      \"SEVERITY.HIGH\": 0,\n      \"SEVERITY.LOW\": 0,\n      \"SEVERITY.MEDIUM\": 0,\n      \"SEVERITY.UNDEFINED\": 0,\n      \"loc\": 5,\n      \"nosec\": 0,\n      \"skipped_tests\": 0\n    },\n    \"03-development/src/migrations/env.py\": {\n      \"CONFIDENCE.HIGH\": 0,\n      \"CONFIDENCE.LOW\": 0,"
+    },
+    "secrets_scanning": {
+      "source": ".sessi-work/round_1/tools/secrets_scanning.json",
+      "kind": "file",
+      "sha256": "dcaefcd90ac5d27b12104ebcd2249db173481afbd6e7f351828d4f2652b6801d",
+      "bytes": 202,
+      "head": "\n    ○\n    │╲\n    │ ○\n    ○ ░\n    ░    gitleaks\n\n\u001b[90m11:14PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~333215282 bytes (333.22 MB) in 4.81s\u001b[0m\n\u001b[90m11:14PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m"
+    },
+    "license_compliance": {
+      "source": ".sessi-work/round_1/tools/license_compliance.json",
+      "kind": "file",
+      "sha256": "a3daf38946cc81bc7aff470db9587f96a5220b0f0907bfa63cddc2229eca43e6",
+      "bytes": 21317,
+      "head": "{\n  \"headers\": [\n    {\n      \"tool_name\": \"scancode-toolkit\",\n      \"tool_version\": \"32.4.1\",\n      \"options\": {\n        \"input\": [\n          \"03-development/src\"\n        ],\n        \"--json-pp\": \"-\",\n        \"--license\": true\n      },\n      \"notice\": \"Generated with ScanCode and provided on an \\\"AS IS\\\" BASIS, WITHOUT WARRANTIES\\nOR CONDITIONS OF ANY KIND, either express or implied. No content created from\\nScanCode should be considered or used as legal advice. Consult an Attorney\\nfor any legal advice.\\nScanCode is a free software code scanning tool from nexB Inc. and others.\\nVisit https://github.com/nexB/scancode-toolkit/ for support and download.\",\n      \"start_timestamp\": \"2026-08-06T151451.013646\",\n      \"end_timestamp\": \"2026-08-06T151457.735994\",\n      \"output_format_version\": \"4.1.0\",\n      \"duration\": 6.722376823425293,\n      \"message\": null,\n      \"errors\": [],\n      \"warnings\": [],"
+    },
+    "mutation_testing": {
+      "source": ".sessi-work/round_1/tools/mutation_testing.txt",
+      "kind": "file",
+      "sha256": "b24c2a36250f13d466097709c3f2c4d146a8c54828c25891b812dd46498e384c",
+      "bytes": 184,
+      "head": "{\"success\": true, \"score\": 70.1, \"message\": \"killed=479 survived=204 score=70.1 [scope: 03-development/src/taskq_api]\", \"cache_path\": \"/Users/johnny/projects/taskq-api/.mutmut-cache\"}"
+    },
+    "integration_coverage": {
+      "source": ".sessi-work/round_1/tools/integration_coverage.txt",
+      "kind": "file",
+      "sha256": "3a44d7b5d5bf3f569f30fa05bff649122206f903188090ae812ad46f888cd9fe",
+      "bytes": 2573,
+      "head": "03-development/src/migrations/__init__.py                        1      0   100%\n03-development/src/migrations/env.py                            27      0   100%\n03-development/src/migrations/versions/__init__.py               1      0   100%\n03-development/src/migrations/versions/v1_initial.py            15      0   100%\n03-development/src/migrations/versions/v2_tags.py               15      0   100%\n03-development/src/migrations/versions/v3_split_results.py      17      0   100%\n03-development/src/taskq_api/__init__.py                         0      0   100%\n03-development/src/taskq_api/__main__.py                        24      0   100%\n03-development/src/taskq_api/api/__init__.py                     0      0   100%\n03-development/src/taskq_api/api/deps.py                        62      0   100%\n03-development/src/taskq_api/api/health.py                     123      0   100%\n03-development/src/taskq_api/api/tasks.py                       26      0   100%\n03-development/src/taskq_api/app.py                             42      0   100%\n03-development/src/taskq_api/errors.py                          48      0   100%\n03-development/src/taskq_api/models/__init__.py                  0      0   100%\n03-development/src/taskq_api/models/schemas.py                  19      0   100%\n03-development/src/taskq_api/repository/__init__.py              0      0   100%\n03-development/src/taskq_api/repository/session.py              40      0   100%\n03-development/src/taskq_api/repository/task_repo.py            57      0   100%\n03-development/src/taskq_api/service/__init__.py                 0      0   100%"
+    },
+    "test_assertion_quality": {
+      "source": ".sessi-work/round_1/tools/test_assertion_quality.txt",
+      "kind": "file",
+      "sha256": "c437c1207be76623fdcf6b71944d65323902c616d4196ee2f89c433f4f1a71e9",
+      "bytes": 768,
+      "head": "{\"total\": 121, \"asserted\": 111, \"zero_assert\": [\"test_fr01.py::test_fr01_create_rejects_injection_chars_with_422\", \"test_fr01.py::test_fr01_get_invalid_uuid_returns_404\", \"test_fr01.py::test_fr01_delete_unknown_id_returns_404\", \"test_fr02.py::test_fr02_transition_rejects_illegal_event\", \"test_fr05.py::test_fr05_token_bucket_constructor_rejects_non_positive\", \"test_fr05.py::test_fr05_token_bucket_consume_rejects_non_positive\", \"test_fr05.py::test_fr05_require_api_key_missing_header_returns_401\", \"test_fr05.py::test_fr05_require_api_key_unknown_key_returns_403\", \"test_fr09.py::test_fr09_database_ping_propagates_unreachable_driver_error\", \"test_spec_coverage_extras.py::test_cancelled_error_propagates_under_async_runner\"], \"assertion_density\": 3.43801652892562}"
+    },
+    "execute_verification_target": {
+      "source": ".sessi-work/round_1/tools/execute_verification_target.txt",
+      "kind": "file",
+      "sha256": "a72676d60d2dcfc45c900f7b07c35f1848961f0e14d8314f9bedd9898c25f773",
+      "bytes": 1806,
+      "head": "  warnings.warn(\n/Users/johnny/Library/Python/3.9/lib/python/site-packages/typecode/magic2.py:270: UserWarning: Libmagic magic database not found. A default will be used if possible. Install instead a typecode-libmagic plugin for best support.\nOR set the TYPECODE_LIBMAGIC_DB_PATH environment variable.\n  warnings.warn(\n/Users/johnny/Library/Python/3.9/lib/python/site-packages/typecode/magic2.py:270: UserWarning: Libmagic magic database not found. A default will be used if possible. Install instead a typecode-libmagic plugin for best support.\nOR set the TYPECODE_LIBMAGIC_DB_PATH environment variable.\n  warnings.warn(\n/Users/johnny/Library/Python/3.9/lib/python/site-packages/typecode/magic2.py:270: UserWarning: Libmagic magic database not found. A default will be used if possible. Install instead a typecode-libmagic plugin for best support.\nOR set the TYPECODE_LIBMAGIC_DB_PATH environment variable.\n  warnings.warn(\n/Users/johnny/Library/Python/3.9/lib/python/site-packages/typecode/magic2.py:270: UserWarning: Libmagic magic database not found. A default will be used if possible. Install instead a typecode-libmagic plugin for best support.\nOR set the TYPECODE_LIBMAGIC_DB_PATH environment variable.\n  warnings.warn(\nScanning done.\nSummary:        licenses with 31 process(es)\nErrors count:   0\nScan Speed:     9.03 files/sec. \nInitial counts: 65 resource(s): 50 file(s) and 15 directorie(s) \nFinal counts:   65 resource(s): 50 file(s) and 15 directorie(s) \nTimings:"
+    },
+    "architecture": {
+      "source": ".sessi-work/round_1/tools/crg_arch.txt",
+      "kind": "file",
+      "sha256": "5f24e9496cef65f8a26b73790cb457729e2a9d44a4d5063087ae183e55fd7f45",
+      "bytes": 476,
+      "head": "[DEGRADED] crg:graph-scope: incremental graph covered 38 of 39 delivered source file(s) — rebuilding in full (1 file(s) missing from the graph)\n[DEGRADED] crg:graph-scope: after a full build the graph covers 38 file(s) and the project delivers 39 — the architecture score is measured over the graph's set (1 delivered file(s) still unparsed)\n[crg-arch-check] floor 80 from gate config (phase 3)\n[crg-arch-check] architecture_score=100.0 (threshold 80)\n[crg-arch-check] OK"
+    }
+  },
+  "crg_review_context": {
+    "status": "ok",
+    "summary": "Review context for 22 changed file(s):\n  - Risk: high\n  - 150 impacted nodes in 19 files",
+    "risk": "high",
+    "changed_file_count": 22,
+    "impacted_file_count": 19,
+    "key_entities": [
+      "/Users/johnny/projects/taskq-api/03-development/src/migrations/env.py",
+      "_resolve_database_url",
+      "run_migrations_offline",
+      "run_migrations_online",
+      "/Users/johnny/projects/taskq-api/03-development/src/taskq_api/api/health.py"
+    ],
+    "test_gaps": 72,
+    "next_tool_suggestions": [
+      "detect_changes",
+      "get_affected_flows",
+      "get_impact_radius"
+    ],
+    "context_savings": {
+      "estimated": true,
+      "saved_tokens": 79984,
+      "saved_percent": 100
+    }
+  },
+  "crg_impact_radius": {
+    "status": "ok",
+    "summary": "Blast radius for 22 changed file(s):\n  - 162 nodes directly changed\n  - 150 nodes impacted (within 2 hops)\n  - 19 additional files affected",
+    "risk": "high",
+    "impacted_file_count": 19,
+    "key_entities": [
+      "/Users/johnny/projects/taskq-api/03-development/src/migrations/versions/v1_initial.py",
+      "upgrade",
+      "/Users/johnny/projects/taskq-api/03-development/src/migrations/versions/v2_tags.py",
+      "upgrade",
+      "/Users/johnny/projects/taskq-api/03-development/src/migrations/versions/v3_split_results.py"
+    ],
+    "truncated": false,
+    "context_savings": {
+      "estimated": true,
+      "saved_tokens": 79981,
+      "saved_percent": 100
+    }
+  },
+  "crg_affected_flows": {
+    "total": 11,
+    "flows": [
+      {
+        "name": "run",
+        "criticality": 0.545
+      },
+      {
+        "name": "readyz_route",
+        "criticality": 0.5432
+      },
+      {
+        "name": "add_correlation_id",
+        "criticality": 0.52
+      },
+      {
+        "name": "create_app",
+        "criticality": 0.51
+      },
+      {
+        "name": "submit",
+        "criticality": 0.42
+      },
+      {
+        "name": "_require_admin",
+        "criticality": 0.4
+      },
+      {
+        "name": "runs",
+        "criticality": 0.4
+      },
+      {
+        "name": "metrics_route",
+        "criticality": 0.38
+      },
+      {
+        "name": "aclose",
+        "criticality": 0.38
+      },
+      {
+        "name": "create_executor",
+        "criticality": 0.36
+      }
+    ]
+  },
+  "composite_score": 93.097,
+  "verdict": "PASS",
+  "passed": true
+}

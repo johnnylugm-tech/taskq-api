@@ -1,0 +1,13 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "include": ["03-development/src", "tests"],
+  "exclude": [
+    ".venv",
+    "harness",
+    "00-summary",
+    "01-requirements",
+    "02-architecture",
+    "09-maintenance"
+  ]
+}

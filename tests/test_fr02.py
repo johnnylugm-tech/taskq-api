@@ -24,7 +24,6 @@ state, NOT a defect to mask.
 from __future__ import annotations
 
 import asyncio
-import uuid
 from typing import Any
 
 import httpx
@@ -86,7 +85,7 @@ def app_client() -> httpx.Client:
     return httpx.Client(
         transport=httpx.ASGITransport(app=app),
         base_url="http://testserver",
-        headers={"X-API-Key": "fr02-fixture-placeholder"},
+        headers={"X-API-Key": "fr02-fixture-key"},
     )
 
 
@@ -117,7 +116,6 @@ def _create_task(
 # NFR-11 — readability: handler is small and intent-named.
 def test_fr02_run_returns_202_with_run_id(app_client: httpx.Client) -> None:
     """AC-2.1: POST /v1/tasks/{id}/run returns 202 and a body containing run_id."""
-    task_id = "existing-task-uuid"
     scope_name = "write"
     assert scope_name == "write"  # AC2.1-scope-write-required
 
@@ -167,7 +165,11 @@ def test_fr02_spawns_via_exec_not_shell(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
 
     # GREEN TODO: service.runner.spawn_process(command: str) -> coroutine
-    result = asyncio.run(spawn_process("echo hi"))
+    # `spawn_process` is exercised for its side effect (the patched
+    # create_subprocess_exec captures argv / kwargs). The return value
+    # is intentionally discarded — the assertions below check the captured
+    # call, not the subprocess output.
+    asyncio.run(spawn_process("echo hi"))
 
     # shell=True is FORBIDDEN — neither present nor equal to True.
     assert "shell" not in captured["kwargs"] or captured["kwargs"].get("shell") is not True
