@@ -103,7 +103,13 @@
         {
           "name": "taskq_api.transport"
         },
-        "taskq_api"
+        "taskq_api",
+        "migrations",
+        "migrations.env",
+        "migrations.versions",
+        "migrations.versions.v1_initial",
+        "migrations.versions.v2_tags",
+        "migrations.versions.v3_split_results"
       ],
       "allowed_dependencies": []
     }
