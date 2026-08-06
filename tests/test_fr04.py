@@ -178,13 +178,13 @@ def test_fr04_403_body_does_not_reveal_resource_existence(
     # Implementation MUST raise ``Problem(403, ...)`` whose ``detail``
     # string does NOT include the path parameter (``resource_id``) the
     # caller passed in, and MUST NOT echo the URL path that was probed.
+    result = sentinel
     try:
-        result = dep(_Identity(token_scope=token_scope))
+        result = dep(_Identity(scope=token_scope))
     except Exception as exc:  # noqa: BLE001 — testing the failure branch
         problem = exc
     else:
         problem = None
-        result = sentinel
 
     # The dependency MUST have raised (not silently returned) when the
     # presented scope didn't satisfy the required scope.

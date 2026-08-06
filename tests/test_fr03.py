@@ -371,15 +371,25 @@ def test_fr03_require_api_key_success_returns_identity() -> None:
 
     Coverage gate: exercises ``deps.py`` line 66 (``return ApiKeyIdentity(...)``),
     the only line in the FR-03 modules that is not reached by the 401 case.
+
+    The FR-04 GREEN (``feat(FR-04): GREEN``) extended ``require_api_key``
+    with a registry lookup so unregistered keys surface as 403 (the
+    anti-enumeration guarantee demanded by AC-4.2). To exercise the
+    success return path the test now seeds the registry with the
+    plaintext it will present, then asserts the returned scope reflects
+    the seeded value.
     """
     plaintext = "sk-valid-plaintext"
+    from taskq_api.api.deps import register_key
+    register_key(plaintext, "admin")
+
     request = _StubRequest({"X-API-Key": plaintext})
 
     identity = require_api_key(request)  # type: ignore[arg-type]
 
     assert isinstance(identity, ApiKeyIdentity)
     assert identity.plaintext == plaintext
-    assert identity.scope is None
+    assert identity.scope == "admin"
 
 
 # ---------------------------------------------------------------------------

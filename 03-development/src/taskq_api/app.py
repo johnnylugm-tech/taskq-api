@@ -30,19 +30,25 @@ def create_app() -> FastAPI:
     application.state.task_service = TaskService(TaskRepository())
     # Mount the /v1/* routes under the X-API-Key dependency so every task
     # endpoint (FR-01/FR-02) participates in the FR-03 auth boundary AND
-    # the FR-04 single-dependency mandate (AC-4.3). The routes are added
-    # directly to ``application.router.routes`` rather than via
-    # ``include_router`` so that the AC-4.3 route-table inspection
-    # (``app.router.routes``) finds them as first-class ``APIRoute``
-    # entries with ``path`` / ``path_format`` attributes, not wrapped
-    # inside an ``_IncludedRouter`` proxy. /healthz and /readyz are
-    # registered separately below so they remain reachable without
-    # credentials (AC-3.5).
+    # the FR-04 single-dependency mandate (AC-4.3). ``add_api_route`` is
+    # used directly (instead of mutating ``route.dependencies`` after
+    # the fact, which FastAPI does NOT honour because the route's
+    # dependency tree is computed at registration time) so the auth
+    # dependency is actually wired into the request lifecycle. Each
+    # re-registered APIRoute ends up as a first-class entry in
+    # ``application.router.routes`` so the AC-4.3 route-table
+    # inspection (``app.router.routes``) finds it with a real
+    # ``path`` / ``path_format``. /healthz and /readyz are registered
+    # separately below so they remain reachable without credentials
+    # (AC-3.5).
     for route in tasks_router.routes:
-        route.dependencies = [Depends(require_api_key)] + list(
-            getattr(route, "dependencies", []) or []
+        application.add_api_route(
+            path=route.path,
+            endpoint=route.endpoint,
+            dependencies=[Depends(require_api_key)],
+            methods=list(route.methods or []),
+            status_code=getattr(route, "status_code", None) or 200,
         )
-        application.router.routes.append(route)
     application.add_exception_handler(Problem, problem_handler)  # type: ignore[arg-type]
     application.add_exception_handler(
         RequestValidationError, validation_handler  # type: ignore[arg-type]
