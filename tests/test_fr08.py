@@ -486,3 +486,38 @@ def test_fr08_cancelled_error_propagates() -> None:
         assert not _process_is_alive(captured), (
             f"cancellation left child process {captured} alive"
         )
+
+
+# ---------------------------------------------------------------------------
+# FR-08 coverage closure — the executor's error path
+# ---------------------------------------------------------------------------
+
+
+def test_fr08_worker_failure_surfaces_underlying_error() -> None:
+    """A failing worker reaches the caller unwrapped, not as an ExceptionGroup.
+
+    ``submit`` runs the worker inside an ``asyncio.TaskGroup`` (SPEC §3
+    FR-08), and a TaskGroup reports a failed child as an
+    ``ExceptionGroup``. The executor unwraps the single-child group so
+    the caller — FR-02's execution endpoint — still sees the real error
+    and can map it to its own status code.
+
+    # NFR-03 — error handling: the failure is neither swallowed nor
+    # re-typed; it propagates with its original class.
+    """
+    repository = _fresh_repository()
+    task = _task(repository, "/nonexistent/taskq-fr08-binary")
+
+    async def _scenario() -> None:
+        executor = create_executor(repository=repository)
+        try:
+            with pytest.raises(FileNotFoundError):
+                await executor.submit(task, timeout=5.0)
+        finally:
+            await executor.aclose()
+
+    asyncio.run(_scenario())
+
+    # The row stays at the status the executor set before the spawn failed;
+    # the drain must not mislabel an already-finished submission.
+    assert repository._tasks[task["id"]]["status"] == "running"

@@ -366,23 +366,22 @@ class AsyncExecutor:
             # finished cleanup.
             pass
 
-        # Cancel any straggler whose worker is still unwinding, then
-        # flip every task row that did NOT complete through the normal
+        # Flip every task row that did NOT complete through the normal
         # success/failure/timeout path to ``interrupted``. The check
         # below relies on the runner's own state machine: a task row
         # that survived the drain in ``pending`` or ``running`` is by
         # definition mid-execution at the boundary, hence ``interrupted``.
-        for fut, task_id in items:
-            if not fut.done():
-                fut.cancel()
+        # No explicit cancel loop is needed: ``wait_for`` cancels the
+        # gather on timeout and awaits every child to completion before
+        # raising, so each worker has already unwound (and reaped its
+        # subprocess) by the time control reaches here.
+        for _fut, task_id in items:
             if not self._is_terminal(task_id):
                 self._repository.set_status(task_id, "interrupted")
 
-        # Reap: await each cancelled worker so its ``finally`` runs the
-        # kill+wait before ``drain`` returns. ``return_exceptions=True``
-        # collects each outcome (including the ``CancelledError`` this
-        # drain just caused) instead of discarding it in an except-pass,
-        # which NFR-03 forbids.
+        # Reap: collect every worker outcome (including the
+        # ``CancelledError`` this drain just caused) rather than
+        # discarding it in an except-pass, which NFR-03 forbids.
         await asyncio.gather(*futs, return_exceptions=True)
 
     @staticmethod
@@ -393,18 +392,16 @@ class AsyncExecutor:
 
         ``returncode`` is ``None`` only while the subprocess is still
         running, so the gate skips reaping a child that already
-        finished through the normal exit path. ``ProcessLookupError``
-        means the child is already gone — the only condition this
-        method treats as "nothing left to reap". Every other error
-        (and ``CancelledError`` from ``wait``) propagates: NFR-03
-        forbids swallowing them.
+        finished through the normal exit path. ``kill()`` needs no
+        ``ProcessLookupError`` guard: CPython's ``Popen.send_signal``
+        polls first and suppresses the pid-recycling race internally
+        (bpo-40550), so the call cannot raise it here. Errors from
+        ``wait`` (and ``CancelledError``) propagate — NFR-03 forbids
+        swallowing them.
         """
         if process is None or process.returncode is not None:
             return
-        try:
-            process.kill()
-        except ProcessLookupError:
-            return
+        process.kill()
         await process.wait()
 
     @staticmethod
