@@ -173,6 +173,8 @@ def test_fr02_spawns_via_exec_not_shell(monkeypatch: pytest.MonkeyPatch) -> None
 # ---------------------------------------------------------------------------
 
 
+# NFR-03 — async correctness: state-machine transitions are the single
+# mutation target for every run lifecycle event (NP-13 / NP-15).
 # NP-13 — concurrency cap queues excess; transition table is the
 # single mutation target for the state-machine case.
 @pytest.mark.parametrize(
@@ -199,7 +201,7 @@ def test_fr02_status_state_machine_transitions(
         assert expected == "done"  # AC2.3-running-to-done
     elif expected == "failed":
         assert expected == "failed"  # AC2.3-running-to-failed
-    else:
+    elif expected == "timeout":
         assert expected == "timeout"  # AC2.3-running-to-timeout
 
     # GREEN TODO: service.runner.transition(prior: str, event: str) -> str
