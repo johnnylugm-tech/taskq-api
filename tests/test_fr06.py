@@ -140,6 +140,11 @@ def test_fr06_service_layer_holds_no_session() -> None:
 # is a context manager that commits on clean exit and rolls back when the
 # with-block raises (FR-06 AC-6.2).
 #
+# NFR-08 — mutation testing: ``taskq_api.repository.session`` is a
+# high-risk module (TRACEABILITY §5.3). The commit/rollback branch pair
+# below is the mutation-sensitive surface: swapping ``commit`` for
+# ``rollback`` (or dropping either) must be killed by this test.
+#
 # NFR-09 — testability: the test drives both branches (commit + rollback)
 # in a single in-memory SQLite session so the assertion observes the
 # behaviour through real SQLAlchemy rather than a mock. The test does NOT
