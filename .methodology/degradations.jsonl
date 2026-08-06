@@ -2,3 +2,6 @@
 {"ts": 1785995447.013182, "component": "fr-step-no-progress", "what": "FR-03 GATE1: 2 consecutive no-progress fix rounds (failure_class=LOW_COVERAGE)", "why": "identical tool signature across rounds: ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003 (exit 0):\nAll checks passed!\n\npytest tests/test_fr03.py -v --tb=short (exit 0):\n=="}
 {"ts": 1785996927.561663, "component": "agent:developer:3", "what": "wall-clock timeout at 600s", "why": ""}
 {"ts": 1785996927.639224, "component": "run-fr-step:TDD-GREEN", "what": "task_timeout escalated 600 -> 1200", "why": "FR-04 TDD-GREEN hit its wall-clock budget; re-dispatching at the same budget cannot finish what did not fit"}
+{"ts": 1786010065.2212281, "component": "agent:developer:3", "what": "wall-clock timeout at 600s", "why": ""}
+{"ts": 1786010065.3079581, "component": "run-fr-step:TDD-GREEN", "what": "task_timeout escalated 600 -> 1200", "why": "FR-05 TDD-GREEN hit its wall-clock budget; re-dispatching at the same budget cannot finish what did not fit"}
+{"ts": 1786010430.69337, "component": "run-fr-step:TDD-GREEN", "what": "max_turns escalated 40 -> 80", "why": "FR-05 TDD-GREEN was cut off at its turn ceiling; re-dispatching at the same ceiling cannot finish what did not fit"}

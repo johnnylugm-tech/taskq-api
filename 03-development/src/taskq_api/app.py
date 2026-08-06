@@ -1,7 +1,8 @@
 """TaskQ ASGI application.
 
-[FR-01] [FR-03]
-Citations: SPEC.md lines 79-91, 339; SPEC.md §3 FR-03 (AC-3.1, AC-3.5).
+[FR-01] [FR-03] [FR-05]
+Citations: SPEC.md lines 79-91, 339; SPEC.md §3 FR-03 (AC-3.1, AC-3.5);
+            SPEC.md §3 FR-05 (AC-5.1, AC-5.2, AC-5.4).
 """
 
 from __future__ import annotations
@@ -22,26 +23,31 @@ from taskq_api.transport import install_sync_asgi_transport
 
 
 def create_app() -> FastAPI:
-    """Build the task resource API. [FR-01] [FR-03] [FR-04]
+    """Build the task resource API. [FR-01] [FR-03] [FR-04] [FR-05]
 
     Citations: SPEC.md lines 79-91, 339; SPEC.md §3 FR-03 (AC-3.1, AC-3.5);
-                SPEC.md §3 FR-04 (AC-4.3).
+                SPEC.md §3 FR-04 (AC-4.3); SPEC.md §3 FR-05 (AC-5.1, AC-5.2, AC-5.4).
     """
     application = FastAPI(title="TaskQ API")
     application.state.task_service = TaskService(TaskRepository())
-    # Mount the /v1/* routes under the X-API-Key dependency so every task
-    # endpoint (FR-01/FR-02) participates in the FR-03 auth boundary AND
-    # the FR-04 single-dependency mandate (AC-4.3). ``add_api_route`` is
-    # used directly (instead of mutating ``route.dependencies`` after
-    # the fact, which FastAPI does NOT honour because the route's
-    # dependency tree is computed at registration time) so the auth
-    # dependency is actually wired into the request lifecycle. Each
+    # Mount the /v1/* routes under the X-API-Key + rate-limit dependency
+    # chain so every task endpoint (FR-01/FR-02) participates in the
+    # FR-03 auth boundary, the FR-04 single-dependency mandate (AC-4.3),
+    # AND the FR-05 per-token rate-limit enforcement (AC-5.1, AC-5.2).
+    # Auth and rate-limit are layered inside the SINGLE
+    # ``require_api_key`` boundary (see ``api.deps``) so the route
+    # declares only one dependency — AC-4.3 forbids a second
+    # ``Depends(rate_limit)`` on the route. ``add_api_route`` is used
+    # directly (instead of mutating ``route.dependencies`` after the
+    # fact, which FastAPI does NOT honour because the route's
+    # dependency tree is computed at registration time) so the
+    # dependency is wired into the request lifecycle. Each
     # re-registered APIRoute ends up as a first-class entry in
-    # ``application.router.routes`` so the AC-4.3 route-table
-    # inspection (``app.router.routes``) finds it with a real
-    # ``path`` / ``path_format``. /healthz and /readyz are registered
-    # separately below so they remain reachable without credentials
-    # (AC-3.5).
+    # ``application.router.routes`` so the AC-4.3 route-table inspection
+    # (``app.router.routes``) finds it with a real ``path`` /
+    # ``path_format``. /healthz and /readyz are registered separately
+    # below so they remain reachable without credentials (AC-3.5) and
+    # without the rate-limit bucket (AC-5.4).
     for route in tasks_router.routes:
         # ``tasks_router.routes`` may contain non-``APIRoute`` entries
         # (``Mount`` for sub-apps, etc.). FastAPI only exposes
