@@ -33,13 +33,11 @@ def verify_key(candidate: str, stored_hash: str) -> bool:
 
     ``hmac.compare_digest`` performs a length-equalized, time-equalized
     comparison that does not short-circuit on the first byte mismatch,
-    keeping the auth boundary resistant to timing attacks.
+    keeping the auth boundary resistant to timing attacks. The hex
+    digests passed in are ASCII, so the str-accepting overload is safe.
     """
     candidate_hash = hash_key(candidate)
-    return hmac.compare_digest(
-        candidate_hash.encode("utf-8"),
-        stored_hash.encode("utf-8"),
-    )
+    return hmac.compare_digest(candidate_hash, stored_hash)
 
 
 def create_api_key(scope: str) -> dict[str, object]:
