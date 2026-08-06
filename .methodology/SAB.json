@@ -21,7 +21,8 @@
         },
         {
           "name": "taskq_api.__main__"
-        }
+        },
+        "taskq_api.api"
       ],
       "allowed_dependencies": [
         "service",
@@ -44,7 +45,8 @@
         },
         {
           "name": "taskq_api.service.ratelimit"
-        }
+        },
+        "taskq_api.service"
       ],
       "allowed_dependencies": [
         "repository",
@@ -66,7 +68,8 @@
         },
         {
           "name": "taskq_api.repository.rate_repo"
-        }
+        },
+        "taskq_api.repository"
       ],
       "allowed_dependencies": [
         "models",
@@ -81,7 +84,8 @@
         },
         {
           "name": "taskq_api.models.schemas"
-        }
+        },
+        "taskq_api.models"
       ],
       "allowed_dependencies": [
         "independence"
@@ -95,7 +99,8 @@
         },
         {
           "name": "taskq_api.errors"
-        }
+        },
+        "taskq_api"
       ],
       "allowed_dependencies": []
     }
