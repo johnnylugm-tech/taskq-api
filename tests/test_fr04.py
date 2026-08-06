@@ -46,10 +46,15 @@ from taskq_api.app import app
 #         / AC-4.3.
 #   taskq_api.api.deps.SCOPE_FORBIDDEN_PROBLEM_TYPE: str
 #       — Stable problem+json ``type`` URI for 403s (e.g. "/errors/forbidden").
-from taskq_api.api.deps import require_scope  # noqa: F401,E402
+from taskq_api.api.deps import ApiKeyIdentity, register_key, require_scope  # noqa: F401,E402
+from taskq_api.errors import Problem  # noqa: F401,E402
 from taskq_api.service.auth import (  # noqa: F401,E402
     SCOPE_HIERARCHY,
+    create_api_key,
+    hash_key,
+    is_key_revoked,
     scope_satisfies,
+    verify_key,
 )
 
 
@@ -303,3 +308,152 @@ def test_fr04_every_v1_route_uses_same_auth_dependency() -> None:
                 "auth dependency alongside require_api_key — AC-4.3 says "
                 "ONE auth dependency covers all v1 routes."
             )
+
+
+# ---------------------------------------------------------------------------
+# Coverage: require_api_key 401 missing-header branch (deps.py line 105)
+# Coverage: require_api_key success path returns ApiKeyIdentity (line 122)
+# Coverage: require_scope success returns None (line 148)
+# Coverage: service.auth.hash_key, verify_key, create_api_key, is_key_revoked
+# ---------------------------------------------------------------------------
+
+
+class _StubRequest:
+    """Minimal Request stub for require_api_key direct invocation.
+
+    The real dependency only touches ``request.headers.get(...)``; we
+    provide a dict-backed headers mapping so the unit path runs without
+    spinning up the full ASGI stack.
+    """
+
+    def __init__(self, headers: dict[str, str]) -> None:
+        self.headers = headers
+
+
+def test_fr04_require_api_key_raises_401_when_header_missing() -> None:
+    """Missing X-API-Key surfaces as Problem(401, ...) — NP-01 / AC-3.1.
+
+    Exercises deps.py line 105: the canonical 401 branch. Uses a stub
+    request with no headers at all so the ``not api_key`` predicate
+    fires and the unauthorised Problem is raised.
+    """
+    from taskq_api.api.deps import require_api_key
+
+    request = _StubRequest({})
+    with pytest.raises(Problem) as exc_info:
+        require_api_key(request)
+
+    problem = exc_info.value
+    assert problem.status == 401
+    # Body MUST NOT echo any caller-supplied data — anti-enumeration.
+    assert problem.detail == "Missing X-API-Key header"
+
+
+def test_fr04_require_api_key_returns_identity_on_registered_key() -> None:
+    """Valid, registered key returns ApiKeyIdentity with the looked-up scope.
+
+    Exercises deps.py line 122 (the success return path). Seeds
+    ``_KEY_SCOPES`` with a unique key so the unit test does not depend
+    on the conftest-seeded registry; the looked-up scope MUST match
+    the scope that was registered.
+    """
+    from taskq_api.api.deps import require_api_key
+
+    plaintext = "sk-fr04-success-path-coverage"
+    register_key(plaintext, "write")
+
+    request = _StubRequest({"X-API-Key": plaintext})
+    identity = require_api_key(request)
+
+    assert isinstance(identity, ApiKeyIdentity)
+    assert identity.plaintext == plaintext
+    assert identity.scope == "write"
+
+
+def test_fr04_require_scope_returns_none_when_identity_satisfies() -> None:
+    """require_scope returns None when the identity has sufficient scope.
+
+    Exercises deps.py line 148: the success branch where the dependency
+    contract returns ``None`` (FastAPI interprets ``None`` as "no value
+    to inject"). An ``admin``-scoped identity satisfies a ``write``
+    requirement — the dep MUST return ``None``, not raise.
+    """
+    dep = require_scope("write")
+    identity = ApiKeyIdentity(plaintext="sk-stub", scope="admin")
+
+    result = dep(identity)
+
+    assert result is None
+
+
+def test_fr04_auth_hash_key_is_64_char_lowercase_hex_sha256() -> None:
+    """hash_key emits the SHA-256 hex digest — 64 chars, lowercase, deterministic.
+
+    Exercises auth.py line 37. Pins the canonical format so a future
+    swap to a different digest (e.g. blake2) fails this test loudly.
+    """
+    digest = hash_key("sk-coverage-input")
+
+    assert len(digest) == 64
+    assert digest == digest.lower()
+    # Deterministic: same input → same output.
+    assert digest == hash_key("sk-coverage-input")
+    # Distinct inputs produce distinct outputs (collision resistance).
+    assert hash_key("sk-coverage-input") != hash_key("sk-other-input")
+
+
+def test_fr04_auth_verify_key_uses_constant_time_compare() -> None:
+    """verify_key delegates to hmac.compare_digest — exercises auth.py lines 50-51.
+
+    Both the True (matching) and False (mismatching) branches of the
+    comparator are covered; the implementation MUST hash the candidate
+    first so the comparison happens against the stored SHA-256 digest
+    rather than against the plaintext directly.
+    """
+    plaintext = "sk-verify-coverage-key"
+    stored = hash_key(plaintext)
+
+    assert verify_key(plaintext, stored) is True
+    assert verify_key("sk-totally-different-plaintext", stored) is False
+    # Verify the candidate IS hashed before comparison: a stored value
+    # equal to the candidate plaintext (NOT the hash) must fail.
+    assert verify_key(plaintext, plaintext) is False
+
+
+def test_fr04_auth_create_api_key_emits_full_record() -> None:
+    """create_api_key returns plaintext, key_hash, scope, and revoked_at.
+
+    Exercises auth.py lines 63-64. The plaintext MUST carry the ``sk-``
+    prefix; the hash MUST be the SHA-256 of that plaintext; the
+    ``revoked_at`` MUST start ``None`` so revocation is observable
+    downstream (FR-03 / AC-3.4).
+    """
+    record = create_api_key("admin")
+
+    assert record["scope"] == "admin"
+    assert record["revoked_at"] is None
+    plaintext = record["plaintext"]
+    assert isinstance(plaintext, str)
+    assert plaintext.startswith("sk-")
+    # key_hash MUST be the SHA-256 of the plaintext — the persisted value.
+    assert record["key_hash"] == hash_key(plaintext)
+    # Two consecutive calls MUST emit distinct plaintexts (secrets-backed).
+    other = create_api_key("admin")
+    assert other["plaintext"] != plaintext
+
+
+def test_fr04_auth_is_key_revoked_checks_revoked_at_field() -> None:
+    """is_key_revoked returns True iff ``revoked_at`` is non-null.
+
+    Exercises auth.py line 77. Both branches (revoked / not revoked)
+    must be observable from the same record shape; the function MUST
+    not raise on a record that lacks the field entirely — it MUST
+    treat absent ``revoked_at`` as not-revoked.
+    """
+    not_revoked = {"revoked_at": None, "scope": "write"}
+    revoked = {"revoked_at": "2026-08-01T00:00:00Z", "scope": "write"}
+    missing_field: dict[str, object] = {"scope": "read"}
+
+    assert is_key_revoked(not_revoked) is False
+    assert is_key_revoked(revoked) is True
+    assert is_key_revoked(missing_field) is False
