@@ -1,7 +1,7 @@
 {
   "schema": "harness/traceability/attestation/v1",
-  "git_sha": "59363bd15532d18151850b39da95927d5ef2d1e2",
-  "content_sha256": "54b539ce197099da8990554262a14f8dbc44ee86fefe11a3779cd3287b628020",
+  "git_sha": "7c2e9c9a643a5908714dddbb15da7a4eb8056289",
+  "content_sha256": "cebf6669a393b33cb92efae1c74db8fab7bd8bbda665c1006b574c9ef0213c0e",
   "tool": "scripts/build_trace_attestation.py",
   "overlay_used": null,
   "overlay_errors": [],
@@ -14,7 +14,7 @@
       "code_coverage": "100.0%",
       "test_coverage": "100.0%",
       "verification_rate": "100.0%",
-      "total_links": 75,
+      "total_links": 112,
       "missing_mappings": {
         "fr_without_srs": [],
         "fr_without_code": [],
@@ -44,10 +44,14 @@
           "03-development/src/taskq_api/service/__init__.py",
           "03-development/src/taskq_api/service/tasks.py",
           "03-development/src/taskq_api/transport.py",
-          "tests/test_fr01.py"
+          "03-development/tests/integration/test_fr01.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py",
+          "tests/test_fr01.py",
+          "tests/test_spec_coverage_extras.py"
         ],
         "test_files": [
-          "tests/test_fr01.py"
+          "03-development/tests/integration/test_fr01.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py"
         ],
         "sad_module": "—",
         "priority": "HIGH"
@@ -61,10 +65,14 @@
           "03-development/src/taskq_api/repository/task_repo.py",
           "03-development/src/taskq_api/service/runner.py",
           "03-development/src/taskq_api/service/tasks.py",
-          "tests/test_fr02.py"
+          "03-development/tests/integration/test_fr02.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py",
+          "tests/test_fr02.py",
+          "tests/test_spec_coverage_extras.py"
         ],
         "test_files": [
-          "tests/test_fr02.py"
+          "03-development/tests/integration/test_fr02.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py"
         ],
         "sad_module": "—",
         "priority": "HIGH"
@@ -78,11 +86,13 @@
           "03-development/src/taskq_api/api/deps.py",
           "03-development/src/taskq_api/app.py",
           "03-development/src/taskq_api/service/auth.py",
+          "03-development/tests/integration/conftest.py",
+          "03-development/tests/integration/test_fr03.py",
           "tests/conftest.py",
           "tests/test_fr03.py"
         ],
         "test_files": [
-          "tests/test_fr03.py"
+          "03-development/tests/integration/test_fr03.py"
         ],
         "sad_module": "—",
         "priority": "HIGH"
@@ -95,11 +105,16 @@
           "03-development/src/taskq_api/api/deps.py",
           "03-development/src/taskq_api/app.py",
           "03-development/src/taskq_api/service/auth.py",
+          "03-development/tests/integration/conftest.py",
+          "03-development/tests/integration/test_fr04.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py",
           "tests/conftest.py",
-          "tests/test_fr04.py"
+          "tests/test_fr04.py",
+          "tests/test_spec_coverage_extras.py"
         ],
         "test_files": [
-          "tests/test_fr04.py"
+          "03-development/tests/integration/test_fr04.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py"
         ],
         "sad_module": "—",
         "priority": "HIGH"
@@ -113,11 +128,13 @@
           "03-development/src/taskq_api/app.py",
           "03-development/src/taskq_api/errors.py",
           "03-development/src/taskq_api/service/ratelimit.py",
+          "03-development/tests/integration/conftest.py",
+          "03-development/tests/integration/test_fr05.py",
           "tests/conftest.py",
           "tests/test_fr05.py"
         ],
         "test_files": [
-          "tests/test_fr05.py"
+          "03-development/tests/integration/test_fr05.py"
         ],
         "sad_module": "—",
         "priority": "HIGH"
@@ -128,10 +145,14 @@
         "srs_section": "SAD.md",
         "code_files": [
           "03-development/src/taskq_api/repository/session.py",
-          "tests/test_fr06.py"
+          "03-development/tests/integration/test_fr06.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py",
+          "tests/test_fr06.py",
+          "tests/test_spec_coverage_extras.py"
         ],
         "test_files": [
-          "tests/test_fr06.py"
+          "03-development/tests/integration/test_fr06.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py"
         ],
         "sad_module": "—",
         "priority": "HIGH"
@@ -147,10 +168,14 @@
           "03-development/src/migrations/versions/v1_initial.py",
           "03-development/src/migrations/versions/v2_tags.py",
           "03-development/src/migrations/versions/v3_split_results.py",
-          "tests/test_fr07.py"
+          "03-development/tests/integration/test_fr07.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py",
+          "tests/test_fr07.py",
+          "tests/test_spec_coverage_extras.py"
         ],
         "test_files": [
-          "tests/test_fr07.py"
+          "03-development/tests/integration/test_fr07.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py"
         ],
         "sad_module": "migrations/versions/v1_initial.py",
         "priority": "HIGH"
@@ -161,10 +186,14 @@
         "srs_section": "SAD.md",
         "code_files": [
           "03-development/src/taskq_api/service/runner.py",
-          "tests/test_fr08.py"
+          "03-development/tests/integration/test_fr08.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py",
+          "tests/test_fr08.py",
+          "tests/test_spec_coverage_extras.py"
         ],
         "test_files": [
-          "tests/test_fr08.py"
+          "03-development/tests/integration/test_fr08.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py"
         ],
         "sad_module": "—",
         "priority": "HIGH"
@@ -178,10 +207,14 @@
           "03-development/src/taskq_api/api/health.py",
           "03-development/src/taskq_api/app.py",
           "03-development/src/taskq_api/service/ratelimit.py",
-          "tests/test_fr09.py"
+          "03-development/tests/integration/test_fr09.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py",
+          "tests/test_fr09.py",
+          "tests/test_spec_coverage_extras.py"
         ],
         "test_files": [
-          "tests/test_fr09.py"
+          "03-development/tests/integration/test_fr09.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py"
         ],
         "sad_module": "migrations/env.py",
         "priority": "HIGH"
@@ -194,10 +227,14 @@
           "03-development/src/taskq_api/api/deps.py",
           "03-development/src/taskq_api/app.py",
           "03-development/src/taskq_api/errors.py",
-          "tests/test_fr10.py"
+          "03-development/tests/integration/test_fr10.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py",
+          "tests/test_fr10.py",
+          "tests/test_spec_coverage_extras.py"
         ],
         "test_files": [
-          "tests/test_fr10.py"
+          "03-development/tests/integration/test_fr10.py",
+          "03-development/tests/integration/test_spec_coverage_extras.py"
         ],
         "sad_module": "—",
         "priority": "HIGH"

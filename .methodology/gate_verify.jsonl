@@ -1,0 +1,1 @@
+{"ts": 1786031114.733112, "iso": "2026-08-06T15:45:14.733112+00:00", "gate": 2, "phase": 3, "git_sha": "7c2e9c9a643a5908714dddbb15da7a4eb8056289", "delivered_tree_sha256": "5cfcabf0f7ac62e2c1ac9a67f8706fb6c92a25cf34eea178fc0c92734522c213", "dimensions_disabled": [], "checks": {"last_gate_ok": true, "spec_coverage_rc": 0, "crg_rc": 0}, "verdict": "PASS"}
