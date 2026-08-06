@@ -474,6 +474,70 @@ def test_fr07_offline_sql_generation_matches_expected(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# FR-07 / AC-7.1 (in-process) — downgrade to base exercises every revision's
+# downgrade() under pytest-cov measurement
+# ---------------------------------------------------------------------------
+
+
+def test_fr07_in_process_downgrade_to_base_exercises_every_revision(
+    tmp_path: Path,
+) -> None:
+    """Cover v1_initial.downgrade() and v2_tags.downgrade() in-process.
+
+    The OUT-OF-PROCESS CLI test (``test_fr07_upgrade_head_then_downgrade_
+    base_exit_zero``) is the AC-7.1 acceptance criterion, but subprocess
+    coverage is zero. ``test_fr07_v3_round_trip_preserves_every_column``
+    only invokes ``downgrade -1`` (v3 -> v2), so v2_tags.downgrade() and
+    v1_initial.downgrade() are otherwise unreachable under in-process
+    measurement. This test calls ``command.downgrade(config, "base")``
+    in-process so pytest-cov observes every revision's downgrade path.
+    """
+    db_path = tmp_path / "ac71_inproc.db"
+    config = _alembic_config(db_path)
+
+    command.upgrade(config, "head")
+
+    conn = _connect(db_path)
+    try:
+        head_tables = _table_names(conn)
+    finally:
+        conn.close()
+    assert "tasks" in head_tables and "task_results" in head_tables, (
+        "sanity: `head` must materialise both v1 and v3 tables before "
+        f"downgrading; got {sorted(head_tables)}"
+    )
+
+    command.downgrade(config, "base")
+
+    conn = _connect(db_path)
+    try:
+        leftover = _table_names(conn) - {"alembic_version", "sqlite_sequence"}
+    finally:
+        conn.close()
+    assert leftover == set(), (
+        "in-process downgrade to `base` left tables behind: "
+        f"{sorted(leftover)}"
+    )
+
+    # Re-running upgrade head from the now-empty base must succeed and
+    # re-create every revision's schema. If any revision's downgrade did
+    # not really reverse its upgrade (a forbidden shortcut), this fails.
+    command.upgrade(config, "head")
+
+    conn = _connect(db_path)
+    try:
+        rebound = _table_names(conn)
+    finally:
+        conn.close()
+    assert {"tasks", "task_results", "api_keys", "rate_buckets", "tags"}.issubset(
+        rebound
+    ), (
+        "re-upgrade after base must restore every revision's tables; "
+        f"got {sorted(rebound)}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # FR-07 / AC-7.5 — real-database-file migration round-trip (NFR-09 anti-skip)
 # ---------------------------------------------------------------------------
 
