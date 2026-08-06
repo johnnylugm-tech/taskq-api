@@ -27,6 +27,21 @@ down_revision = "v2_tags"
 branch_labels = None
 depends_on = None
 
+# AC-7.4 — both data-move statements are written as bulk SQL so offline
+# ``--sql`` mode (no live connection to iterate over) emits the same copy.
+_COPY_RESULTS_TO_TASK_RESULTS_SQL = (
+    "INSERT INTO task_results (task_id, result_json) "
+    "SELECT id, result_json FROM tasks WHERE result_json IS NOT NULL"
+)
+_COPY_RESULTS_FROM_TASK_RESULTS_SQL = (
+    "UPDATE tasks "
+    "SET result_json = ("
+    "SELECT tr.result_json FROM task_results tr "
+    "WHERE tr.task_id = tasks.id"
+    ") "
+    "WHERE id IN (SELECT task_id FROM task_results)"
+)
+
 
 def upgrade() -> None:
     """Split ``tasks.result_json`` into ``task_results``. [FR-07]
@@ -38,13 +53,7 @@ def upgrade() -> None:
         sa.Column("task_id", sa.String(length=36), sa.ForeignKey("tasks.id"), primary_key=True),
         sa.Column("result_json", sa.Text(), nullable=True),
     )
-    # AC-7.4 — bulk SQL so offline `--sql` mode emits the same copy.
-    op.execute(
-        sa.text(
-            "INSERT INTO task_results (task_id, result_json) "
-            "SELECT id, result_json FROM tasks WHERE result_json IS NOT NULL"
-        )
-    )
+    op.execute(sa.text(_COPY_RESULTS_TO_TASK_RESULTS_SQL))
     op.drop_column("tasks", "result_json")
 
 
@@ -59,14 +68,5 @@ def downgrade() -> None:
     destroy the payload and fail the round-trip test.
     """
     op.add_column("tasks", sa.Column("result_json", sa.Text(), nullable=True))
-    op.execute(
-        sa.text(
-            "UPDATE tasks "
-            "SET result_json = ("
-            "SELECT tr.result_json FROM task_results tr "
-            "WHERE tr.task_id = tasks.id"
-            ") "
-            "WHERE id IN (SELECT task_id FROM task_results)"
-        )
-    )
+    op.execute(sa.text(_COPY_RESULTS_FROM_TASK_RESULTS_SQL))
     op.drop_table("task_results")
