@@ -10,8 +10,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 # NFR-07 AC-07.2: canonical allowlist of licenses for runtime deps.
 # Mirrors SPEC §4 NFR-07 bullets.
 NFR07_ALLOWED_LICENSES: frozenset[str] = frozenset(

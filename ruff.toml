@@ -1,0 +1,6 @@
+# ruff.toml — Project-level Ruff configuration.
+# Pinned to Python 3.11 (matches .venv); the project's BaseExceptionGroup
+# references require a target-version that recognises it (F821 otherwise
+# fires as a false positive at runtime where the venv's interpreter
+# actually has the symbol).
+target-version = "py311"

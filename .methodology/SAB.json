@@ -63,12 +63,6 @@
         {
           "name": "taskq_api.repository.task_repo"
         },
-        {
-          "name": "taskq_api.repository.key_repo"
-        },
-        {
-          "name": "taskq_api.repository.rate_repo"
-        },
         "taskq_api.repository"
       ],
       "allowed_dependencies": [
@@ -79,9 +73,6 @@
     {
       "name": "models",
       "modules": [
-        {
-          "name": "taskq_api.models.orm"
-        },
         {
           "name": "taskq_api.models.schemas"
         },
@@ -94,9 +85,6 @@
     {
       "name": "independence",
       "modules": [
-        {
-          "name": "taskq_api.config"
-        },
         {
           "name": "taskq_api.errors"
         },

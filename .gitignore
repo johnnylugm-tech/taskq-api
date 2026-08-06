@@ -8,6 +8,8 @@
 .methodology/sessions_spawn.log
 .methodology/sessions_spawn.log.lock
 .methodology/.mutation_exclusive.lock
+.methodology/gate_verify.jsonl
+.methodology/degradations.jsonl
 .harness/traces/
 .venv/
 venv/

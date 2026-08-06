@@ -221,8 +221,6 @@ def test_cancelled_error_propagates_under_async_runner() -> None:
     # [FR-08]
     import asyncio
 
-    from taskq_api.service import runner
-
     async def _cancelled() -> None:
         raise asyncio.CancelledError()
 
