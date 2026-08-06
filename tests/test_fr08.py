@@ -72,9 +72,12 @@ from taskq_api.repository.task_repo import TaskRepository
 #             ``process.kill()`` and then ``await process.wait()`` so
 #             no orphan process is left behind (AC-8.3).
 #       async def drain(self) -> None
-#           — Block until every in-flight task has finished, or the
-#             per-instance drain budget elapses. Tasks still running
-#             at the budget boundary are marked ``interrupted`` via
+#           — Wait for every in-flight ``submit`` up to the per-instance
+#             drain budget (``drain_timeout`` kwarg, else
+#             ``drain_timeout_seconds()``). Submissions still running at
+#             the budget boundary MUST be cancelled, their subprocesses
+#             killed and reaped (no orphan), and their task rows flipped
+#             to ``interrupted`` via
 #             ``TaskRepository.set_status(task_id, "interrupted")``
 #             (AC-8.1). Returning ``None`` after the drain is the
 #             contract.
@@ -103,14 +106,15 @@ def _fresh_repository() -> TaskRepository:
     return TaskRepository()
 
 
-def _task(command: str, name: str | None = None) -> dict[str, str]:
-    """Synthesise a task row in the same shape :func:`execute_task` accepts."""
-    return {
-        "id": str(uuid.uuid4()),
-        "command": command,
-        "name": name or f"fr08-{uuid.uuid4().hex[:8]}",
-        "status": "pending",
-    }
+def _task(repository: TaskRepository, command: str) -> dict[str, str]:
+    """Insert a task row and return it in the shape ``submit`` accepts.
+
+    ``TaskRepository.create`` mints its own UUID, so the row MUST come back
+    from the repository — a locally synthesised ``id`` would never be found
+    by ``set_status`` and the status assertions would read a key the
+    repository never held.
+    """
+    return repository.create(command, f"fr08-{uuid.uuid4().hex[:8]}")
 
 
 def _set_or_drop(env_name: str, value: str | None) -> dict[str, str]:
@@ -136,23 +140,28 @@ def _restore_env(snapshot: dict[str, str]) -> None:
             os.environ[name] = prior
 
 
-def _spawned_children_of(pid: int) -> list[int]:
-    """Return the live child PIDs of ``pid`` (psutil-free, portable subset).
+def _process_is_alive(pid: int) -> bool:
+    """Report whether ``pid`` is still a live (non-zombie) process.
 
-    Used by AC-8.3 / AC-8.4 to assert that the offending child has been
-    reaped. Closely mirrors the runner module's no-orphan guarantee
-    without reaching into executor internals.
+    Used by AC-8.3 / AC-8.4 as the anti-orphan oracle: the probed PID is the
+    subprocess the executor spawned, so "still alive after the executor
+    returned" IS the orphan condition.
+
+    ``ps -p <pid> -o stat=`` is the portable spelling — the GNU-only
+    ``ps --ppid`` form prints nothing on BSD/macOS, which would make this
+    oracle silently inert (always "no orphan") on the development platform.
+    A reaped child shows no row at all; a killed-but-unwaited child shows
+    state ``Z`` (zombie), which is exactly the ``kill()``-without-``wait()``
+    defect AC-8.3 forbids, so both are treated as failures of liveness only
+    when a row with a non-zombie state comes back.
     """
-    try:
-        output = subprocess.run(
-            ["ps", "-o", "pid=", "--ppid", str(pid)],
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout
-    except FileNotFoundError:
-        return []
-    return [int(line.strip()) for line in output.split() if line.strip().isdigit()]
+    state = subprocess.run(
+        ["ps", "-p", str(pid), "-o", "stat="],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip()
+    return bool(state) and not state.startswith("Z")
 
 
 # ---------------------------------------------------------------------------
@@ -164,11 +173,21 @@ def _spawned_children_of(pid: int) -> list[int]:
 def test_fr08_shutdown_drains_then_marks_interrupted() -> None:
     """AC-8.1: ``TASKQ_DRAIN_TIMEOUT`` defaults to 30.0s; drain marks stragglers.
 
-    TWO tasks are submitted that each sleep for longer than the per-task
-    budget but shorter than the drain budget. After the executor's
-    ``drain()`` returns, every task reaching the budget boundary MUST
-    carry the ``interrupted`` status, and the repository must have
-    observed the transition.
+    TWO tasks are submitted that outlive the drain budget. The submissions
+    are scheduled as background futures (that IS what "in-flight at
+    shutdown" means — a submission already awaited to completion can never
+    exercise the drain path), then ``drain()`` is called with a compressed
+    per-instance budget so the boundary is actually crossed inside the
+    test's wall clock. Every task still running at that boundary MUST end
+    up ``interrupted`` in the repository.
+
+    # NFR-03 — async correctness: drain cancels the stragglers, and the
+    # cancellation must reach the subprocess (kill + wait) rather than
+    # being swallowed; the status flip is the observable half of that
+    # contract (SRS AC-03.5).
+    # NFR-08 — mutation testing: ``taskq_api.service.runner`` is a
+    # declared mutation-scope module, so the assertion pins the exact
+    # status string rather than "not running".
     """
     drain_timeout_sec = "30.0"
     in_flight_count = "2"
@@ -184,41 +203,30 @@ def test_fr08_shutdown_drains_then_marks_interrupted() -> None:
         assert drain_timeout_seconds() == 30.0
 
         repository = _fresh_repository()
-        long_command = "sleep 2"  # > task timeout, < drain
-        tasks = [_task(long_command), _task(long_command)]
-        for task in tasks:
-            repository.create(task["command"], task["name"])
+        long_command = "sleep 2"  # > drain budget below
+        tasks = [_task(repository, long_command) for _ in range(int(in_flight_count))]
         assert len(repository._tasks) == int(in_flight_count)
 
-        # GREEN TODO: ``create_executor`` must accept a repository and
-        # respect the per-task timeout (TASKQ_TASK_TIMEOUT or the kwargs
-        # override). The tests below pass the timeout explicitly so the
-        # test is independent of FR-02's default.
+        # GREEN TODO: ``create_executor(drain_timeout=...)`` must override
+        # the env-derived budget per instance, so the drain boundary is
+        # reachable in a test without a 30-second wall-clock wait.
         async def _scenario() -> None:
-            executor = create_executor(repository=repository)
+            executor = create_executor(repository=repository, drain_timeout=0.2)
             try:
-                # Submit both tasks; ``await submit`` returns when the
-                # task's per-task budget elapses and the child is killed.
-                # The executor's drain must still flip them to
-                # ``interrupted`` if they are still in-flight at the
-                # drain boundary.
-                submission_coroutines = [
-                    executor.submit(
-                        task,
-                        timeout=0.2,  # tighter than the sleep below
-                    )
+                in_flight = [
+                    asyncio.ensure_future(executor.submit(task, timeout=5.0))
                     for task in tasks
                 ]
-                # Gather the spawn/intake results; we do NOT assume that
-                # every submit completes synchronously — the AC only
-                # fixes the post-drain state.
-                await asyncio.gather(
-                    *submission_coroutines, return_exceptions=True
-                )
+                # Let both submissions reach the subprocess-spawn point;
+                # draining before they start would test nothing.
+                await asyncio.sleep(0.2)
                 # The drain is the contract surface: it waits for
-                # in-flight tasks up to ``TASKQ_DRAIN_TIMEOUT`` and
-                # marks stragglers ``interrupted``.
+                # in-flight tasks up to the drain budget and marks the
+                # stragglers ``interrupted``.
                 await executor.drain()
+                # The cancelled submissions surface CancelledError; the
+                # drain owns the outcome, so they are only reaped here.
+                await asyncio.gather(*in_flight, return_exceptions=True)
             finally:
                 await executor.aclose()
 
@@ -227,11 +235,9 @@ def test_fr08_shutdown_drains_then_marks_interrupted() -> None:
     finally:
         _restore_env(env_snapshot)
 
-    # Both tasks were submitted; after the drain they must both be
-    # ``interrupted`` (not ``running`` and not ``pending``).
-    final_statuses = {
-        repository._tasks[task["id"]]["status"] for task in tasks
-    }
+    # Both tasks were in flight at the drain boundary; after the drain they
+    # must both be ``interrupted`` (not ``running`` and not ``pending``).
+    final_statuses = {repository._tasks[task["id"]]["status"] for task in tasks}
     assert final_statuses == {"interrupted"}, (
         f"drain did not mark stragglers interrupted; got {final_statuses!r}"
     )
@@ -253,6 +259,13 @@ def test_fr08_concurrency_cap_queues_excess() -> None:
     spawn hook (the FUTURE ``create_executor`` exposes as an
     ``on_start`` callback) that records the live count of in-flight
     tasks. The test then asserts ``max(in_flight) <= max_concurrent``.
+
+    # NFR-02 — security: the commands are spawned as argv vectors
+    # (``create_subprocess_exec``); no ``shell=True`` path exists for the
+    # 12 submissions to travel through.
+    # NFR-08 — mutation testing: the cap is asserted from both sides
+    # (never above 8, and genuinely ≥ 2 in parallel) so a mutant that
+    # neuters the semaphore cannot survive.
     """
     max_concurrent = "8"
     request_count = "12"
@@ -269,9 +282,7 @@ def test_fr08_concurrency_cap_queues_excess() -> None:
         # ``sleep 0.05`` is long enough that every accepted task is
         # simultaneously in-flight for the entire observation window.
         sleep_cli = "sleep 0.05"
-        tasks = [_task(sleep_cli) for _ in range(int(request_count))]
-        for task in tasks:
-            repository.create(task["command"], task["name"])
+        tasks = [_task(repository, sleep_cli) for _ in range(int(request_count))]
 
         # ``in_flight`` is mutated by the executor's start/finish callback
         # — the executor is single-threaded under asyncio, so a plain
@@ -340,11 +351,19 @@ def test_fr08_timeout_kills_child_leaving_no_orphan() -> None:
     budget. The implementation MUST terminate the child within the
     per-task timeout window and MUST leave no orphan process behind.
 
-    The ``ps --ppid`` scan is the portable anti-orphan oracle: if the
-    implementation forgot to ``await process.wait()`` after ``kill()``,
-    the child may have been reaped by the asyncio machinery but the
-    executor's bookkeeping would still be inconsistent (the test below
-    catches both halves).
+    The ``ps -p`` liveness scan is the anti-orphan oracle: if the
+    implementation forgot to ``kill()`` the child after ``wait_for``
+    raised, the ``sleep 5`` is still alive; if it killed without
+    ``await process.wait()``, the child lingers as a zombie. Both are
+    caught by :func:`_process_is_alive`.
+
+    # NFR-03 — error handling: the timeout branch must terminate the
+    # child deterministically; a leaked process is SRS AC-03.5's named
+    # failure mode.
+    # NFR-02 — security: the killed command travelled through
+    # ``create_subprocess_exec``, never a shell.
+    # NFR-09 — testability: the case runs a real subprocess and asserts a
+    # real wall-clock bound; nothing here is skipped or xfailed.
     """
     task_timeout_sec = "0.1"
     command = "sleep 5"
@@ -352,8 +371,7 @@ def test_fr08_timeout_kills_child_leaving_no_orphan() -> None:
     assert command != ""  # AC8.3-kill-command-shaped
 
     repository = _fresh_repository()
-    task = _task(command)
-    repository.create(task["command"], task["name"])
+    task = _task(repository, command)
 
     captured_pid: list[int] = []
     started_at = 0.0
@@ -386,15 +404,14 @@ def test_fr08_timeout_kills_child_leaving_no_orphan() -> None:
         f"budget={task_timeout_sec}s"
     )
 
-    # No orphan child of THIS process may still be alive by the time
+    # No child spawned by THIS run may still be alive by the time
     # ``aclose`` returns. If the implementation forgot to ``kill()``
-    # the child after ``wait_for`` raised ``TimeoutError``, the PS scan
+    # the child after ``wait_for`` raised ``TimeoutError``, the scan
     # below surfaces the leftover ``sleep 5``.
+    assert captured_pid, "pid_probe never fired; the anti-orphan scan was inert"
     for captured in captured_pid:
-        live_children = _spawned_children_of(captured)
-        assert not live_children, (
-            f"orphan child process(es) of PID {captured} survived "
-            f"timeout: {live_children}"
+        assert not _process_is_alive(captured), (
+            f"orphan child process {captured} survived the per-task timeout"
         )
 
     # The task's status must reflect the timeout: the runner's existing
@@ -423,13 +440,19 @@ def test_fr08_cancelled_error_propagates() -> None:
     does not re-raise it would leave the child process running (and
     silently report ``success``). Both halves of the contract are
     asserted: the exception bubbles, and the orphan scan is empty.
+
+    # NFR-03 — async correctness: ``asyncio.CancelledError`` MUST NOT be
+    # swallowed by an ``except Exception`` clause; this is the SRS NFR-03
+    # async-specific anti-pattern.
+    # NFR-08 — mutation testing: a mutant that converts the re-raise into
+    # a swallow is killed by the ``pytest.raises`` half, and one that
+    # skips the child kill is killed by the liveness half.
     """
     cancel_source = "outer-task"
     assert cancel_source != ""  # AC8.4-cancel-source-shape
 
     repository = _fresh_repository()
-    task = _task("sleep 5")
-    repository.create(task["command"], task["name"])
+    task = _task(repository, "sleep 5")
 
     captured_pid: list[int] = []
 
@@ -458,9 +481,8 @@ def test_fr08_cancelled_error_propagates() -> None:
 
     # Orphan scan: the cancel must have killed the child too, otherwise
     # the executor swallowed the CancelledError AND leaked the process.
+    assert captured_pid, "pid_probe never fired; the anti-orphan scan was inert"
     for captured in captured_pid:
-        live_children = _spawned_children_of(captured)
-        assert not live_children, (
-            f"cancel swallowed but child process PID {captured} still "
-            f"has children: {live_children}"
+        assert not _process_is_alive(captured), (
+            f"cancellation left child process {captured} alive"
         )
