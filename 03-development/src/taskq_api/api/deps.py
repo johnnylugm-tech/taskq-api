@@ -52,7 +52,9 @@ _SCOPE_FORBIDDEN_DETAIL = "Insufficient scope"
 # [FR-05] AC-5.2 — stable problem+json ``type`` URI for the 429 path.
 # The detail string is intentionally generic so the failure does not
 # double as a low-cost discovery oracle for the bucket's remaining
-# tokens.
+# tokens. The constant stays in sync with ``RateLimitedProblem``'s
+# hardcoded URI in ``errors.py`` — both surfaces document the same
+# contract (AC-5.2).
 RATE_LIMITED_PROBLEM_TYPE = "/errors/rate-limited"
 _RATE_LIMITED_DETAIL = "Rate limit exceeded"
 
@@ -116,10 +118,6 @@ def register_key(
         _NO_RATE_LIMIT_KEYS.add(plaintext)
 
 
-def _lookup_scope(plaintext: str) -> Optional[str]:
-    return _KEY_SCOPES.get(plaintext)
-
-
 def require_api_key(request: Request) -> ApiKeyIdentity:
     """FastAPI dependency enforcing the ``X-API-Key`` header and per-token rate limit. [FR-03] [FR-04] [FR-05]
 
@@ -156,7 +154,7 @@ def require_api_key(request: Request) -> ApiKeyIdentity:
             detail=_MISSING_API_KEY_DETAIL,
             problem_type=_UNAUTHORIZED_PROBLEM_TYPE,
         )
-    scope = _lookup_scope(api_key)
+    scope = _KEY_SCOPES.get(api_key)
     if scope is None:
         # Anti-enumeration: an unregistered key looks identical to a
         # key whose privilege is too low. The body is canonical and

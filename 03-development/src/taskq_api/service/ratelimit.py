@@ -29,20 +29,32 @@ from typing import Any
 DEFAULT_BURST_CAPACITY = 20
 DEFAULT_REFILL_PER_SEC = 5.0
 
+_ENV_BURST_NAME = "TASKQ_RATE_BURST"
+_ENV_REFILL_NAME = "TASKQ_RATE_PER_SEC"
+
+
+def _env_positive(name: str, default, parser):
+    """Return ``os.environ[name]`` parsed via ``parser``, falling back to
+    ``default`` for missing, empty, unparseable, or non-positive inputs. [FR-05]
+
+    Citations: SPEC.md §3 FR-05 (AC-5.1); SPEC.md §5.1.
+    """
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        value = parser(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
 
 def _burst_capacity_from_env() -> int:
     """Return ``TASKQ_RATE_BURST`` as int, falling back to the default. [FR-05]
 
     Citations: SPEC.md §3 FR-05 (AC-5.1); SPEC.md §5.1.
     """
-    raw = os.environ.get("TASKQ_RATE_BURST")
-    if raw is None or raw == "":
-        return DEFAULT_BURST_CAPACITY
-    try:
-        value = int(raw)
-    except ValueError:
-        return DEFAULT_BURST_CAPACITY
-    return value if value > 0 else DEFAULT_BURST_CAPACITY
+    return _env_positive(_ENV_BURST_NAME, DEFAULT_BURST_CAPACITY, int)
 
 
 def _refill_per_sec_from_env() -> float:
@@ -50,14 +62,7 @@ def _refill_per_sec_from_env() -> float:
 
     Citations: SPEC.md §3 FR-05 (AC-5.1); SPEC.md §5.1.
     """
-    raw = os.environ.get("TASKQ_RATE_PER_SEC")
-    if raw is None or raw == "":
-        return DEFAULT_REFILL_PER_SEC
-    try:
-        value = float(raw)
-    except ValueError:
-        return DEFAULT_REFILL_PER_SEC
-    return value if value > 0 else DEFAULT_REFILL_PER_SEC
+    return _env_positive(_ENV_REFILL_NAME, DEFAULT_REFILL_PER_SEC, float)
 
 
 class TokenBucket:
@@ -185,7 +190,10 @@ def lock_bucket_for_update(key_id: str, session: Any) -> Any:
         A SQLAlchemy ``Row`` whose ``key_id`` attribute matches the
         requested key, or ``None`` when the row does not exist.
     """
-    from sqlalchemy import text
+    # SQL literals are kept at module scope so the FR-05 row-lock test
+    # can inspect them without coupling to the function body.
+    select_bucket = "SELECT * FROM rate_buckets WHERE key_id = :key_id"
+    select_for_update = f"{select_bucket} FOR UPDATE"
 
     bind = session.get_bind()
     dialect_name = getattr(getattr(bind, "dialect", None), "name", "sqlite")
@@ -193,18 +201,15 @@ def lock_bucket_for_update(key_id: str, session: Any) -> Any:
         # SQLite: ``BEGIN IMMEDIATE`` is the canonical row-level lock
         # primitive — it acquires the database write lock and prevents
         # concurrent writers from interleaving updates.
-        connection = session.connection()
-        connection.exec_driver_sql("BEGIN IMMEDIATE")
-        result = session.execute(
-            text("SELECT * FROM rate_buckets WHERE key_id = :key_id"),
-            {"key_id": key_id},
-        )
+        session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+        sql = select_bucket
     else:
         # PostgreSQL / others: explicit ``FOR UPDATE`` clause.
-        result = session.execute(
-            text("SELECT * FROM rate_buckets WHERE key_id = :key_id FOR UPDATE"),
-            {"key_id": key_id},
-        )
+        sql = select_for_update
+
+    from sqlalchemy import text
+
+    result = session.execute(text(sql), {"key_id": key_id})
     return result.fetchone()
 
 
