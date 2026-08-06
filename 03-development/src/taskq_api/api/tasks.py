@@ -1,7 +1,7 @@
 """Task API transport handlers.
 
-[FR-01]
-Citations: SPEC.md lines 79-91; SRS.md lines 78-86.
+[FR-01] [FR-02]
+Citations: SPEC.md lines 79-91, 93-100; SRS.md lines 78-86, 88-105.
 """
 
 from __future__ import annotations
@@ -62,3 +62,21 @@ def delete_task(task_id: str, request: Request) -> Response:
     """
     _get_task_service(request).delete(task_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{task_id}/run", status_code=status.HTTP_202_ACCEPTED)
+async def run_task(task_id: str, request: Request) -> dict[str, str]:
+    """Launch a task run and acknowledge it with its run id. [FR-02]
+
+    Citations: SPEC.md line 95; SRS.md lines 93-95.
+    """
+    return {"run_id": await _get_task_service(request).run(task_id)}
+
+
+@router.get("/{task_id}/runs")
+def list_task_runs(task_id: str, request: Request) -> dict[str, object]:
+    """Return a task's execution history, newest first. [FR-02]
+
+    Citations: SPEC.md line 99; SRS.md lines 104-105.
+    """
+    return _get_task_service(request).runs(task_id)

@@ -53,6 +53,13 @@ class TaskRepository:
         task = self._tasks.get(normalized_id)
         return task.copy() if task is not None else None
 
+    def set_status(self, task_id: str, status: str) -> None:
+        """Write a task's lifecycle status in place. [FR-02]
+
+        Citations: SPEC.md line 97; SRS.md lines 98-99.
+        """
+        self._tasks[task_id]["status"] = status
+
     def list_by_cursor(
         self, status: str | None, limit: int, cursor: str | None
     ) -> tuple[list[dict[str, str]], str | None]:
