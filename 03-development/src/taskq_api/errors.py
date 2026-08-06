@@ -130,7 +130,14 @@ class NotReadyProblem(Problem):
         )
 
 
-def _response(request: Request, problem: Problem) -> JSONResponse:
+def _problem_response(request: Request, problem: Problem) -> JSONResponse:
+    """Build the canonical RFC 7807 ``application/problem+json`` envelope.
+
+    The payload, status code, ``X-Correlation-Id`` header, and
+    ``Retry-After`` header all flow from a single ``Problem`` instance so
+    every error surface (validation / 4xx / 5xx / generic 500) shares one
+    rendering path — adding a field to the envelope is a one-line change.
+    """
     correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
     payload = {
         "type": problem.problem_type,
@@ -159,7 +166,7 @@ async def problem_handler(request: Request, problem: Problem) -> JSONResponse:
 
     Citations: SPEC.md lines 88-91, 387-401.
     """
-    return _response(request, problem)
+    return _problem_response(request, problem)
 
 
 async def validation_handler(
@@ -170,24 +177,25 @@ async def validation_handler(
     Citations: SPEC.md lines 88, 397.
     """
     problem = Problem(422, "Validation Error", "Request validation failed", "/errors/validation")
-    return _response(request, problem)
+    return _problem_response(request, problem)
 
 
 async def generic_exception_handler(
-    request: Request, exc: Exception
+    request: Request, _exc: Exception
 ) -> JSONResponse:
     """Render any unhandled ``Exception`` as a sanitised 500. [FR-10]
 
     Citations: SPEC.md §3 FR-10 (AC-10.1, AC-10.3, AC-10.5); NFR-02.
 
-    Converts any ``Exception`` that escapes the registered ``Problem``
-    / ``RequestValidationError`` handlers into the canonical RFC 7807
-    envelope with a fixed, sanitised ``detail`` so SQL statements,
-    stack traces, filesystem paths, and DB schema descriptions cannot
-    leak to the caller (AC-10.3 / NFR-02 / NP-08).
+    Routes through ``_problem_response`` with an ``InternalProblem`` so
+    the wire body carries the same canonical RFC 7807 envelope as every
+    other surface, with a fixed, sanitised ``detail`` that never echoes
+    the underlying ``_exc`` message — SQL statements, stack traces,
+    filesystem paths, and DB schema descriptions cannot leak to the
+    caller (AC-10.3 / NFR-02 / NP-08).
 
-    The exception is still emitted on the server-side log (with the
-    same ``correlation_id`` that appears in the response header) so
+    The original exception IS still emitted on the server-side log (with
+    the same ``correlation_id`` that appears in the response header) so
     operators can correlate the failure with the request that triggered
     it (AC-10.4).
     """
@@ -200,16 +208,4 @@ async def generic_exception_handler(
         "unhandled exception",
         extra={"correlation_id": correlation_id},
     )
-    return JSONResponse(
-        {
-            "type": "/errors/internal",
-            "title": "Internal Server Error",
-            "status": 500,
-            "detail": _INTERNAL_DETAIL,
-            "instance": request.url.path,
-            "correlation_id": correlation_id,
-        },
-        status_code=500,
-        headers={"X-Correlation-Id": correlation_id},
-        media_type="application/problem+json",
-    )
+    return _problem_response(request, InternalProblem())
