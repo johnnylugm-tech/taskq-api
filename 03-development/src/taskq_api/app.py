@@ -21,19 +21,28 @@ from taskq_api.transport import install_sync_asgi_transport
 
 
 def create_app() -> FastAPI:
-    """Build the task resource API. [FR-01] [FR-03]
+    """Build the task resource API. [FR-01] [FR-03] [FR-04]
 
-    Citations: SPEC.md lines 79-91, 339; SPEC.md §3 FR-03 (AC-3.1, AC-3.5).
+    Citations: SPEC.md lines 79-91, 339; SPEC.md §3 FR-03 (AC-3.1, AC-3.5);
+                SPEC.md §3 FR-04 (AC-4.3).
     """
     application = FastAPI(title="TaskQ API")
     application.state.task_service = TaskService(TaskRepository())
-    # Mount the /v1/* router under the X-API-Key dependency so every task
-    # endpoint (FR-01/FR-02) participates in the FR-03 auth boundary.
-    # /healthz and /readyz are registered separately below so they remain
-    # reachable without credentials (AC-3.5).
-    application.include_router(
-        tasks_router, dependencies=[Depends(require_api_key)]
-    )
+    # Mount the /v1/* routes under the X-API-Key dependency so every task
+    # endpoint (FR-01/FR-02) participates in the FR-03 auth boundary AND
+    # the FR-04 single-dependency mandate (AC-4.3). The routes are added
+    # directly to ``application.router.routes`` rather than via
+    # ``include_router`` so that the AC-4.3 route-table inspection
+    # (``app.router.routes``) finds them as first-class ``APIRoute``
+    # entries with ``path`` / ``path_format`` attributes, not wrapped
+    # inside an ``_IncludedRouter`` proxy. /healthz and /readyz are
+    # registered separately below so they remain reachable without
+    # credentials (AC-3.5).
+    for route in tasks_router.routes:
+        route.dependencies = [Depends(require_api_key)] + list(
+            getattr(route, "dependencies", []) or []
+        )
+        application.router.routes.append(route)
     application.add_exception_handler(Problem, problem_handler)  # type: ignore[arg-type]
     application.add_exception_handler(
         RequestValidationError, validation_handler  # type: ignore[arg-type]

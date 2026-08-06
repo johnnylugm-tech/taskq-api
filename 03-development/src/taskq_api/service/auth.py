@@ -1,11 +1,15 @@
 """API Key authentication service.
 
-[FR-03]
-Citations: SPEC.md §3 FR-03 (AC-3.1..AC-3.5); SRS.md §3 FR-03; SAD.md §2.
+[FR-03] [FR-04]
+Citations: SPEC.md §3 FR-03 (AC-3.1..AC-3.5); SPEC.md §3 FR-04 (AC-4.1..AC-4.3);
+            SRS.md §3 FR-03; SRS.md §3 FR-04; SAD.md §2.
 
 The plaintext secret is never persisted: only its SHA-256 hex digest is
 written to the ``api_keys`` table. Comparison uses ``hmac.compare_digest``
 to keep the boundary resistant to timing attacks (NFR-02 / NP-01).
+
+The FR-04 scope hierarchy is the single source of truth for the
+``read < write < admin`` ordering used by ``api.deps.require_scope``.
 """
 
 from __future__ import annotations
@@ -16,6 +20,11 @@ import secrets
 
 _PLAINTEXT_PREFIX = "sk-"
 _PLAINTEXT_RANDOM_BYTES = 32
+
+# [FR-04] AC-4.1 — strict inclusive scope hierarchy. Index implies rank:
+# smaller index = lower privilege. The tuple is the canonical declaration
+# referenced by ``scope_satisfies`` and the test gate.
+SCOPE_HIERARCHY: tuple[str, ...] = ("read", "write", "admin")
 
 
 def hash_key(plaintext: str) -> str:
@@ -64,3 +73,22 @@ def is_key_revoked(record: dict[str, object]) -> bool:
     Citations: SPEC.md AC-3.4 / NFR-02.
     """
     return record.get("revoked_at") is not None
+
+
+def scope_satisfies(token_scope: str, required_scope: str) -> bool:
+    """Return True iff ``required_scope`` is within the token's privilege. [FR-04]
+
+    Citations: SPEC.md §3 FR-04 (AC-4.1); SRS.md §3 FR-04.
+
+    The decision is made from the strict inclusive ``SCOPE_HIERARCHY``
+    tuple: ``required_scope`` index <= ``token_scope`` index. Unknown
+    scope values (any string not in the hierarchy) are rejected
+    fail-closed — there is no silent fallthrough to a permissive default
+    (NFR-02).
+    """
+    try:
+        token_rank = SCOPE_HIERARCHY.index(token_scope)
+        required_rank = SCOPE_HIERARCHY.index(required_scope)
+    except ValueError:
+        return False
+    return required_rank <= token_rank
