@@ -126,7 +126,7 @@ def create_app() -> FastAPI:
     # response body's ``detail`` field does NOT echo any of those
     # substrings. Registered under ``require_api_key`` so the failure
     # path is reached through the canonical auth boundary.
-    def _fr10_leak() -> dict[str, str]:  # pragma: no cover — exercised through ASGI.
+    def _fr10_leak() -> dict[str, str]:
         raise RuntimeError(
             "Traceback (most recent call last):\n"
             "  File \"/Users/example/db.py\", line 12\n"

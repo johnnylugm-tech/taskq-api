@@ -324,8 +324,13 @@ def log_correlation_id(correlation_id: str) -> None:
     BOTH in the formatted message AND in the record's ``correlation_id``
     attribute (``extra=``) so ``caplog``-style assertions can locate it
     on either surface.
+
+    Logs through the root logger (``logging.getLogger()``) rather than a
+    child logger so pytest's ``caplog`` fixture reliably captures the
+    record regardless of how the test framework disables per-module
+    loggers (AC-10.4).
     """
-    _logger.info(
+    logging.getLogger().info(
         "request correlation_id=%s",
         correlation_id,
         extra={"correlation_id": correlation_id},

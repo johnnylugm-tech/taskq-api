@@ -165,6 +165,11 @@ def _assert_problem_envelope(
 # through the ASGI app so a future GREEN that wires an exception handler
 # locally to a single ``Problem`` subclass still passes here only when
 # the generic 500 path is also present.
+#
+# NFR-10 — integration_coverage: the test drives the live ASGI app via
+# ``httpx.ASGITransport`` (per AC-10.2) so the contract is observed
+# end-to-end and contributes to the integration line-coverage target
+# of ≥ 80 % (AC-10.1).
 def test_fr10_all_non_2xx_use_problem_json_content_type(
     app_client: httpx.Client,
 ) -> None:
@@ -481,3 +486,25 @@ def test_fr10_status_code_mapping_matches_spec_section_7(
             json={"name": "fr10-mapping-name", "command": "echo hi"},
         )
         _assert_problem_envelope(conflict_response, 409)
+
+
+# ---------------------------------------------------------------------------
+# Coverage closure — NotReadyProblem (AC-10.5 mapping key "not-ready")
+# ---------------------------------------------------------------------------
+
+
+def test_fr10_not_ready_problem_envelope() -> None:
+    """Coverage: ``NotReadyProblem`` materialises the canonical envelope.
+
+    The SPEC §7 503 row materialises through ``NotReadyProblem`` /
+    ``health._readyz``. Exercising the class directly closes the
+    coverage gap on its ``__init__`` (line 125 of ``errors.py``) without
+    coupling to FR-09's health probe wiring.
+    """
+    from taskq_api.errors import NotReadyProblem
+
+    problem = NotReadyProblem("dependency-not-met")
+    assert problem.status == 503
+    assert problem.title == "Not Ready"
+    assert problem.problem_type == "/errors/not-ready"
+    assert problem.detail == "dependency-not-met"
