@@ -47,9 +47,11 @@ from taskq_api.app import app
 #   list_runs(task_id: str) -> list[dict]
 #       — Returns execution history newest first (AC-2.5).
 from taskq_api.service.runner import (  # noqa: F401,E402
+    execute_task,
     list_runs,
     record_result,
     spawn_process,
+    task_timeout_seconds,
     transition,
 )
 
@@ -275,3 +277,70 @@ def test_fr02_runs_history_newest_first(app_client: httpx.Client) -> None:
     assert len(runs) >= 2
     finished_at_values = [run["finished_at"] for run in runs]
     assert finished_at_values == sorted(finished_at_values, reverse=True)
+
+
+def test_fr02_transition_rejects_illegal_event() -> None:
+    with pytest.raises(ValueError, match="illegal transition"):
+        transition("pending", "success")
+
+
+def test_fr02_timeout_records_failed_process(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _TimeoutProcess:
+        async def communicate(self) -> tuple[bytes, bytes]:
+            await asyncio.sleep(0)
+            raise asyncio.TimeoutError
+
+        async def wait(self) -> int:
+            return -9
+
+        def kill(self) -> None:
+            return None
+
+    class _Repository:
+        def __init__(self) -> None:
+            self.statuses: list[str] = []
+
+        def set_status(self, task_id: str, status: str) -> None:
+            self.statuses.append(status)
+
+    async def fake_spawn(command: str) -> _TimeoutProcess:
+        return _TimeoutProcess()
+
+    repository = _Repository()
+    monkeypatch.setattr("taskq_api.service.runner.spawn_process", fake_spawn)
+    monkeypatch.setattr("taskq_api.service.runner.task_timeout_seconds", lambda: 0.01)
+    result = asyncio.run(execute_task({"id": "timeout-task", "command": "sleep 1"}, repository))
+    assert result["exit_code"] == -1
+    assert repository.statuses == ["running", "timeout"]
+
+
+def test_fr02_nonzero_process_records_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _Process:
+        async def communicate(self) -> tuple[bytes, bytes]:
+            return b"out", b"err"
+
+        async def wait(self) -> int:
+            return 2
+
+    class _Repository:
+        def __init__(self) -> None:
+            self.statuses: list[str] = []
+
+        def set_status(self, task_id: str, status: str) -> None:
+            self.statuses.append(status)
+
+    async def fake_spawn(command: str) -> _Process:
+        return _Process()
+
+    repository = _Repository()
+    monkeypatch.setattr("taskq_api.service.runner.spawn_process", fake_spawn)
+    result = asyncio.run(execute_task({"id": "failed-task", "command": "false"}, repository))
+    assert result["exit_code"] == 2
+    assert result["stdout_tail"] == "out"
+    assert result["stderr_tail"] == "err"
+    assert repository.statuses == ["running", "failed"]
+
+
+def test_fr02_timeout_setting_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TASKQ_TASK_TIMEOUT", "2.5")
+    assert task_timeout_seconds() == 2.5
