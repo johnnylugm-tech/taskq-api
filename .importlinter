@@ -1,0 +1,12 @@
+[importlinter]
+root_package = taskq_api
+
+[importlinter:contract:layered-architecture]
+name = Layered architecture
+type = layers
+layers =
+    taskq_api.api
+    taskq_api.service
+    taskq_api.repository
+    taskq_api.models
+    taskq_api.errors

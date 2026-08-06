@@ -49,23 +49,25 @@ app = create_app()
 
 
 def _install_sync_asgi_transport() -> None:
-    """Support HTTPX's synchronous client for the acceptance harness. [FR-01]
+    """Bridge httpx 0.28's async-only ASGITransport to a sync context manager.
 
-    Citations: TEST_SPEC.md lines 52-81.
+    ``httpx.Client(transport=ASGITransport(app))`` requires both a synchronous
+    ``handle_request`` and ``__enter__``/``__exit__`` on the transport. httpx
+    0.28 only ships the async variants, so the sync acceptance harness needs
+    this thin shim that delegates to ``handle_async_request`` via ``anyio.run``.
     """
-    if hasattr(httpx.ASGITransport, "handle_request"):
+    transport_cls = httpx.ASGITransport
+    if hasattr(transport_cls, "handle_request"):
         return
 
-    def handle_request(
+    def _handle_request(
         transport: httpx.ASGITransport, request: httpx.Request
     ) -> httpx.Response:
-        if not getattr(transport, "_taskq_started", False):
-            transport.app.state.task_service = TaskService(TaskRepository())
-            transport._taskq_started = True
-
         request_body = request.read()
 
-        async def send() -> tuple[int, httpx.Headers, dict[str, object], bytes]:
+        async def _send() -> tuple[
+            int, httpx.Headers, dict[str, object], bytes
+        ]:
             async_request = httpx.Request(
                 request.method,
                 request.url,
@@ -75,9 +77,14 @@ def _install_sync_asgi_transport() -> None:
             )
             response = await transport.handle_async_request(async_request)
             body = await response.aread()
-            return response.status_code, response.headers, response.extensions, body
+            return (
+                response.status_code,
+                response.headers,
+                response.extensions,
+                body,
+            )
 
-        status_code, headers, extensions, body = anyio.run(send)
+        status_code, headers, extensions, body = anyio.run(_send)
         return httpx.Response(
             status_code,
             headers=headers,
@@ -86,13 +93,10 @@ def _install_sync_asgi_transport() -> None:
             request=request,
         )
 
-    def close(_transport: httpx.ASGITransport) -> None:
-        return None
-
-    def enter(transport: httpx.ASGITransport) -> httpx.ASGITransport:
+    def _enter(transport: httpx.ASGITransport) -> httpx.ASGITransport:
         return transport
 
-    def exit_transport(
+    def _exit(
         _transport: httpx.ASGITransport,
         _exc_type: object,
         _exc_value: object,
@@ -100,10 +104,9 @@ def _install_sync_asgi_transport() -> None:
     ) -> None:
         return None
 
-    httpx.ASGITransport.handle_request = handle_request  # type: ignore[attr-defined]
-    httpx.ASGITransport.close = close  # type: ignore[attr-defined]
-    httpx.ASGITransport.__enter__ = enter  # type: ignore[attr-defined]
-    httpx.ASGITransport.__exit__ = exit_transport  # type: ignore[attr-defined]
+    transport_cls.handle_request = _handle_request  # type: ignore[attr-defined]
+    transport_cls.__enter__ = _enter  # type: ignore[attr-defined]
+    transport_cls.__exit__ = _exit  # type: ignore[attr-defined]
 
 
 _install_sync_asgi_transport()

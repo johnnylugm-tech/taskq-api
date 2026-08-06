@@ -1,0 +1,65 @@
+{
+  "classified_at": "2026-08-06T03:48:39Z",
+  "cli_tools": [
+    "alembic",
+    "bandit",
+    "curl",
+    "fastapi",
+    "gitleaks",
+    "httpx",
+    "igraph",
+    "jq",
+    "mutmut",
+    "mypy",
+    "pip",
+    "pip-licenses",
+    "psql",
+    "pydantic",
+    "pyright",
+    "pytest",
+    "pytest_benchmark",
+    "pytest_cov",
+    "python3",
+    "radon",
+    "ruff",
+    "scancode",
+    "semgrep",
+    "sqlalchemy",
+    "sqlite3",
+    "tree_sitter",
+    "tree_sitter_python"
+  ],
+  "enforcer_sha": "6a206d6f57351dba8d71d0c685b9c225a180bbe2",
+  "env_vars": {
+    "dev_opt_in": [],
+    "has_default": [
+      "TASKQ_CORS_ORIGINS",
+      "TASKQ_DB_POOL_SIZE",
+      "TASKQ_DB_URL",
+      "TASKQ_DRAIN_TIMEOUT",
+      "TASKQ_HOST",
+      "TASKQ_LOG_FORMAT",
+      "TASKQ_LOG_LEVEL",
+      "TASKQ_MAX_CONCURRENT",
+      "TASKQ_PORT",
+      "TASKQ_RATE_BURST",
+      "TASKQ_RATE_PER_SEC",
+      "TASKQ_TASK_TIMEOUT"
+    ],
+    "mandatory": []
+  },
+  "infra_services": {
+    "docker_compose_services": [],
+    "required": [
+      {
+        "checked_via": "sqlite3 -version; python3 -c 'import sqlite3; print(sqlite3.sqlite_version)'",
+        "fix": "Already installed. Used as the default dev/test DB (TASKQ_DB_URL=sqlite:///./taskq.db per SPEC §5.1). NFR-09 AC-09.5 requires a real SQLite FILE for the v3 migration round-trip test — make sure tests use file paths, not :memory:",
+        "name": "sqlite",
+        "reachable": true,
+        "type": "SQLite 3.51.0 (system CLI) + Python sqlite3 3.50.4 (stdlib)"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "source_sha256": "ad2e7c5af3385e13c4260989f484774e221e5de5b23e0fa1afe8ad71b6571cce"
+}

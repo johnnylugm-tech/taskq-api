@@ -29,7 +29,15 @@ from taskq_api.app import app
 
 @pytest.fixture
 def app_client() -> httpx.Client:
-    """Use the ASGI app in-process; no network or external services are used."""
+    """Use the ASGI app in-process; no network or external services are used.
+
+    Resets the in-memory task repository before each test so cases are
+    order-independent: pagination tests assert specific page sizes against
+    a clean store, not whatever previous tests left behind.
+    """
+    app.state.task_service._repository._tasks.clear()
+    app.state.task_service._repository._ordered_ids.clear()
+    app.state.task_service._repository._names.clear()
     return httpx.Client(
         transport=httpx.ASGITransport(app=app),
         base_url="http://testserver",
