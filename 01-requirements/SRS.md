@@ -579,6 +579,157 @@ end-to-end `make verify-system` chain.
 
 ---
 
+## 7. FR Block (machine-readable)
+
+<!-- FR:START -->
+```json
+{
+  "version": "1.0",
+  "created_at": "2026-08-07",
+  "phase": 1,
+  "project": "taskq-api",
+  "functional_requirements": [
+    {
+      "id": "FR-01",
+      "description": "Task resource CRUD API",
+      "implementation_functions": ["test_fr01_create_rejects_invalid_command_with_422"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    },
+    {
+      "id": "FR-02",
+      "description": "Task execution endpoint",
+      "implementation_functions": ["test_fr02_run_returns_202_with_run_id"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    },
+    {
+      "id": "FR-03",
+      "description": "API Key authentication",
+      "implementation_functions": ["test_fr03_missing_api_key_returns_401"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    },
+    {
+      "id": "FR-04",
+      "description": "Scope authorisation",
+      "implementation_functions": ["test_fr04_scope_hierarchy_is_inclusive"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    },
+    {
+      "id": "FR-05",
+      "description": "Per-token rate limiting",
+      "implementation_functions": ["test_fr05_bucket_capacity_and_refill_rate"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    },
+    {
+      "id": "FR-06",
+      "description": "Persistence layer and transaction boundaries",
+      "implementation_functions": ["test_fr06_service_layer_holds_no_session"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    },
+    {
+      "id": "FR-07",
+      "description": "Schema migration (Alembic three-step evolution)",
+      "implementation_functions": ["test_fr07_upgrade_head_then_downgrade_base_exit_zero"],
+      "verification_method": "real-database migration round-trip test"
+    },
+    {
+      "id": "FR-08",
+      "description": "Async executor",
+      "implementation_functions": ["test_fr08_shutdown_drains_then_marks_interrupted"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    },
+    {
+      "id": "FR-09",
+      "description": "Health checks and observability",
+      "implementation_functions": ["test_fr09_healthz_returns_200_ok"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    },
+    {
+      "id": "FR-10",
+      "description": "Error contract (RFC 7807)",
+      "implementation_functions": ["test_fr10_all_non_2xx_use_problem_json_content_type"],
+      "verification_method": "integration test via httpx.AsyncClient(ASGITransport)"
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-01",
+      "type": "performance",
+      "description": "Performance and query efficiency",
+      "test_method": "pytest-benchmark + SQLAlchemy event listener for N+1"
+    },
+    {
+      "id": "NFR-02",
+      "type": "security",
+      "description": "HTTP and data-layer security",
+      "test_method": "bandit -r 03-development/src/ + grep + dedicated tests"
+    },
+    {
+      "id": "NFR-03",
+      "type": "error_handling",
+      "description": "Error handling, transactions, async correctness",
+      "test_method": "try/except audit ratio minus anti-patterns"
+    },
+    {
+      "id": "NFR-04",
+      "type": "security",
+      "description": "Sensitive data redaction",
+      "test_method": "log/metrics/error-body redaction tests"
+    },
+    {
+      "id": "NFR-05",
+      "type": "documentation",
+      "description": "Documentation coverage",
+      "test_method": "docstring [FR-XX]/[NFR-XX] citation ratio"
+    },
+    {
+      "id": "NFR-06",
+      "type": "architecture_constraints",
+      "description": "Architecture layering contract",
+      "test_method": "lint-imports exit 0 + sqlalchemy-import-outside-repository test"
+    },
+    {
+      "id": "NFR-07",
+      "type": "license_compliance",
+      "description": "Dependency and license compliance",
+      "test_method": "pip-licenses whole-tree scan + SBOM.json"
+    },
+    {
+      "id": "NFR-08",
+      "type": "mutation",
+      "description": "Mutation testing",
+      "test_method": "mutmut score >= 70 on service/ + repository/"
+    },
+    {
+      "id": "NFR-09",
+      "type": "testability",
+      "description": "Verification authenticity (zero-skip rule)",
+      "test_method": "pytest -q reports 0 skipped + assertion-quality tests"
+    },
+    {
+      "id": "NFR-10",
+      "type": "integration",
+      "description": "Integration coverage",
+      "test_method": "tests/integration line coverage >= 80%"
+    },
+    {
+      "id": "NFR-11",
+      "type": "maintainability",
+      "description": "Readability",
+      "test_method": "radon mi per-file + per-function/per-file/per-handler size tests"
+    },
+    {
+      "id": "NFR-12",
+      "type": "verifiability",
+      "description": "System verification target",
+      "test_method": "make verify-system chains upgrade + tests + smoke + round-trip"
+    }
+  ]
+}
+```
+<!-- FR:END -->
+
+---
+
 ## 8. Risks
 
 Source: SPEC §9.
