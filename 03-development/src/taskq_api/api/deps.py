@@ -1,9 +1,11 @@
 """FastAPI dependencies for request authentication and authorisation.
 
-[FR-03] [FR-04] [FR-05]
+[FR-03] [FR-04] [FR-05] [FR-10]
 Citations: SPEC.md §3 FR-03 (AC-3.1, AC-3.5); SPEC.md §3 FR-04 (AC-4.1..AC-4.3);
             SPEC.md §3 FR-05 (AC-5.1, AC-5.2, AC-5.4);
-            SRS.md §3 FR-03; SRS.md §3 FR-04; SRS.md §3 FR-05; SAD.md §2.
+            SPEC.md §3 FR-10 (AC-10.4, AC-10.5); SPEC.md §7;
+            SRS.md §3 FR-03; SRS.md §3 FR-04; SRS.md §3 FR-05; SRS.md §3 FR-10;
+            SAD.md §2.
 
 The ``require_api_key`` dependency is the single boundary at which callers
 prove control of a valid ``X-API-Key``. Missing or invalid credentials
@@ -29,6 +31,7 @@ per-token bucket.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Optional
@@ -40,8 +43,34 @@ from taskq_api.service.auth import scope_satisfies
 from taskq_api.service.ratelimit import TokenBucket, _default_bucket, record_rejection
 
 
+_logger = logging.getLogger("taskq_api.api.deps")
+
+
+# [FR-10] AC-10.5 — the canonical mapping from symbolic error class
+# to the HTTP status code SPEC §7 mandates. Kept in this module so the
+# FR-10 acceptance test (``test_fr10_status_code_mapping_matches_spec_section_7``)
+# can import it without dragging the FastAPI app object in. The keys
+# mirror the problem-type URI suffixes so a future GREEN that adds a
+# new row to ``errors.Problem`` can extend this map without touching
+# the test.
+STATUS_CODE_MAP: dict[str, int] = {
+    "validation": 422,
+    "unauthenticated": 401,
+    "forbidden": 403,
+    "not-found": 404,
+    "conflict": 409,
+    "rate-limited": 429,
+    "not-ready": 503,
+    "internal": 500,
+}
+
+
 _MISSING_API_KEY_DETAIL = "Missing X-API-Key header"
-_UNAUTHORIZED_PROBLEM_TYPE = "/errors/unauthorized"
+# [FR-10] AC-10.5 — the 401 surface uses the "unauthenticated" suffix
+# so the SPEC §7 status-code mapping key round-trips through the
+# problem-type URI. The body still carries the generic detail so an
+# unauthenticated caller cannot enumerate resources.
+_UNAUTHORIZED_PROBLEM_TYPE = "/errors/unauthenticated"
 
 # [FR-04] AC-4.2 — stable problem+json ``type`` URI for the 403 path.
 # The detail string is intentionally generic so that an attacker probing
@@ -276,3 +305,28 @@ def rate_limit_dependency(
             detail=_RATE_LIMITED_DETAIL,
             retry_after=target.retry_after(),
         )
+
+
+# ---------------------------------------------------------------------------
+# FR-10 — per-request correlation id log emission
+# ---------------------------------------------------------------------------
+
+
+def log_correlation_id(correlation_id: str) -> None:
+    """Emit a server-side log record carrying ``correlation_id``. [FR-10]
+
+    Citations: SPEC.md §3 FR-10 (AC-10.4); SPEC.md §7.
+
+    The same id that appears in the response ``X-Correlation-Id`` header
+    (and in the problem document's ``correlation_id`` field) is mirrored
+    onto a server-side log record so operators can correlate the
+    request flow with the structured log stream. The id is carried
+    BOTH in the formatted message AND in the record's ``correlation_id``
+    attribute (``extra=``) so ``caplog``-style assertions can locate it
+    on either surface.
+    """
+    _logger.info(
+        "request correlation_id=%s",
+        correlation_id,
+        extra={"correlation_id": correlation_id},
+    )

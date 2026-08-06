@@ -1,9 +1,10 @@
 """TaskQ ASGI application.
 
-[FR-01] [FR-03] [FR-05] [FR-09]
+[FR-01] [FR-03] [FR-05] [FR-09] [FR-10]
 Citations: SPEC.md lines 79-91, 339; SPEC.md §3 FR-03 (AC-3.1, AC-3.5);
             SPEC.md §3 FR-05 (AC-5.1, AC-5.2, AC-5.4);
-            SPEC.md §3 FR-09 (AC-9.1).
+            SPEC.md §3 FR-09 (AC-9.1);
+            SPEC.md §3 FR-10 (AC-10.1..AC-10.5); SPEC.md §7.
 """
 
 from __future__ import annotations
@@ -15,10 +16,15 @@ from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 
-from taskq_api.api.deps import require_api_key
+from taskq_api.api.deps import log_correlation_id, require_api_key
 from taskq_api.api.health import router as health_router
 from taskq_api.api.tasks import router as tasks_router
-from taskq_api.errors import Problem, problem_handler, validation_handler
+from taskq_api.errors import (
+    Problem,
+    generic_exception_handler,
+    problem_handler,
+    validation_handler,
+)
 from taskq_api.repository.task_repo import TaskRepository
 from taskq_api.service.tasks import TaskService
 from taskq_api.transport import install_sync_asgi_transport
@@ -99,6 +105,41 @@ def create_app() -> FastAPI:
     application.add_exception_handler(
         RequestValidationError, validation_handler  # type: ignore[arg-type]
     )
+    # NOTE: ``add_exception_handler(Exception, ...)`` is intentionally
+    # NOT used here. FastAPI's ``build_middleware_stack`` extracts the
+    # ``Exception`` handler out of the inner ``ExceptionMiddleware`` and
+    # passes it to the outer ``ServerErrorMiddleware``, which sends the
+    # 500 response and then re-raises the exception. The httpx test
+    # ASGI transport (``raise_app_exceptions=True`` by default) then
+    # propagates the exception out of ``client.get(...)`` so the test
+    # never sees the response. Instead, the catch-all handling is
+    # implemented as a user middleware (see ``add_correlation_id``
+    # below) that runs AFTER the inner ExceptionMiddleware has had a
+    # chance to handle ``Problem`` / ``RequestValidationError`` but
+    # BEFORE the ServerErrorMiddleware re-raises the exception.
+
+    # [FR-10] AC-10.3 — ``/v1/_fr10/leak`` is a test-only route whose
+    # sole purpose is to exercise the sanitising 500 handler
+    # (``generic_exception_handler``) end-to-end. The route raises a
+    # ``RuntimeError`` whose message carries SQL / stack-trace /
+    # filesystem-path substrings; the GREEN wiring guarantees the
+    # response body's ``detail`` field does NOT echo any of those
+    # substrings. Registered under ``require_api_key`` so the failure
+    # path is reached through the canonical auth boundary.
+    def _fr10_leak() -> dict[str, str]:  # pragma: no cover — exercised through ASGI.
+        raise RuntimeError(
+            "Traceback (most recent call last):\n"
+            "  File \"/Users/example/db.py\", line 12\n"
+            "    SELECT * FROM alembic_version\n"
+            "sqlite3.OperationalError: /tmp/example.db"
+        )
+
+    application.add_api_route(
+        path="/v1/_fr10/leak",
+        endpoint=_fr10_leak,
+        methods=["GET"],
+        dependencies=[Depends(require_api_key)],
+    )
 
     @application.middleware("http")
     async def add_correlation_id(
@@ -107,7 +148,27 @@ def create_app() -> FastAPI:
         request.state.correlation_id = request.headers.get(
             "X-Correlation-Id", str(uuid.uuid4())
         )
-        response = await call_next(request)
+        # [FR-10] AC-10.4 — mirror the per-request id onto the
+        # server-side log so operators can correlate the wire
+        # request with the structured log stream. The emission fires
+        # AFTER the id is resolved but BEFORE ``call_next`` so the log
+        # record carries the same id that the response header will echo.
+        log_correlation_id(request.state.correlation_id)
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            # [FR-10] AC-10.3 / AC-10.5 — any exception that escapes
+            # the inner ExceptionMiddleware (i.e. ``Problem`` /
+            # ``RequestValidationError`` already rendered their own
+            # envelope and did not raise) is rendered here as the
+            # sanitised 500 envelope so the response body never
+            # leaks SQL / stack-trace / filesystem-path content
+            # (NFR-02 / NP-08). Catching the exception inside user
+            # middleware (which sits BELOW the outer
+            # ServerErrorMiddleware) returns the response to the
+            # client without the ServerErrorMiddleware re-raising it,
+            # which is what the httpx ASGI test transport observes.
+            return await generic_exception_handler(request, exc)
         response.headers["X-Correlation-Id"] = request.state.correlation_id
         return response
 
