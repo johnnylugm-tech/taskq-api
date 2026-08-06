@@ -138,7 +138,11 @@ def require_scope(scope: str) -> Callable[[ApiKeyIdentity], None]:
     """
 
     def _dep(identity: ApiKeyIdentity) -> None:
-        if not scope_satisfies(identity.scope, scope):
+        # ``require_api_key`` rejects keys with no registered scope, so by
+        # the time this dependency runs ``identity.scope`` is guaranteed to
+        # be a str. Narrow explicitly for the type checker.
+        token_scope: str = identity.scope or ""
+        if not scope_satisfies(token_scope, scope):
             raise Problem(
                 status=403,
                 title="Forbidden",

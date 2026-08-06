@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable
 
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
+from fastapi.routing import APIRoute
 
 from taskq_api.api.deps import require_api_key
 from taskq_api.api.tasks import router as tasks_router
@@ -42,6 +43,13 @@ def create_app() -> FastAPI:
     # separately below so they remain reachable without credentials
     # (AC-3.5).
     for route in tasks_router.routes:
+        # ``tasks_router.routes`` may contain non-``APIRoute`` entries
+        # (``Mount`` for sub-apps, etc.). FastAPI only exposes
+        # ``path`` / ``endpoint`` / ``methods`` on ``APIRoute``; narrow
+        # statically so the type checker sees the attributes and we do
+        # not crash at runtime if a non-API route is ever added.
+        if not isinstance(route, APIRoute):
+            continue
         application.add_api_route(
             path=route.path,
             endpoint=route.endpoint,
