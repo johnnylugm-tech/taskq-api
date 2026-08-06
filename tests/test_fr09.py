@@ -410,3 +410,184 @@ def test_fr09_metrics_requires_admin_and_reports_counters(
     assert "execution_latency_ms" in payload, payload
     assert "rate_limit_rejections" in payload, payload
     assert set(payload["execution_latency_ms"]) >= {"p50", "p95", "p99"}
+
+
+# ---------------------------------------------------------------------------
+# Coverage-filling unit tests (GATE1 test_coverage = 100%)
+# ---------------------------------------------------------------------------
+#
+# The four MIRROR cases above exercise the public HTTP surface but leave
+# the in-process probe helpers' real-env branches untested. The tests
+# below cover those branches so test_coverage reports 100% on
+# ``api.health``.
+
+
+def test_fr09_database_ping_succeeds_against_real_sqlite(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """``database_ping`` returns None when ``TASKQ_DATABASE_URL`` resolves to a real DB."""
+    db_file = tmp_path / "ping.db"
+    monkeypatch.setenv("TASKQ_DATABASE_URL", f"sqlite:///{db_file}")
+    assert health.database_ping() is None
+    # Re-ping to confirm a second connect round-trip works (no leaked state).
+    assert health.database_ping() is None
+
+
+def test_fr09_database_ping_no_url_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``database_ping`` returns None when ``TASKQ_DATABASE_URL`` is unset."""
+    monkeypatch.delenv("TASKQ_DATABASE_URL", raising=False)
+    assert health.database_ping() is None
+
+
+def test_fr09_head_revision_fallback_when_alembic_ini_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``head_revision`` falls back to the script directory path when ``alembic.ini`` is absent."""
+    monkeypatch.setattr(health, "_ALEMBIC_INI", type("_F", (), {"exists": staticmethod(lambda: False)})())
+    # The fallback locates the script directory relative to the project root;
+    # the project ships migrations/versions/ so this resolves to the real head.
+    assert health.head_revision() is not None
+
+
+def test_fr09_current_revision_no_url_returns_head(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``current_revision`` falls back to ``head_revision()`` when ``TASKQ_DATABASE_URL`` is unset."""
+    monkeypatch.delenv("TASKQ_DATABASE_URL", raising=False)
+    # Without a configured DB the function delegates to head_revision() so the
+    # migration check passes in the no-DB test environment.
+    assert health.current_revision() == health.head_revision()
+
+
+def test_fr09_database_ping_propagates_unreachable_driver_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``database_ping`` propagates driver exceptions when the engine raises."""
+    from sqlalchemy.exc import OperationalError
+
+    monkeypatch.setenv("TASKQ_DATABASE_URL", "sqlite:///./definitely_missing.db")
+
+    class _BoomEngine:
+        def connect(self):
+            raise OperationalError("SELECT 1", {}, Exception("connect failed"))
+
+    def _engine_from_env() -> _BoomEngine:
+        return _BoomEngine()
+
+    monkeypatch.setattr(health, "engine_from_env", _engine_from_env)
+    with pytest.raises(Exception):
+        health.database_ping()
+
+
+def test_fr09_head_revision_reads_alembic_script_directory() -> None:
+    """``head_revision`` walks the real alembic script directory."""
+    # The project ships alembic.ini + migrations/versions/v3_split_results.py;
+    # ``head_revision`` must resolve the configured head id.
+    head = health.head_revision()
+    assert head is not None
+    assert isinstance(head, str)
+    assert head != ""
+
+
+def test_fr09_head_revision_returns_none_when_alembic_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``head_revision`` returns ``None`` when the script directory cannot be read."""
+
+    def _raise_script_dir(path: str) -> None:
+        raise RuntimeError("alembic missing")
+
+    # Force the fallback path to also raise.
+    monkeypatch.setattr(
+        "alembic.script.ScriptDirectory.__init__", _raise_script_dir
+    )
+    # ``_ALEMBIC_INI.exists()`` may be true; the failure has to come from
+    # the inner block — swap Config/ScriptDirectory to raise on from_config
+    # so the try/except fallback in ``head_revision`` catches it.
+    monkeypatch.setattr(
+        "alembic.script.ScriptDirectory.from_config",
+        classmethod(lambda cls, config: (_ for _ in ()).throw(RuntimeError("nope"))),
+    )
+    assert health.head_revision() is None
+
+
+def test_fr09_current_revision_returns_none_when_alembic_table_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """``current_revision`` returns ``None`` when ``alembic_version`` table is absent."""
+    db_file = tmp_path / "no_alembic_table.db"
+    monkeypatch.setenv("TASKQ_DATABASE_URL", f"sqlite:///{db_file}")
+    # DB exists but has no alembic_version table — the probe returns None.
+    assert health.current_revision() is None
+
+
+def test_fr09_current_revision_returns_row_when_alembic_table_present(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """``current_revision`` reads the recorded revision id from the ``alembic_version`` table."""
+    import sqlalchemy as _sa
+
+    db_file = tmp_path / "with_alembic.db"
+    engine = _sa.create_engine(f"sqlite:///{db_file}")
+    with engine.begin() as conn:
+        conn.execute(_sa.text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
+        conn.execute(_sa.text("INSERT INTO alembic_version (version_num) VALUES ('v3')"))
+    monkeypatch.setenv("TASKQ_DATABASE_URL", f"sqlite:///{db_file}")
+    assert health.current_revision() == "v3"
+
+
+def test_fr09_count_tasks_by_status_handles_missing_app_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``_count_tasks_by_status`` returns ``{}`` when no application state exists."""
+    # Patch the late import target so ``from taskq_api.app import app`` yields
+    # an object whose ``state.task_service`` does not exist.
+    class _FakeApp:
+        class state:  # noqa: D401, N801 — minimal fake.
+            pass
+
+    monkeypatch.setitem(
+        __import__("sys").modules, "taskq_api.app", type("M", (), {"app": _FakeApp()})()
+    )
+    assert health._count_tasks_by_status() == {}
+
+
+def test_fr09_count_tasks_by_status_with_none_repository() -> None:
+    """``_count_tasks_by_status`` returns ``{}`` when called with ``repository=None`` and no app."""
+    # The double-None guard returns an empty dict before any access.
+    assert health._count_tasks_by_status(None) == {}
+
+
+def test_fr09_percentile_empty_sample_returns_zero() -> None:
+    """``_percentile`` returns ``0.0`` for an empty sample."""
+    assert health._percentile([], 50.0) == 0.0
+    assert health._percentile([], 95.0) == 0.0
+
+
+def test_fr09_percentile_interpolates_within_sample() -> None:
+    """``_percentile`` interpolates between adjacent samples for non-trivial inputs."""
+    # Sorted sample [10, 20, 30, 40, 50], n=5.
+    # p50: position = (5-1) * 0.5 = 2.0 -> lower=2, upper=3 -> 30 + 0*(40-30) = 30.
+    assert health._percentile([10.0, 20.0, 30.0, 40.0, 50.0], 50.0) == 30.0
+    # p95: position = 4*0.95 = 3.8 -> lower=3, upper=4 -> 40 + 0.8*(50-40) = 48.
+    assert health._percentile([10.0, 20.0, 30.0, 40.0, 50.0], 95.0) == 48.0
+    # p99: position = 4*0.99 = 3.96 -> lower=3, upper=4 -> 40 + 0.96*(50-40) = 49.6.
+    assert health._percentile([10.0, 20.0, 30.0, 40.0, 50.0], 99.0) == 49.6
+    # Single-element sample -> clamped to that element.
+    assert health._percentile([42.0], 99.0) == 42.0
+
+
+def test_fr09_measures_response_success_branch(
+    monkeypatch: pytest.MonkeyPatch, app_client
+) -> None:
+    """``_measures_response`` returns the 200 ready payload when both checks are ok."""
+    monkeypatch.setattr(health, "database_ping", lambda: None)
+    monkeypatch.setattr(health, "current_revision", lambda: "v3")
+    monkeypatch.setattr(health, "head_revision", lambda: "v3")
+    with app_client() as client:
+        response = client.get("/readyz")
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload == {"status": "ready", "database": "ok", "migration": "ok"}

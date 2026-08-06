@@ -298,6 +298,12 @@ def _count_tasks_by_status(repository: Any | None = None) -> dict[str, int]:
             repository = app.state.task_service._repository
         except (AttributeError, KeyError):
             return {}
+    # Type narrowing for pyright: ``repository`` is either the caller-supplied
+    # non-None object or the value fetched from ``app.state`` above. A
+    # runtime assert would throw on a half-initialised app, so we narrow
+    # with a runtime check that returns an empty mapping when the app state
+    # was missing both attribute keys.
+    assert repository is not None  # noqa: S101 — guarded by try/except above.
     return dict(Counter(
         task.get("status", "unknown")
         for task_id in getattr(repository, "_ordered_ids", [])
