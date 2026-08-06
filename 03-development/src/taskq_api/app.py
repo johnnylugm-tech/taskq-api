@@ -64,7 +64,7 @@ def create_app() -> FastAPI:
         # statically so the type checker sees the attributes and we do
         # not crash at runtime if a non-API route is ever added.
         if not isinstance(route, APIRoute):
-            continue  # pragma: no cover
+            continue
         application.add_api_route(
             path=route.path,
             endpoint=route.endpoint,
@@ -82,7 +82,7 @@ def create_app() -> FastAPI:
     # balancers and orchestrators cannot present credentials.
     for route in health_router.routes:
         if not isinstance(route, APIRoute):
-            continue  # pragma: no cover
+            continue
         if route.path == "/v1/metrics":
             # The metrics endpoint requires the auth boundary AND the
             # admin scope. The scope check is layered inside the auth
