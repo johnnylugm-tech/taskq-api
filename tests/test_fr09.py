@@ -117,22 +117,30 @@ from taskq_api.app import app  # noqa: E402
 
 
 @pytest.fixture
-def app_client() -> httpx.Client:
-    """ASGI in-process client with an isolated task store per test.
+def app_client():
+    """ASGI in-process client factory with an isolated task store per test.
 
-    Mirrors the per-test repository reset used by ``test_fr03`` /
-    ``test_fr04`` so the FR-09 metrics counters start from a known
-    empty store regardless of the order pytest collected earlier cases.
+    Returns a callable that yields a fresh ``httpx.Client`` on each
+    invocation so the test can ``with factory() as client:`` multiple
+    times within a single test (the second ``with`` on a single
+    ``httpx.Client`` would otherwise fail because the first ``__exit__``
+    closes the transport). The per-test repository reset mirrors what
+    ``test_fr03`` / ``test_fr04`` do so the FR-09 metrics counters
+    start from a known empty store regardless of collection order.
     """
     repository = app.state.task_service._repository
     for attribute in ("_tasks", "_ordered_ids", "_names", "_runs"):
         container = getattr(repository, attribute, None)
         if container is not None:
             container.clear()
-    return httpx.Client(
-        transport=httpx.ASGITransport(app=app),
-        base_url="http://testserver",
-    )
+
+    def _factory() -> httpx.Client:
+        return httpx.Client(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://testserver",
+        )
+
+    return _factory
 
 
 def _route_for(path: str):  # type: ignore[no-untyped-def]
@@ -168,7 +176,7 @@ def test_fr09_healthz_returns_200_ok(app_client: httpx.Client) -> None:
     assert health.healthz() == {"status": "ok"}
 
     # ---- end-to-end path through the ASGI app ----
-    with app_client as client:
+    with app_client() as client:
         # Deliberately no X-API-Key header — AC-3.5 keeps this route
         # outside the auth boundary.
         response = client.get(health_path)
@@ -236,7 +244,7 @@ def test_fr09_readyz_returns_503_when_db_unreachable(
     assert check_migration().ok is True
 
     # ---- end-to-end path through the ASGI app ----
-    with app_client as client:
+    with app_client() as client:
         # No X-API-Key — /readyz stays outside the auth boundary (AC-3.5).
         response = client.get("/readyz")
 
@@ -298,7 +306,7 @@ def test_fr09_readyz_fails_closed_when_migration_behind_head(
     assert check_database().ok is True
 
     # ---- end-to-end path through the ASGI app ----
-    with app_client as client:
+    with app_client() as client:
         response = client.get("/readyz")
 
     assert response.status_code == 503, response.text
@@ -329,7 +337,7 @@ def test_fr09_readyz_fails_closed_when_migration_behind_head(
     monkeypatch.setattr(health, "current_revision", _boom)
     assert check_migration().ok is False
 
-    with app_client as client:
+    with app_client() as client:
         raising_response = client.get("/readyz")
     assert raising_response.status_code == 503, raising_response.text
 
@@ -383,7 +391,7 @@ def test_fr09_metrics_requires_admin_and_reports_counters(
     assert isinstance(snapshot["rate_limit_rejections"], int)
 
     # ---- end-to-end authorisation matrix ----
-    with app_client as client:
+    with app_client() as client:
         anonymous = client.get(metrics_path)
         read_scoped = client.get(metrics_path, headers={"X-API-Key": read_key})
         admin_scoped = client.get(metrics_path, headers={"X-API-Key": admin_key})

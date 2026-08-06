@@ -32,6 +32,23 @@ DEFAULT_REFILL_PER_SEC = 5.0
 _ENV_BURST_NAME = "TASKQ_RATE_BURST"
 _ENV_REFILL_NAME = "TASKQ_RATE_PER_SEC"
 
+# [FR-09] AC-9.1 — running counter of ``rate_limit_dependency`` 429 paths.
+# Incremented each time the per-token bucket returns False on a
+# ``consume()`` call so the /v1/metrics endpoint can surface the total
+# number of rejected requests. The counter is module-level so the
+# in-process test harness can read it without going through the
+# repository layer; the value is process-local and resets on restart.
+REJECTION_COUNT: int = 0
+
+
+def record_rejection() -> None:
+    """Increment the rate-limit rejection counter. [FR-09]
+
+    Citations: SPEC.md §3 FR-05 (AC-5.2); SPEC.md §3 FR-09 (AC-9.1).
+    """
+    global REJECTION_COUNT
+    REJECTION_COUNT += 1
+
 
 def _env_positive(name: str, default, parser):
     """Return ``os.environ[name]`` parsed via ``parser``, falling back to
@@ -216,8 +233,10 @@ def lock_bucket_for_update(key_id: str, session: Any) -> Any:
 __all__ = [
     "DEFAULT_BURST_CAPACITY",
     "DEFAULT_REFILL_PER_SEC",
+    "REJECTION_COUNT",
     "TokenBucket",
     "lock_bucket_for_update",
+    "record_rejection",
     "_burst_capacity_from_env",
     "_refill_per_sec_from_env",
     "_default_bucket",

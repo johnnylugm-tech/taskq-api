@@ -1,8 +1,9 @@
 """TaskQ ASGI application.
 
-[FR-01] [FR-03] [FR-05]
+[FR-01] [FR-03] [FR-05] [FR-09]
 Citations: SPEC.md lines 79-91, 339; SPEC.md §3 FR-03 (AC-3.1, AC-3.5);
-            SPEC.md §3 FR-05 (AC-5.1, AC-5.2, AC-5.4).
+            SPEC.md §3 FR-05 (AC-5.1, AC-5.2, AC-5.4);
+            SPEC.md §3 FR-09 (AC-9.1).
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 
 from taskq_api.api.deps import require_api_key
+from taskq_api.api.health import router as health_router
 from taskq_api.api.tasks import router as tasks_router
 from taskq_api.errors import Problem, problem_handler, validation_handler
 from taskq_api.repository.task_repo import TaskRepository
@@ -23,10 +25,11 @@ from taskq_api.transport import install_sync_asgi_transport
 
 
 def create_app() -> FastAPI:
-    """Build the task resource API. [FR-01] [FR-03] [FR-04] [FR-05]
+    """Build the task resource API. [FR-01] [FR-03] [FR-04] [FR-05] [FR-09]
 
     Citations: SPEC.md lines 79-91, 339; SPEC.md §3 FR-03 (AC-3.1, AC-3.5);
-                SPEC.md §3 FR-04 (AC-4.3); SPEC.md §3 FR-05 (AC-5.1, AC-5.2, AC-5.4).
+                SPEC.md §3 FR-04 (AC-4.3); SPEC.md §3 FR-05 (AC-5.1, AC-5.2, AC-5.4);
+                SPEC.md §3 FR-09 (AC-9.1).
     """
     application = FastAPI(title="TaskQ API")
     application.state.task_service = TaskService(TaskRepository())
@@ -63,6 +66,35 @@ def create_app() -> FastAPI:
             methods=list(route.methods or []),
             status_code=getattr(route, "status_code", None) or 200,
         )
+    # [FR-09] AC-9.1 — mount the health router on the application. The
+    # /v1/metrics route is wrapped with the SAME single ``require_api_key``
+    # boundary the task routes use (AC-4.3 forbids a second ``Depends`` on
+    # the route); the admin scope check is layered INSIDE that boundary
+    # via ``health._require_admin``. /healthz and /readyz are registered
+    # without the require_api_key dependency so they remain outside the
+    # auth boundary (AC-3.5) and the rate-limit bucket (AC-5.4) — load
+    # balancers and orchestrators cannot present credentials.
+    for route in health_router.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        if route.path == "/v1/metrics":
+            # The metrics endpoint requires the auth boundary AND the
+            # admin scope. The scope check is layered inside the auth
+            # boundary through ``_require_admin`` (a single dependency
+            # on the route), preserving AC-4.3.
+            application.add_api_route(
+                path=route.path,
+                endpoint=route.endpoint,
+                dependencies=[Depends(require_api_key)],
+                methods=list(route.methods or []),
+            )
+        else:
+            # /healthz and /readyz are public probes (AC-3.5, AC-5.4).
+            application.add_api_route(
+                path=route.path,
+                endpoint=route.endpoint,
+                methods=list(route.methods or []),
+            )
     application.add_exception_handler(Problem, problem_handler)  # type: ignore[arg-type]
     application.add_exception_handler(
         RequestValidationError, validation_handler  # type: ignore[arg-type]
@@ -78,25 +110,6 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         response.headers["X-Correlation-Id"] = request.state.correlation_id
         return response
-
-    # AC-3.5 — health probes bypass the X-API-Key dependency. They are
-    # registered on the application (not under the /v1 router) so that
-    # orchestrators and load balancers can poll them without credentials.
-    @application.get("/healthz")
-    def healthz() -> dict[str, str]:
-        """Liveness probe — returns 200 when the process is alive. [FR-03]
-
-        Citations: SPEC.md §3 FR-03 (AC-3.5); FR-09.
-        """
-        return {"status": "ok"}
-
-    @application.get("/readyz")
-    def readyz() -> dict[str, str]:
-        """Readiness probe — returns 200 when the service can accept traffic. [FR-03]
-
-        Citations: SPEC.md §3 FR-03 (AC-3.5); FR-09.
-        """
-        return {"status": "ready"}
 
     return application
 

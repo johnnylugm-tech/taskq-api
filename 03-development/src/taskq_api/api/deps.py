@@ -37,7 +37,7 @@ from fastapi import Request
 
 from taskq_api.errors import Problem, RateLimitedProblem
 from taskq_api.service.auth import scope_satisfies
-from taskq_api.service.ratelimit import TokenBucket, _default_bucket
+from taskq_api.service.ratelimit import TokenBucket, _default_bucket, record_rejection
 
 
 _MISSING_API_KEY_DETAIL = "Missing X-API-Key header"
@@ -267,6 +267,11 @@ def rate_limit_dependency(
         return
     target = bucket if bucket is not None else _bucket_for_key(identity.plaintext)
     if not target.consume(1):
+        # [FR-09] AC-9.1 — bump the running rejection counter so the
+        # /v1/metrics endpoint can surface the total. The bump fires
+        # before the raise so the counter is captured even when the
+        # exception propagates through the exception handler.
+        record_rejection()
         raise RateLimitedProblem(
             detail=_RATE_LIMITED_DETAIL,
             retry_after=target.retry_after(),
