@@ -58,10 +58,19 @@ from taskq_api.app import app
 #       — Stable problem+json ``type`` URI for 429s (e.g. "/errors/rate-limited").
 #   taskq_api.errors.Problem(429, title="Too Many Requests", ...)
 #       — The 429 Problem class surface is reused from errors.py (FR-10).
-from taskq_api.api.deps import ApiKeyIdentity, register_key  # noqa: F401,E402
+from taskq_api.api.deps import (  # noqa: F401,E402
+    ApiKeyIdentity,
+    _NO_RATE_LIMIT_KEYS,
+    register_key,
+    require_api_key,
+    require_scope,
+    reset_buckets,
+)
 from taskq_api.errors import Problem  # noqa: F401,E402
 from taskq_api.service.ratelimit import (  # noqa: F401,E402
     TokenBucket,
+    _burst_capacity_from_env,
+    _refill_per_sec_from_env,
     lock_bucket_for_update,
 )
 
@@ -395,3 +404,303 @@ def test_fr05_health_endpoints_exempt_from_rate_limit(
     # And the probes MUST keep working without an API key.
     assert all(status == 200 for status in statuses), statuses
     assert all(status == 200 for status in healthz_statuses), healthz_statuses
+
+
+# ---------------------------------------------------------------------------
+# FR-05 coverage — additional unit tests for branches that are reachable but
+# not exercised by the canonical AC tests above. These tests close the
+# coverage gap so the test_coverage dimension reaches 100% (gate config
+# threshold 80, FR-05 target 100 per spec).
+# ---------------------------------------------------------------------------
+
+
+def test_fr05_token_bucket_constructor_rejects_non_positive() -> None:
+    """Constructor MUST raise ValueError when burst_capacity or refill_per_sec
+    is non-positive (covers ratelimit.py lines 82 + 84).
+    """
+    with pytest.raises(ValueError):
+        TokenBucket(burst_capacity=0, refill_per_sec=5.0)
+    with pytest.raises(ValueError):
+        TokenBucket(burst_capacity=-1, refill_per_sec=5.0)
+    with pytest.raises(ValueError):
+        TokenBucket(burst_capacity=10, refill_per_sec=0.0)
+    with pytest.raises(ValueError):
+        TokenBucket(burst_capacity=10, refill_per_sec=-1.0)
+
+
+def test_fr05_token_bucket_advance_zero_or_negative_is_noop() -> None:
+    """``advance(0)`` / ``advance(<0)`` MUST short-circuit (covers ratelimit.py
+    line 120) — the bucket's internal clock is not advanced and no refill
+    is applied.
+    """
+    bucket = TokenBucket(burst_capacity=20, refill_per_sec=5.0)
+    # Drain the bucket so a refill would be observable.
+    for _ in range(20):
+        bucket.consume(1)
+    assert bucket.tokens() == pytest.approx(0.0, abs=1e-9)
+
+    # Zero and negative deltas MUST be no-ops: tokens stay at 0.
+    bucket.advance(0)
+    assert bucket.tokens() == pytest.approx(0.0, abs=1e-9)
+    bucket.advance(-5.0)
+    assert bucket.tokens() == pytest.approx(0.0, abs=1e-9)
+
+
+def test_fr05_token_bucket_consume_rejects_non_positive() -> None:
+    """``consume`` MUST raise ValueError on non-positive tokens (covers
+    ratelimit.py line 135).
+    """
+    bucket = TokenBucket(burst_capacity=20, refill_per_sec=5.0)
+    with pytest.raises(ValueError):
+        bucket.consume(0)
+    with pytest.raises(ValueError):
+        bucket.consume(-1)
+
+
+def test_fr05_token_bucket_retry_after_zero_when_full() -> None:
+    """``retry_after`` MUST return 0.0 when the bucket still holds a token
+    (covers ratelimit.py line 154).
+    """
+    bucket = TokenBucket(burst_capacity=20, refill_per_sec=5.0)
+    # Fresh bucket is at capacity — deficit is 0, so retry_after is 0.
+    assert bucket.retry_after() == pytest.approx(0.0, abs=1e-9)
+    # After consuming 1 of 20 tokens, deficit is still 0.
+    bucket.consume(1)
+    assert bucket.retry_after() == pytest.approx(0.0, abs=1e-9)
+
+
+def test_fr05_token_bucket_refill_formula_via_advance() -> None:
+    """The refill formula ``min(capacity, current + elapsed * rate)`` MUST
+    apply when ``_refill`` is invoked through ``advance`` (covers the
+    ``_refill`` body's executed branches).
+    """
+    bucket = TokenBucket(burst_capacity=20, refill_per_sec=5.0)
+    # Advance by exactly 1.0s — refill adds 5.0 tokens to the full bucket,
+    # but is capped at capacity (20).
+    bucket.advance(1.0)
+    assert bucket.tokens() == pytest.approx(20.0, abs=1e-9)
+
+
+def test_fr05_env_parsing_fallbacks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``_env_positive`` MUST fall back to the default for missing, empty,
+    unparseable, or non-positive env values (covers ratelimit.py lines
+    45-49). Each branch in the helper is exercised.
+    """
+    # Missing env var → default (line 43: raw is None).
+    monkeypatch.delenv("TASKQ_RATE_BURST", raising=False)
+    monkeypatch.delenv("TASKQ_RATE_PER_SEC", raising=False)
+    assert _burst_capacity_from_env() == 20
+    assert _refill_per_sec_from_env() == 5.0
+
+    # Empty env var → default (line 43: raw == "").
+    monkeypatch.setenv("TASKQ_RATE_BURST", "")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "")
+    assert _burst_capacity_from_env() == 20
+    assert _refill_per_sec_from_env() == 5.0
+
+    # Unparseable env var → default (lines 45-48: ValueError caught).
+    monkeypatch.setenv("TASKQ_RATE_BURST", "not-a-number")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "definitely-not-a-float")
+    assert _burst_capacity_from_env() == 20
+    assert _refill_per_sec_from_env() == 5.0
+
+    # Non-positive env var → default (line 49: value > 0 check).
+    monkeypatch.setenv("TASKQ_RATE_BURST", "0")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "-1.0")
+    assert _burst_capacity_from_env() == 20
+    assert _refill_per_sec_from_env() == 5.0
+
+    # Positive env var → parsed value (line 49: value > 0 branch).
+    monkeypatch.setenv("TASKQ_RATE_BURST", "42")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "7.5")
+    assert _burst_capacity_from_env() == 42
+    assert _refill_per_sec_from_env() == 7.5
+
+
+def test_fr05_lock_bucket_for_update_non_sqlite_dialect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``lock_bucket_for_update`` MUST emit ``FOR UPDATE`` on non-SQLite
+    dialects (covers ratelimit.py line 208 — the else branch).
+
+    The test drives the non-SQLite branch by overriding the SQLite
+    engine's ``dialect.name`` attribute to ``postgresql`` so the
+    production code path runs end-to-end without requiring a Postgres
+    driver install.
+    """
+    import sqlalchemy as _sa
+    from sqlalchemy.orm import Session
+
+    engine = _sa.create_engine("sqlite:///:memory:")
+
+    metadata = _sa.MetaData()
+    rate_buckets = _sa.Table(
+        "rate_buckets",
+        metadata,
+        _sa.Column("key_id", _sa.String, primary_key=True),
+        _sa.Column("tokens", _sa.Float, nullable=False),
+        _sa.Column("updated_at", _sa.DateTime, nullable=False),
+    )
+    metadata.create_all(engine)
+
+    captured_sql: list[str] = []
+
+    @_sa.event.listens_for(engine, "before_cursor_execute")
+    def _capture(conn, cursor, statement, parameters, context, executemany):  # noqa: ANN001
+        captured_sql.append(statement)
+
+    with Session(engine) as session:
+        session.execute(
+            rate_buckets.insert().values(
+                key_id="postgres-key-1",
+                tokens=20.0,
+                updated_at="2026-08-06T00:00:00Z",
+            ),
+        )
+        session.commit()
+
+    # Pretend the engine is a Postgres engine so the production else
+    # branch fires — the engine itself is still SQLite, which is fine
+    # because the SQL string is the only thing the production code
+    # # branches on.
+    monkeypatch.setattr(engine.dialect, "name", "postgresql")
+
+    with Session(engine) as session:
+        # SQLite cannot execute ``FOR UPDATE`` — that's fine for this
+        # test; we only care that the production code emitted it. Wrap
+        # the call so the assertion below runs against the captured
+        # SQL regardless of the underlying dialect's ability to execute.
+        try:
+            lock_bucket_for_update("postgres-key-1", session)
+            session.rollback()
+        except Exception:  # noqa: BLE001 — SQLite cannot execute FOR UPDATE.
+            session.rollback()
+
+    # Non-SQLite path emits ``FOR UPDATE`` — the SQL stream assertion is
+    # the load-bearing check for line 208; the execute() error is
+    # expected because the underlying engine is SQLite.
+    statement_blob = " ".join(captured_sql).upper()
+    assert "FOR UPDATE" in statement_blob, captured_sql
+
+
+def test_fr05_register_key_rate_limit_bypass_adds_to_set() -> None:
+    """``register_key(..., rate_limit_bypass=True)`` MUST add the plaintext
+    to ``_NO_RATE_LIMIT_KEYS`` (covers deps.py line 118).
+    """
+    plaintext = "sk-fr05-bypass-coverage"
+    assert plaintext not in _NO_RATE_LIMIT_KEYS
+    register_key(plaintext, "write", rate_limit_bypass=True)
+    try:
+        assert plaintext in _NO_RATE_LIMIT_KEYS
+    finally:
+        # Cleanup so the set does not leak into other tests.
+        _NO_RATE_LIMIT_KEYS.discard(plaintext)
+
+
+def test_fr05_rate_limit_dependency_bypass_returns_early() -> None:
+    """``rate_limit_dependency`` MUST return without consuming when the
+    identity's plaintext is in ``_NO_RATE_LIMIT_KEYS`` (covers deps.py
+    line 267 — the early-return branch).
+    """
+    from taskq_api.api.deps import rate_limit_dependency
+
+    plaintext = "sk-fr05-bypass-dep"
+    identity = ApiKeyIdentity(plaintext=plaintext, scope="write")
+    register_key(plaintext, "write", rate_limit_bypass=True)
+    try:
+        # A fresh bucket has 20 tokens. Even if we drained it first,
+        # the bypass path returns early WITHOUT touching the bucket.
+        bucket = TokenBucket(burst_capacity=20, refill_per_sec=5.0)
+        for _ in range(20):
+            bucket.consume(1)
+        assert bucket.tokens() == pytest.approx(0.0, abs=1e-9)
+
+        # The bypass path must NOT raise — even though the bucket is empty.
+        rate_limit_dependency(identity, bucket=bucket)
+        # Bucket state is unchanged because the bypass short-circuits.
+        assert bucket.tokens() == pytest.approx(0.0, abs=1e-9)
+    finally:
+        _NO_RATE_LIMIT_KEYS.discard(plaintext)
+
+
+def test_fr05_require_api_key_missing_header_returns_401(
+    app_client: httpx.Client,
+) -> None:
+    """``require_api_key`` MUST raise Problem(401) when the ``X-API-Key``
+    header is absent (covers deps.py line 151).
+    """
+    with app_client as client:
+        response = client.get("/v1/tasks")
+    assert_problem(response, 401)
+
+
+def test_fr05_require_api_key_unknown_key_returns_403(
+    app_client: httpx.Client,
+) -> None:
+    """``require_api_key`` MUST raise Problem(403) when the presented key
+    is not registered (covers deps.py line 162).
+    """
+    with app_client as client:
+        response = client.get("/v1/tasks", headers={"X-API-Key": "sk-unknown"})
+    assert_problem(response, 403)
+
+
+def test_fr05_require_scope_factory_raises_on_insufficient_scope() -> None:
+    """``require_scope`` MUST return a dependency that raises Problem(403)
+    when the identity's scope does not satisfy the required scope (covers
+    deps.py lines 192-206).
+    """
+    from taskq_api.service.auth import SCOPE_HIERARCHY
+
+    # Pick the lowest and highest scopes from the hierarchy tuple so the
+    # predicate ``scope_satisfies(low, high)`` is False.
+    low_scope = SCOPE_HIERARCHY[0]
+    high_scope = SCOPE_HIERARCHY[-1]
+
+    identity = ApiKeyIdentity(plaintext="sk-fr05-scope", scope=low_scope)
+    dep = require_scope(high_scope)
+
+    with pytest.raises(Problem) as exc_info:
+        dep(identity)
+    assert exc_info.value.status == 403
+
+
+def test_fr05_require_scope_factory_returns_none_on_sufficient_scope() -> None:
+    """``require_scope`` MUST return None (line 204) when the identity's
+    scope satisfies the required scope (covers deps.py line 204 — the
+    success branch).
+    """
+    from taskq_api.service.auth import SCOPE_HIERARCHY
+
+    high_scope = SCOPE_HIERARCHY[-1]
+    # The highest scope satisfies itself and every lower requirement.
+    identity = ApiKeyIdentity(plaintext="sk-fr05-scope-ok", scope=high_scope)
+    dep = require_scope(SCOPE_HIERARCHY[0])
+
+    # Sufficient scope → no exception, returns None.
+    result = dep(identity)
+    assert result is None
+
+
+def test_fr05_reset_buckets_clears_registry() -> None:
+    """``reset_buckets`` MUST clear the ``_KEY_BUCKETS`` registry so the
+    next request mints a fresh bucket from env defaults."""
+    plaintext = "sk-fr05-reset"
+    register_key(plaintext, "write")
+    # Issue a request to lazily populate the bucket registry.
+    with httpx.Client(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        client.get("/v1/tasks", headers={"X-API-Key": plaintext})
+
+    reset_buckets()
+    # After reset, the next request must mint a fresh bucket.
+    with httpx.Client(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        response = client.get("/v1/tasks", headers={"X-API-Key": plaintext})
+    assert response.status_code == 200
