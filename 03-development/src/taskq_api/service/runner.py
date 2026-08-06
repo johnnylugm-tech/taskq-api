@@ -268,7 +268,7 @@ class AsyncExecutor:
         # asyncio is cooperative single-threaded; a plain ``dict`` is
         # race-free because every mutation is bracketed by ``await``
         # boundaries, never inside one.
-        self._tracked: dict[asyncio.Future[Any], str] = {}
+        self._inflight: dict[asyncio.Future[Any], str] = {}
 
     async def submit(self, task: dict, *, timeout: float | None = None) -> dict:
         """Enqueue one task under the concurrency cap. [FR-08]
@@ -284,7 +284,7 @@ class AsyncExecutor:
         task_id = task["id"]
         work_coro = self._execute(task, timeout=timeout, task_id=task_id)
         work_fut: asyncio.Future[dict] = asyncio.ensure_future(work_coro)
-        self._tracked[work_fut] = task_id
+        self._inflight[work_fut] = task_id
         try:
             return await work_fut
         finally:
@@ -298,7 +298,7 @@ class AsyncExecutor:
                     await work_fut
                 except BaseException:
                     pass
-            self._tracked.pop(work_fut, None)
+            self._inflight.pop(work_fut, None)
 
     async def _execute(
         self,
@@ -323,26 +323,15 @@ class AsyncExecutor:
                     exit_code = process.returncode
                     status = "done" if exit_code == 0 else "failed"
                 except asyncio.TimeoutError:
-                    if process.returncode is None:
-                        process.kill()
-                        await process.wait()
+                    await self._reap_subprocess(process)
                     status = "timeout"
                 self._repository.set_status(task_id, status)
                 return self._result_row(task_id, status)
             finally:
                 # Catch the cancellation / unexpected-error paths: the
                 # child MUST be reaped regardless of how ``_execute``
-                # exits (AC-8.3 anti-orphan, NFR-03). ``returncode`` is
-                # ``None`` only while the process is still running.
-                if process is not None and process.returncode is None:
-                    try:
-                        process.kill()
-                    except ProcessLookupError:
-                        pass
-                    try:
-                        await process.wait()
-                    except BaseException:
-                        pass
+                # exits (AC-8.3 anti-orphan, NFR-03).
+                await self._reap_subprocess(process)
                 try:
                     await self._on_finish()
                 except BaseException:
@@ -360,7 +349,7 @@ class AsyncExecutor:
         """
         # Snapshot first: subsequent mutations from inside the worker
         # coroutines must not perturb this iteration.
-        items = list(self._tracked.items())
+        items = list(self._inflight.items())
         if not items:
             return
         futs = [fut for fut, _ in items]
@@ -384,15 +373,10 @@ class AsyncExecutor:
         # below relies on the runner's own state machine: a task row
         # that survived the drain in ``pending`` or ``running`` is by
         # definition mid-execution at the boundary, hence ``interrupted``.
-        terminal_statuses = {"done", "failed", "timeout"}
         for fut, task_id in items:
             if not fut.done():
                 fut.cancel()
-            try:
-                current = self._repository._tasks.get(task_id, {}).get("status")
-            except Exception:
-                current = None
-            if current not in terminal_statuses:
+            if not self._is_terminal(task_id):
                 try:
                     self._repository.set_status(task_id, "interrupted")
                 except Exception:
@@ -406,6 +390,42 @@ class AsyncExecutor:
                 await fut
             except BaseException:
                 pass
+
+    @staticmethod
+    async def _reap_subprocess(
+        process: asyncio.subprocess.Process | None,
+    ) -> None:
+        """Kill ``process`` if still running and reap it; ignore races.
+
+        ``returncode`` is ``None`` only while the subprocess is still
+        running, so the gate skips reaping a child that already
+        finished through the normal exit path. ``ProcessLookupError``
+        and any error from ``wait`` are swallowed: either outcome is
+        "process is no longer running", which is the entire contract.
+        """
+        if process is None or process.returncode is not None:
+            return
+        try:
+            process.kill()
+        except ProcessLookupError:
+            return
+        try:
+            await process.wait()
+        except BaseException:
+            pass
+
+    @staticmethod
+    def _terminal_statuses() -> frozenset[str]:
+        """Statuses a run can reach through the normal completion paths."""
+        return frozenset({"done", "failed", "timeout"})
+
+    def _is_terminal(self, task_id: str) -> bool:
+        """Return ``True`` iff the task's run row is already a terminal status."""
+        try:
+            current = self._repository._tasks.get(task_id, {}).get("status")
+        except Exception:
+            return False
+        return current in self._terminal_statuses()
 
     async def aclose(self) -> None:
         """Drain and discard. [FR-08] — FastAPI lifespan exit hook.
