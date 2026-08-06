@@ -23,8 +23,10 @@ _PLAINTEXT_RANDOM_BYTES = 32
 
 # [FR-04] AC-4.1 — strict inclusive scope hierarchy. Index implies rank:
 # smaller index = lower privilege. The tuple is the canonical declaration
-# referenced by ``scope_satisfies`` and the test gate.
+# referenced by ``scope_satisfies`` and the test gate; the parallel
+# ``_SCOPE_RANK`` map is the O(1) lookup the comparator uses.
 SCOPE_HIERARCHY: tuple[str, ...] = ("read", "write", "admin")
+_SCOPE_RANK: dict[str, int] = {scope: rank for rank, scope in enumerate(SCOPE_HIERARCHY)}
 
 
 def hash_key(plaintext: str) -> str:
@@ -86,9 +88,8 @@ def scope_satisfies(token_scope: str, required_scope: str) -> bool:
     fail-closed — there is no silent fallthrough to a permissive default
     (NFR-02).
     """
-    try:
-        token_rank = SCOPE_HIERARCHY.index(token_scope)
-        required_rank = SCOPE_HIERARCHY.index(required_scope)
-    except ValueError:
+    token_rank = _SCOPE_RANK.get(token_scope)
+    required_rank = _SCOPE_RANK.get(required_scope)
+    if token_rank is None or required_rank is None:
         return False
     return required_rank <= token_rank

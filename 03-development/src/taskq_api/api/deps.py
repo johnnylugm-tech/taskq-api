@@ -136,10 +136,9 @@ def require_scope(scope: str) -> Callable[[ApiKeyIdentity], None]:
     ``detail`` and ``type`` fields never echo the URL path or any
     resource id the caller probed (NP-02 / AC-4.2).
     """
-    required = scope
 
     def _dep(identity: ApiKeyIdentity) -> None:
-        if not scope_satisfies(identity.scope, required):
+        if not scope_satisfies(identity.scope, scope):
             raise Problem(
                 status=403,
                 title="Forbidden",
