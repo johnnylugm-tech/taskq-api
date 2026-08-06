@@ -40,16 +40,15 @@ _ENV_DATABASE_URL = "TASKQ_DATABASE_URL"
 _DEFAULT_DATABASE_URL = "sqlite:///./taskq.db"
 
 
-def _resolve_pool_size(explicit: int | None = None) -> int:
+def _resolve_pool_size() -> int:
     """Return the configured ``pool_size`` for the engine.
 
-    Precedence: explicit argument (when provided) → ``TASKQ_DB_POOL_SIZE``
-    environment variable → :data:`_DEFAULT_POOL_SIZE`. Non-integer env
-    values fall back to the default rather than raise — the probe is
-    about connection availability, not strict type checking.
+    Reads ``TASKQ_DB_POOL_SIZE`` from the environment; falls back to
+    :data:`_DEFAULT_POOL_SIZE` (per SPEC §5.1) when unset, empty, or
+    non-integer. Non-integer env values fall back to the default rather
+    than raise — the probe is about connection availability, not strict
+    type checking.
     """
-    if explicit is not None:
-        return int(explicit)
     raw = os.environ.get(_ENV_POOL_SIZE)
     if raw is None or raw == "":
         return _DEFAULT_POOL_SIZE
@@ -92,16 +91,17 @@ def engine_from_env() -> Engine:
     Citations: SPEC.md §3 FR-06 (AC-6.5); SPEC.md §5.1.
 
     Reads ``TASKQ_DATABASE_URL`` (default ``sqlite:///./taskq.db``) and
-    ``TASKQ_DB_POOL_SIZE`` (default 5) and returns a fully-configured
-    engine suitable for the /readyz probe (FR-09) and migrations.
+    delegates the pool configuration to :func:`create_engine`, which
+    applies ``pool_size=TASKQ_DB_POOL_SIZE`` (default 5) and
+    ``pool_pre_ping=True`` (AC-6.5). The returned engine is suitable
+    for the /readyz probe (FR-09) and migrations.
 
     Returns:
         Engine: a SQLAlchemy engine with ``pool_size`` and
         ``pool_pre_ping=True`` applied.
     """
     url = os.environ.get(_ENV_DATABASE_URL, _DEFAULT_DATABASE_URL)
-    pool_size = _resolve_pool_size()
-    return create_engine(url, pool_size=pool_size, pool_pre_ping=True)
+    return create_engine(url)
 
 
 @contextmanager
