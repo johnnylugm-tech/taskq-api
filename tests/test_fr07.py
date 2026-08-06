@@ -208,6 +208,10 @@ def test_fr07_upgrade_head_then_downgrade_base_exit_zero(tmp_path: Path) -> None
     OUT-OF-PROCESS by design — the acceptance criterion is literally the
     exit code of the alembic CLI (SPEC §3 FR-07, §8 #13), so the real
     console entry point is what gets exercised.
+
+    # NFR-03 — migrations.env must wire alembic's transaction boundary so the
+    # whole upgrade/downgrade succeeds or rolls back atomically (TRACEABILITY
+    # §5.1 line 414: `migrations.env` carries FR-07 + NFR-03).
     """
     target_head = "head"
     target_base = "base"
@@ -279,6 +283,10 @@ def test_fr07_v3_round_trip_preserves_every_column(tmp_path: Path) -> None:
     The whole point of this AC is that the v3 downgrade REVERSE-MIGRATES rows
     out of ``task_results`` back into ``tasks.result_json`` before dropping the
     table; a ``DROP TABLE`` shortcut fails here with lost data.
+
+    # NFR-09 — v3 round-trip is the canonical "real SQLite file" evidence
+    # required by AC-09.5 (TRACEABILITY §5.1 line 417: `migrations.versions
+    # .v3_split_results` carries FR-07 + NFR-09).
     """
     sample_value = "round-trip-fixture"
     column_name = "result_json"
@@ -477,6 +485,9 @@ def test_fr07_data_move_verified_on_real_sqlite_file(tmp_path: Path) -> None:
     test" grounds, and forbids substituting an in-memory database. The file is
     created on disk, closed between every migration step, and re-opened — so a
     ``sqlite:///:memory:`` implementation cannot pass.
+
+    # NFR-09 — sister assertion to AC-7.2 (same v3 data move); both together
+    # fulfil AC-09.5 "real SQLite file, per-column round-trip, no skip".
     """
     sqlite_filename = "roundtrip.db"
     sample_value = "real-fixture"
