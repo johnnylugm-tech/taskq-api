@@ -68,6 +68,18 @@ def test_fr01_create_rejects_invalid_command_with_422(app_client: httpx.Client) 
     assert_problem(response, 422)
 
 
+def test_fr01_create_rejects_injection_chars_with_422(app_client: httpx.Client) -> None:
+    """``command`` carrying shell separators is rejected by the field validator
+    with 422 — FR-01 injection blacklist, separate from the empty-command case.
+    """
+    with app_client as client:
+        response = client.post(
+            "/v1/tasks",
+            json={"command": "echo hi; rm -rf /", "name": "injection-task"},
+        )
+    assert_problem(response, 422)
+
+
 # NFR-02 — security: 409 response leaks no information about other tenants' data
 # NFR-06 — layering contract: uniqueness check lives in service layer, not repository
 def test_fr01_duplicate_name_returns_409(app_client: httpx.Client) -> None:
@@ -150,6 +162,49 @@ def test_fr01_limit_defaults_50_and_rejects_over_200(app_client: httpx.Client) -
     assert default_response.status_code == 200
     assert len(default_response.json()["items"]) <= 50
     assert_problem(over_max_response, 422)
+
+
+def test_fr01_get_invalid_uuid_returns_404(app_client: httpx.Client) -> None:
+    """Malformed task_id bypasses the UUID parser and short-circuits to 404.
+
+    Without this guard, ``repository.task_repo.get`` would raise ``ValueError``
+    on an unparseable string and propagate as a 500.
+    """
+    invalid_uuid = "not-a-uuid"
+    with app_client as client:
+        response = client.get(f"/v1/tasks/{invalid_uuid}")
+    assert_problem(response, 404)
+
+
+def test_fr01_delete_unknown_id_returns_404(app_client: httpx.Client) -> None:
+    """Deleting an absent id must surface a 404, not a 204."""
+    unknown_id = "00000000-0000-0000-0000-000000000000"
+    with app_client as client:
+        response = client.delete(f"/v1/tasks/{unknown_id}")
+    assert_problem(response, 404)
+
+
+def test_fr01_list_with_invalid_cursor_returns_empty_page(
+    app_client: httpx.Client,
+) -> None:
+    """A corrupt cursor must not crash the endpoint; it short-circuits to the
+    end of the store so the client sees a stable empty page rather than a 5xx.
+    """
+    with app_client as client:
+        for index in range(3):
+            created = client.post(
+                "/v1/tasks",
+                json={"command": f"echo {index}", "name": f"cursor-fallback-{index}"},
+            )
+            assert created.status_code in (200, 201)
+
+        response = client.get(
+            "/v1/tasks", params={"cursor": "%%corrupt%%", "limit": 50}
+        )
+        assert response.status_code == 200
+        payload = response.json()
+    assert payload["items"] == []
+    assert payload.get("next_cursor") is None
 
 
 # NFR-05 — documentation: [FR-01] tag present on api.tasks, service.tasks, schemas

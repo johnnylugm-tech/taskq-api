@@ -29,7 +29,9 @@ def create_app() -> FastAPI:
     application.state.task_service = TaskService(TaskRepository())
     application.include_router(tasks_router)
     application.add_exception_handler(Problem, problem_handler)  # type: ignore[arg-type]
-    application.add_exception_handler(RequestValidationError, validation_handler)
+    application.add_exception_handler(
+        RequestValidationError, validation_handler  # type: ignore[arg-type]
+    )
 
     @application.middleware("http")
     async def add_correlation_id(
