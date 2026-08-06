@@ -100,6 +100,9 @@
         {
           "name": "taskq_api.errors"
         },
+        {
+          "name": "taskq_api.transport"
+        },
         "taskq_api"
       ],
       "allowed_dependencies": []
