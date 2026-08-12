@@ -24,8 +24,8 @@ from __future__ import annotations
 
 import asyncio
 import os
-from contextlib import asynccontextmanager
-from typing import AsyncContextManager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from typing import Callable, cast
 
 from fastapi import FastAPI, Response
 from fastapi.routing import APIRouter, _IncludedRouter
@@ -133,7 +133,7 @@ def _flat_include_router(app: FastAPI, router: APIRouter) -> None:
         app.router.routes.append(route)
 
 
-def _build_lifespan() -> "AsyncContextManager[None]":
+def _build_lifespan() -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     """[FR-08] Lifespan that bound-runs the TaskRunner graceful drain.
 
     Citations:
@@ -160,7 +160,14 @@ def _build_lifespan() -> "AsyncContextManager[None]":
             if asyncio.iscoroutine(result):
                 await result
 
-    return _lifespan
+    # ``@asynccontextmanager`` wraps the async generator so the
+    # returned callable takes ``FastAPI`` and yields an
+    # ``AbstractAsyncContextManager[None]``; pyright sees the
+    # decorator's return type (``_AsyncGeneratorContextManager``)
+    # rather than ``Callable[[FastAPI], …]``, so we cast through the
+    # protocol FastAPI's ``lifespan=`` parameter expects.
+    _f = cast(Callable[[FastAPI], AbstractAsyncContextManager[None]], _lifespan)
+    return _f
 
 
 def create_app() -> FastAPI:
