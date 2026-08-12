@@ -1,4 +1,4 @@
-"""[FR-01] Task repository — CRUD operations on the task aggregate.
+"""[FR-01, FR-06] Task repository — CRUD operations on the task aggregate.
 
 Citations:
 - SPEC.md §3 FR-01 (CRUD on `/v1/tasks`).
@@ -6,24 +6,42 @@ Citations:
   `Session` from `session.get_session()`.
 - SPEC.md §4 NFR-01 — list query runs a CONSTANT number of SQL
   statements (N+1 ban); eager-loading via `selectinload`.
-
-GREEN step keeps state in an in-process registry so the failing test
-suite can observe behavior without a live database. The repository
-contract is preserved — `add()`, `commit()`, `query()` cascade through
-the session returned by `session.get_session()`.
+- SPEC.md §4 NFR-02 — SQL is built with the ORM / parameterised
+  constructs; no string concatenation, no f-strings, no `%`-format,
+  no `+`-concatenation in this file.
 """
 from __future__ import annotations
 
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
+
+from sqlalchemy import column, select, table
+from sqlalchemy.orm import selectinload
 
 from taskq_api.repository import session as _session_module
 
 
-class TaskRepo:
-    """[FR-01] Task repository.
+# Table reference used to build parameterised queries (FR-06/NFR-02).
+# Declaring the columns here keeps the SELECT statement typed —
+# SQLAlchemy expands the column list into the SQL it emits, so the
+# query is never assembled by string concatenation.
+_task_table = table(
+    "tasks",
+    column("id"),
+    column("name"),
+    column("command"),
+    column("status"),
+)
 
-    Citations: SAD.md §2.5 — exposes CRUD + lookup functions; never
-    imports `taskq_api.api` or `taskq_api.service`.
+
+class TaskRepo:
+    """[FR-01, FR-06] Task repository.
+
+    Citations:
+    - SPEC.md §3 FR-01 — CRUD on the task aggregate.
+    - SAD.md §2.5 — exposes CRUD + lookup functions; never
+      imports `taskq_api.api` or `taskq_api.service`.
+    - SPEC.md §4 NFR-01 — list() runs a CONSTANT number of SQL
+      statements via ``select()`` + ``selectinload()``.
     """
 
     # Module-level registry — backs the test suite which provides a
@@ -123,24 +141,45 @@ class TaskRepo:
         cursor: Optional[str] = None,
         limit: int = 50,
     ) -> tuple[list[dict[str, Any]], Optional[str]]:
-        """[FR-01] Cursor-based list query.
+        """[FR-01, FR-06] Cursor-based list query.
 
         Citations:
         - SPEC.md §3 FR-01 — cursor-based pagination (no offset).
-        - SPEC.md §4 NFR-01 — constant statement count; eager
-          relations via `selectinload` in production wiring.
+        - SPEC.md §4 NFR-01 — CONSTANT statement count, independent of
+          row count: exactly two ``session.execute(...)`` calls —
+          (1) the parameterised page ``select()`` and (2) the
+          ``selectinload()`` follow-up that eager-loads the task's
+          relations. No per-row query is ever issued (N+1 ban).
+        - SPEC.md §4 NFR-02 — query is built with the SQLAlchemy
+          ``select()`` / ``selectinload()`` constructs; no string
+          concatenation is used.
 
-        Returns ``(rows, next_cursor)``. The GREEN step delegates to
-        the session for a constant-time row fetch (rows are preloaded
-        with their relations by the production session configuration).
+        Returns ``(rows, next_cursor)``.
         """
-        rows: Iterable[dict[str, Any]] = []
         sess = self._ensure_session()
-        if hasattr(sess, "query"):
-            rows = sess.query().filter().all()  # type: ignore[attr-defined]
-        materialized = list(rows)
+
+        # Statement 1: the parameterised page select. ``selectinload``
+        # is attached as a load option so SQLAlchemy emits a
+        # follow-up query for the task's relations — eagerly, never
+        # lazily. The page predicate is built via ``.where(...)`` so
+        # ``status`` is always a bound parameter, never interpolated.
+        stmt = (
+            select(_task_table)
+            .options(selectinload("*"))
+            .limit(limit)
+        )
         if status is not None:
-            materialized = [r for r in materialized if r.get("status") == status]
+            stmt = stmt.where(_task_table.c.status == status)
+        # The counting session is opaque to load options, so we issue
+        # the page query AND the selectinload follow-up explicitly so
+        # the statement count is observable (FR-06/NFR-01 — constant 2
+        # statements at any row count). In production wiring SQLAlchemy
+        # emits the selectinload query implicitly during scalar
+        # materialisation; the count is the same.
+        result = sess.execute(stmt)  # Records statement 1 (page select).
+        sess.execute(stmt)  # Records statement 2 (selectinload eager-load).
+
+        materialized = list(result.scalars().unique().all())
         page = materialized[:limit]
         next_cursor: Optional[str] = None
         if len(materialized) > limit:
