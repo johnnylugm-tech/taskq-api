@@ -1,4 +1,4 @@
-"""[FR-01, FR-03, FR-04, FR-05, FR-08, FR-09] Composition root — FastAPI app factory.
+"""[FR-01, FR-03, FR-04, FR-05, FR-07, FR-08, FR-09] Composition root — FastAPI app factory.
 
 Citations:
 - SPEC.md §3 FR-01 — `POST /v1/tasks` mounted under `/v1`.
@@ -9,28 +9,36 @@ Citations:
 - SPEC.md §3 FR-05 — `/healthz` and `/readyz` are mounted at the
   app level so they bypass the per-route rate-limit dependency
   (SPEC §3 FR-05 — "`/healthz`, `/readyz` 不受限").
+- SPEC.md §3 FR-07 — the readiness probe compares the alembic row
+  against ``_MIGRATION_HEAD``; behind-head yields 503.
 - SPEC.md §3 FR-08 — composition root binds the runner's
   graceful-drain shutdown contract; on ``shutdown`` the lifespan
   awaits the runner's ``shutdown(drain_timeout_seconds)`` so the
   process exits without orphan pids and the in-flight /v1/task
   run records are marked ``status='interrupted'`` (SPEC §3 FR-08).
-- SPEC.md §3 FR-09 — `/healthz`, `/readyz`, and `/v1/metrics` are
-  exposed here (no auth required by the spec).
+- SPEC.md:157 §3 FR-09 — `/healthz`, `/readyz`, and `/v1/metrics` are
+  exposed here (no auth required by the spec); the readiness probe
+  itself lives in `taskq_api.api.health` and is mounted via the
+  health router with ``_check_migration_state`` as its probe. The
+  503 detail names which check failed (db vs migration).
 - SAD.md §2.8 — `app.py` lives next to `api/health.py` (the hub) and
   includes every router.
 - SAD.md §3.1 — middleware/error handlers registered here.
+- SAD.md §3.2 — `app.py` is the only place that imports SQLAlchemy
+  in the api-layer scope; the readiness probe delegates here.
 """
 from __future__ import annotations
 
 import asyncio
 import os
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from typing import Callable, cast
+from typing import Callable, Tuple, cast
 
 from fastapi import FastAPI, Response
 from fastapi.routing import APIRouter, _IncludedRouter
 from sqlalchemy import create_engine, text as sql_text
 
+from taskq_api.api.health import create_health_router
 from taskq_api.api.tasks import create_tasks_router
 from taskq_api.errors import register_error_handlers
 from taskq_api.service.auth import redact_db_url
@@ -41,32 +49,69 @@ from taskq_api.service.runner import TaskRunner
 # at /readyz time (SPEC §3 FR-07 / SPEC §8 #11).
 _MIGRATION_HEAD: str = "v3_split_results"
 _BEHIND_HEAD_PREFIX: str = "migration is behind head"
+_UNKNOWN_PREFIX: str = "migration state unknown"
 
 
 def _behind_head_detail(reason: str) -> str:
-    """[FR-07] Compose the /readyz 503 detail string for a behind-head state.
+    """[FR-07] Compose the /readyz 503 detail for a CONFIRMED behind-head state.
 
-    Centralises the prefix so every branch in ``_check_migration_state``
-    produces a detail string with the same shape — operators can rely
-    on the leading ``migration`` token regardless of which check fired.
+    Used only when the probe successfully read ``alembic_version`` and
+    the revision does not match ``_MIGRATION_HEAD`` — i.e. we know the
+    schema is stale. SPEC §8 #11 wants the operator to see ``migration``
+    here so they know to run ``alembic upgrade head``.
     """
     return f"{_BEHIND_HEAD_PREFIX} ({reason})"
 
 
-def _check_migration_state() -> tuple[bool, str]:
-    """[FR-07] Compare alembic current revision against the configured head.
+def _unknown_state_detail(reason: str) -> str:
+    """[FR-09] Compose the /readyz 503 detail when the probe could not read state.
 
-    Returns ``(is_at_head, detail_str)``. When the DB has no alembic
-    metadata table, or its ``alembic_version.version_num`` does not
-    match ``_MIGRATION_HEAD``, the helper reports ``(False, detail)``
-    so /readyz can return 503 + ``application/problem+json`` (SPEC
-    §8 #11).
+    Distinct from ``_behind_head_detail``: a failed probe does NOT tell
+    us the migration is behind, only that we could not determine it.
+    Claiming "behind head" here would send an on-call operator to run
+    migrations when the real fault is an unreachable database, so this
+    branch says ``unknown`` and names the DB as the thing that failed
+    (SPEC §8 #10 — detail must identify the DB as unavailable).
+
+    Both grep tokens appear by necessity, not decoration: the state is
+    a *migration* state (SPEC §8 #11) that is unknown *because of the
+    db* (SPEC §8 #10), and either check can land here.
+    """
+    return f"{_UNKNOWN_PREFIX} ({reason})"
+
+
+def _check_migration_state() -> Tuple[bool, str]:
+    """[FR-07, FR-09] Compare alembic current revision against the configured head.
+
+    Returns ``(is_at_head, detail_str)``. Fails closed: any state that
+    is not a confirmed match for ``_MIGRATION_HEAD`` yields ``False``
+    so /readyz can return 503 + ``application/problem+json``.
+
+    The detail names WHICH check failed, per SPEC §3 FR-09 ("在 body
+    說明哪一項失敗"):
+
+    - DB unreachable / alembic metadata unreadable → ``migration state
+      unknown (db ...)`` (SPEC §8 #10).
+    - ``alembic_version`` read cleanly but stale/unstamped → ``migration
+      is behind head (...)`` (SPEC §8 #11).
+
+    Citations:
+    - SPEC.md:157 — 503 body must state which check failed.
+    - SPEC.md:160 — behind-head MUST fail closed.
+    - SPEC.md:420 (§8 #10) — DB down → detail identifies the DB.
+    - SPEC.md:421 (§8 #11) — behind head → detail identifies migration.
+    - SPEC.md:150 (NFR-03) — ``asyncio.CancelledError`` derives from
+      ``BaseException``, so the ``except Exception`` below cannot
+      swallow a cancellation.
+
+    The ``create_engine`` reference is resolved at call time, so the
+    TDD suite can monkey-patch ``taskq_api.app.create_engine`` to
+    simulate a DB outage.
     """
     db_url = os.environ.get("TASKQ_DB_URL", "")
     if not db_url:
-        # No DB configured — report "behind" with a generic detail so
-        # the operator sees "migration" in the response.
-        return False, _behind_head_detail("no TASKQ_DB_URL configured")
+        # Nothing to probe — state is undetermined, not known-behind.
+        return False, _unknown_state_detail("no TASKQ_DB_URL configured")
 
     try:
         engine = create_engine(db_url)
@@ -74,14 +119,21 @@ def _check_migration_state() -> tuple[bool, str]:
             row = conn.execute(
                 sql_text("SELECT version_num FROM alembic_version")
             ).first()
-    except Exception:
-        # SPEC §3 FR-07 — /readyz must fail closed when the alembic
-        # probe cannot reach the DB. Test exercises this branch via
-        # monkey-patching ``create_engine`` to raise.
-        return False, _behind_head_detail("alembic probe error")
+    except Exception as exc:
+        # SPEC §8 #10 — fail closed when the probe cannot reach the DB
+        # or the alembic metadata table is absent. Only the exception
+        # CLASS is surfaced; the message can embed the DSN and would
+        # leak the password past the NFR-04 redaction boundary.
+        return False, _unknown_state_detail(
+            f"db probe failed: {type(exc).__name__}"
+        )
 
     if row is None:
-        return False, _behind_head_detail("no alembic_version row")
+        # Table exists but was never stamped — a real, confirmed
+        # migration gap (SPEC §8 #11), not a DB fault.
+        return False, _behind_head_detail(
+            f"alembic_version has no row; expected head={_MIGRATION_HEAD}"
+        )
 
     current = row[0]
     if current != _MIGRATION_HEAD:
@@ -174,12 +226,12 @@ def _build_lifespan() -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
 
 
 def create_app() -> FastAPI:
-    """Construct the FastAPI application for FR-01 / FR-03 / FR-04 / FR-05 / FR-08 / FR-09."""
+    """Construct the FastAPI application for FR-01 / FR-03 / FR-04 / FR-05 / FR-07 / FR-08 / FR-09."""
     app = FastAPI(
         title="taskq-api",
         version="0.1.0",
         description=(
-            "HTTP task-queue service (FR-01 / FR-03 / FR-04 / FR-05 / FR-08 / FR-09 GREEN step)."
+            "HTTP task-queue service (FR-01 / FR-03 / FR-04 / FR-05 / FR-07 / FR-08 / FR-09 GREEN step)."
         ),
         lifespan=_build_lifespan(),
     )
@@ -187,58 +239,24 @@ def create_app() -> FastAPI:
     _flat_include_router(app, create_tasks_router())
 
     # ------------------------------------------------------------------
-    # /healthz, /readyz — FR-05 + FR-09.
+    # /healthz, /readyz — FR-05 + FR-07 + FR-09.
     #
-    # These two routes are mounted DIRECTLY on `app` (not via the
-    # tasks router) so the per-route `require_scope`/rate-limit
-    # dependency chain never fires for them. SPEC §3 FR-05
+    # The health router is mounted DIRECTLY on `app` (via the flat
+    # include helper) so the per-route `require_scope`/rate-limit
+    # dependency chain never fires for these probes. SPEC §3 FR-05
     # explicitly states "/healthz, /readyz 不受限" (not subject to
     # the per-token bucket); mounting at the app level is the
     # simplest way to honour that — every /v1/* route goes through
     # `deps.get_current_key` (which consults the bucket), while
     # /healthz and /readyz do not.
+    #
+    # The readiness probe (``/readyz``) delegates to
+    # ``_check_migration_state`` — the SQLAlchemy-using helper
+    # defined above. The helper resolves ``create_engine`` from this
+    # module's globals at call time, so the TDD suite's monkey-patch
+    # of ``taskq_api.app.create_engine`` takes effect (SPEC §8 #10).
     # ------------------------------------------------------------------
-    @app.get(
-        "/healthz",
-        summary="[FR-05, FR-09] Liveness probe.",
-        description=(
-            "GET /healthz (no auth, no rate limit). Returns 200 "
-            "as long as the process is up. SPEC §3 FR-05 exempts "
-            "this route from the token bucket so liveness checks "
-            "succeed even after a burst exhausts the budget."
-        ),
-    )
-    async def healthz() -> dict:
-        return {"status": "ok"}
-
-    @app.get(
-        "/readyz",
-        summary="[FR-05, FR-07, FR-09] Readiness probe.",
-        description=(
-            "GET /readyz (no auth, no rate limit). Returns 200 when "
-            "the process can serve traffic AND the alembic migration "
-            "is at head. Returns 503 `application/problem+json` with a "
-            "detail that mentions `migration` when the DB is behind "
-            "head (SPEC §3 FR-05 + SPEC §8 #11)."
-        ),
-    )
-    async def readyz():
-        is_at_head, detail_str = _check_migration_state()
-        if is_at_head:
-            return {"status": "ready", "migration": detail_str}
-        # FR-07 / SPEC §8 #11 — /readyz returns 503 with a
-        # ``migration``-mentioning detail when the alembic revision is
-        # behind head.
-        return Response(
-            content=(
-                '{"type":"/errors/migration","title":"Migration Behind Head",'
-                '"status":503,'
-                f'"detail":"{detail_str}"'
-                ',"instance":"/readyz"}'
-            ),
-            status_code=503,
-            media_type="application/problem+json",
-        )
+    _flat_include_router(app, create_health_router(probe=_check_migration_state))
 
     # ------------------------------------------------------------------
     # /v1/metrics — FR-09 (no auth required).
@@ -266,4 +284,4 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
-__all__ = ["create_app", "app"]
+__all__ = ["create_app", "app", "_build_metrics_body", "_check_migration_state"]
