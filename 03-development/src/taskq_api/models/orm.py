@@ -1,9 +1,11 @@
-"""[FR-02, FR-07] ORM models for the task execution subsystem.
+"""[FR-02, FR-03, FR-07] ORM models for the task execution subsystem.
 
 Citations:
 - SPEC.md §3 FR-02 — ``task_results`` table persists one row per
   task run; columns: ``exit_code`` / ``stdout_tail`` / ``stderr_tail``
   / ``duration_ms`` / ``finished_at`` (FR-07 v3 schema).
+- SPEC.md §3 FR-03 — ``api_keys`` table stores SHA-256 hashes only
+  (64 lowercase hex chars); no plaintext column is ever exposed.
 - SAD.md §2.4 — ``models/orm.py`` is the per-table ORM module
   consumed by both the repository layer (real SQLAlchemy session)
   and the test suite (in-process registry).
@@ -23,6 +25,17 @@ import uuid
 from typing import Any, Optional
 
 
+# API-key row fields — FR-03 mandates the hash only (64 lowercase hex
+# chars); the plaintext is NEVER persisted and therefore cannot be a
+# column on this ORM row.
+_KEY_ROW_FIELDS: tuple[str, ...] = (
+    "id",
+    "scope",
+    "key_hash",
+    "revoked_at",
+)
+
+
 _ROW_FIELDS: tuple[str, ...] = (
     "id",
     "task_id",
@@ -34,6 +47,41 @@ _ROW_FIELDS: tuple[str, ...] = (
     "finished_at",
     "status",
 )
+
+
+class ApiKey:
+    """[FR-03] ORM row for the ``api_keys`` table.
+
+    Citations:
+    - SPEC.md §3 FR-03 — stores only the SHA-256 hash of the
+      plaintext key; the plaintext is never persisted and never
+      exposed as an attribute on this row.
+    - SAD.md §2.4 — `api_keys` aggregate per-table ORM module.
+    - SPEC.md §3 FR-03 — `revoked_at` non-null means the key is
+      rejected (AC6-revoked-status).
+    """
+
+    def __init__(
+        self,
+        *,
+        id: Optional[str] = None,
+        scope: str,
+        key_hash: str,
+        revoked_at: Optional[str] = None,
+    ) -> None:
+        self.id = id or str(uuid.uuid4())
+        self.scope = scope
+        self.key_hash = key_hash
+        self.revoked_at = revoked_at
+
+    def __repr__(self) -> str:
+        return (
+            f"ApiKey(id={self.id!r}, scope={self.scope!r}, "
+            f"key_hash={self.key_hash!r}, revoked_at={self.revoked_at!r})"
+        )
+
+
+__all__ = ["ApiKey", "TaskResult"]
 
 
 class TaskResult:
@@ -97,6 +145,3 @@ class TaskResult:
         # insertion order; the runner appends in run-completion order).
         rows.reverse()
         return [cls._from_dict(r) for r in rows]
-
-
-__all__ = ["TaskResult"]
