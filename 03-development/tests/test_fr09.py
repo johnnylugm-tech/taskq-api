@@ -246,3 +246,274 @@ def test_fr09_readyz_503_when_alembic_not_head(monkeypatch, tmp_path):
             assert "migration" in result_problem_detail_str
 
     asyncio.get_event_loop().run_until_complete(_call())
+
+
+# ---------------------------------------------------------------------------
+# Coverage tests — exercise the SPEC-required branches of the FR-09 surface
+# that the four canonical cases do not touch. Each test cites the source
+# line(s) it covers so a future audit can drop or extend individual cases.
+# ---------------------------------------------------------------------------
+
+
+# NFR-03
+def test_fr09_readyz_module_level_unwired_probe_returns_503():
+    """Coverage — health.py:104. The module-level ``readyz`` always
+    delegates to ``_unwired_probe`` (the composition root is what wires
+    the real probe via ``create_health_router``); a direct call against
+    the importable handler returns the 503 ``application/problem+json``
+    envelope whose detail names the unwired state.
+    """
+    import taskq_api.api.health as _health_mod
+    from fastapi import FastAPI
+    from httpx import ASGITransport, AsyncClient
+
+    app = FastAPI()
+    app.add_api_route(
+        "/readyz",
+        _health_mod.readyz,
+        methods=["GET"],
+    )
+
+    transport = ASGITransport(app=app)
+    import asyncio
+
+    async def _call() -> None:
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            resp = await ac.get("/readyz")
+            assert resp.status_code == 503
+            assert "application/problem+json" in resp.headers["content-type"]
+            assert "migration state unknown" in resp.text
+
+    asyncio.get_event_loop().run_until_complete(_call())
+
+
+# NFR-03
+def test_fr09_unwired_probe_health_lines(monkeypatch, tmp_path):
+    """Coverage — health.py:34, 44. Direct unit-test of ``_unwired_probe``
+    asserts the fail-closed default the module-level ``readyz`` delegates
+    to when ``create_health_router`` was never installed.
+    """
+    from taskq_api.api.health import _unwired_probe
+
+    is_at_head, detail_str = _unwired_probe()
+    assert is_at_head is False
+    assert "migration state unknown" in detail_str
+    assert "readyz probe not wired" in detail_str
+
+
+# NFR-03
+def test_fr09_readyz_503_when_no_db_url(monkeypatch):
+    """Coverage — app.py:108. With ``TASKQ_DB_URL`` unset, ``/readyz``
+    fails closed with a 503 whose detail names the missing configuration
+    so an operator can grep for ``unknown``.
+    """
+    from httpx import ASGITransport, AsyncClient
+
+    monkeypatch.delenv("TASKQ_DB_URL", raising=False)
+    from taskq_api.app import create_app
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    import asyncio
+
+    async def _call() -> None:
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            resp = await ac.get("/readyz")
+            assert resp.status_code == 503
+            assert "unknown" in resp.text
+            assert "TASKQ_DB_URL" in resp.text
+
+    asyncio.get_event_loop().run_until_complete(_call())
+
+
+# NFR-03
+def test_fr09_readyz_503_when_alembic_table_empty(monkeypatch, tmp_path):
+    """Coverage — app.py:129. The ``alembic_version`` table exists but is
+    unstamped; the probe reports a behind-head state with ``migration``
+    in the detail (SPEC §8 #11 — confirmed migration gap, not a DB fault).
+    """
+    from httpx import ASGITransport, AsyncClient
+    from sqlalchemy import create_engine as _real_create_engine
+
+    db_path = tmp_path / "alembic_unstamped.sqlite"
+    monkeypatch.setenv("TASKQ_DB_URL", f"sqlite:///{db_path}")
+
+    engine = _real_create_engine(f"sqlite:///{db_path}")
+    with engine.begin() as conn:
+        conn.exec_driver_sql(
+            "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"
+        )
+        # No INSERT — the table exists but is empty.
+
+    from taskq_api.app import create_app
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    import asyncio
+
+    async def _call() -> None:
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            resp = await ac.get("/readyz")
+            assert resp.status_code == 503
+            assert "migration" in resp.text
+            assert "no row" in resp.text
+
+    asyncio.get_event_loop().run_until_complete(_call())
+
+
+# NFR-03
+def test_fr09_metrics_endpoint_redacts_password(monkeypatch):
+    """Coverage — app.py:155-163, 272-273. ``GET /v1/metrics`` returns the
+    Prometheus body whose DB URL line has its password fragment redacted
+    (NFR-04 / SPEC §8 #20).
+    """
+    from httpx import ASGITransport, AsyncClient
+
+    monkeypatch.setenv("TASKQ_DB_URL", "postgresql://u:secretpw@host.example/db")
+    from taskq_api.app import create_app
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    import asyncio
+
+    async def _call() -> None:
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            resp = await ac.get("/v1/metrics")
+            assert resp.status_code == 200
+            body = resp.text
+            assert "taskq_db_url" in body
+            assert "secretpw" not in body
+            assert "# HELP taskq_db_url" in body
+            assert "# TYPE taskq_db_url" in body
+
+    asyncio.get_event_loop().run_until_complete(_call())
+
+
+# NFR-03
+def test_fr09_build_metrics_body_direct(monkeypatch):
+    """Coverage — app.py:155-163. Direct unit-test of ``_build_metrics_body``
+    so the dict-join code path is exercised even if the route layer is
+    bypassed by future refactors.
+    """
+    monkeypatch.setenv("TASKQ_DB_URL", "postgresql://u:secret@host/db")
+    from taskq_api.app import _build_metrics_body
+
+    body = _build_metrics_body()
+    assert "taskq_db_url" in body
+    assert "secret" not in body
+    assert "# HELP" in body
+    assert "# TYPE" in body
+    assert body.endswith("\n")
+
+
+# NFR-03
+def test_fr09_metrics_body_handles_missing_db_url(monkeypatch):
+    """Coverage — app.py:155-156. With ``TASKQ_DB_URL`` unset, the
+    metrics body still renders, with the redacted-URL slot empty.
+    """
+    monkeypatch.delenv("TASKQ_DB_URL", raising=False)
+    from taskq_api.app import _build_metrics_body
+
+    body = _build_metrics_body()
+    assert "taskq_db_url ''" in body
+
+
+# NFR-03
+def test_fr09_flat_include_router_nested_recursion():
+    """Coverage — app.py:185-186. ``_flat_include_router`` recurses into
+    ``_IncludedRouter.original_router`` so nested includes also land on
+    ``app.routes`` directly (SPEC §3 FR-04 single-dependency invariant).
+    """
+    from fastapi import FastAPI
+    from fastapi.routing import APIRouter
+
+    from taskq_api.app import _flat_include_router
+
+    app = FastAPI()
+    inner_router = APIRouter()
+
+    @inner_router.get("/coverage-inner-leaf")
+    async def _inner_leaf():  # pragma: no cover - stub for routing only
+        return {"ok": True}
+
+    outer_router = APIRouter()
+    outer_router.include_router(inner_router)
+
+    _flat_include_router(app, outer_router)
+
+    paths = [r.path for r in app.routes]
+    assert "/coverage-inner-leaf" in paths
+
+
+# NFR-03
+def test_fr09_lifespan_runs_graceful_drain(monkeypatch):
+    """Coverage — app.py:205-215. The composition-root lifespan enters
+    ``TaskRunner`` construction and runs ``shutdown(drain_timeout_seconds)``
+    on exit so FR-08 graceful-drain is observable from the FR-09 wiring
+    path (``create_app`` is the same code that mounts the health router).
+    """
+    from taskq_api import app as _app_module
+    from taskq_api.app import _build_lifespan, create_app
+
+    shutdown_called_holder = {"called": False}
+
+    class _StubRunner:
+        def __init__(self) -> None:
+            self._in_flight: list[str] = []
+
+        def shutdown(self, drain_timeout_seconds):
+            shutdown_called_holder["called"] = True
+            shutdown_called_holder["drain_timeout"] = drain_timeout_seconds
+            return []
+
+    monkeypatch.setattr(_app_module, "TaskRunner", _StubRunner)
+
+    app = create_app()
+    lifespan_cm = _build_lifespan()
+    import asyncio
+
+    async def _enter_then_exit() -> None:
+        async with lifespan_cm(app):
+            pass
+
+    asyncio.get_event_loop().run_until_complete(_enter_then_exit())
+
+    assert shutdown_called_holder["called"] is True
+    assert isinstance(shutdown_called_holder["drain_timeout"], float)
+
+
+# NFR-03
+def test_fr09_lifespan_awaits_async_shutdown(monkeypatch):
+    """Coverage — app.py:214-215. When ``runner.shutdown`` returns a
+    coroutine (async mock), the lifespan ``await``s it on exit so FR-08
+    graceful drain does not silently drop the async drain.
+    """
+    from taskq_api import app as _app_module
+    from taskq_api.app import _build_lifespan, create_app
+
+    await_count_holder = {"count": 0}
+
+    class _AsyncShutdownRunner:
+        def __init__(self) -> None:
+            self._in_flight: list[str] = []
+
+        def shutdown(self, drain_timeout_seconds):
+            async def _coro() -> list[str]:
+                await_count_holder["count"] += 1
+                return []
+
+            return _coro()
+
+    monkeypatch.setattr(_app_module, "TaskRunner", _AsyncShutdownRunner)
+
+    app = create_app()
+    lifespan_cm = _build_lifespan()
+    import asyncio
+
+    async def _enter_then_exit() -> None:
+        async with lifespan_cm(app):
+            pass
+
+    asyncio.get_event_loop().run_until_complete(_enter_then_exit())
+
+    assert await_count_holder["count"] == 1
