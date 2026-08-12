@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskq-api"
+version = "0.1.0"
+description = "HTTP task-queue service (taskq-api round 2/3 test-bed)"
+requires-python = ">=3.11"
+# Phase 3 will flesh this out — only the manifest's PRESENCE unlocks
+# `run-env-check` so P3's per-FR TDD can install deps. Agent A in P3 owns
+# the dep list (Pydantic models, SQLAlchemy 2.x, Alembic, FastAPI,
+# uvicorn, httpx, import-linter for NFR-06, ... per SAD.md / SPEC.md).
+dependencies = []
+
+[project.optional-dependencies]
+dev = []
+
+# Phase 3 Agent A owns the `src/taskq_api/` package layout; until then, the
+# manifest only needs to exist and parse for `run-env-check` to install
+# dependencies into the project venv.

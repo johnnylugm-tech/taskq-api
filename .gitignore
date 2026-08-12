@@ -20,3 +20,5 @@ htmlcov/
 .mutmut-cache/
 .code-review-graph/
 .claude/worktrees/
+build/
+taskq_api.egg-info/
