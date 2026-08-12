@@ -58,6 +58,9 @@ from httpx import ASGITransport, AsyncClient
 from taskq_api.api.deps import require_scope  # noqa: F401
 from taskq_api.api.tasks import create_tasks_router  # noqa: F401
 from taskq_api.errors import (  # noqa: F401
+    AuthProblem,
+    ConflictProblem,
+    ForbiddenProblem,
     NotFoundProblem,
     ProblemDetail,
     register_error_handlers,
@@ -123,12 +126,18 @@ async def _hit(app: FastAPI, method: str, path: str, **kwargs):
 def _run(coro):
     """Drive one coroutine to completion under the test's event loop.
 
-    The ``asyncio.get_event_loop().run_until_complete`` pattern matches
-    the FR-09 test suite — keeps the test functions synchronous so the
-    pytest runner surfaces RED failures as plain assertion errors rather
-    than coroutine warnings.
+    Builds a fresh event loop per call so the helper works on Python
+    3.10+ where ``asyncio.get_event_loop`` no longer auto-creates a
+    loop on the main thread. The original implementation used
+    ``asyncio.get_event_loop().run_until_complete`` to match the FR-09
+    test suite — kept synchronous so the pytest runner surfaces RED
+    failures as plain assertion errors rather than coroutine warnings.
     """
-    return asyncio.get_event_loop().run_until_complete(coro)
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
 
 
 # ---------------------------------------------------------------------------
@@ -490,3 +499,938 @@ def test_fr10_correlation_id_round_trip_to_header():
     # ``JSONResponse.headers`` is a mutable mapping; the handler sets
     # the lowercase form of the canonical X-Correlation-Id header.
     assert response.headers["x-correlation-id"] == cid_value
+
+
+# ---------------------------------------------------------------------------
+# Coverage backfill — exercise lines the FR-10 spec tests do not hit.
+#
+# The spec test functions only cover the envelope contract surface. The
+# source modules bound by the SAB (errors.py / tasks.py / deps.py)
+# contain additional branches — typed ProblemDetail subclasses, the
+# rate-limit / auth gate, the task router endpoints — that need a
+# reachable test or a coverage pragma to satisfy the NFR-10 line gate.
+# Each test below cites the source line(s) it covers.
+# ---------------------------------------------------------------------------
+
+
+# NFR-09 NFR-10
+def test_fr10_problem_detail_constructor_with_overrides():
+    """[FR-10] Cover errors.py:42-45 — ProblemDetail accepts
+    ``title`` and ``type_uri`` overrides and applies them to the
+    instance attributes before the base ``Exception.__init__`` fires.
+
+    The default construction path (all params default) is the only one
+    the spec tests hit; this exercises the explicit-override branches.
+    """
+
+    custom = ProblemDetail(
+        status=418,
+        title="I'm a teapot",
+        detail="short and stout",
+        type_uri="/errors/teapot",
+    )
+    assert custom.status == 418
+    assert custom.title == "I'm a teapot"
+    assert custom.type_uri == "/errors/teapot"
+    assert custom.detail == "short and stout"
+
+
+# NFR-09 NFR-10
+def test_fr10_auth_problem_constructor_with_detail():
+    """[FR-10] Cover errors.py:75-76 — AuthProblem.__init__ delegates
+    to ProblemDetail with status=401. Default-construction does not
+    exercise the kwarg passthrough; this test forces the explicit
+    detail branch.
+    """
+
+    exc = AuthProblem(detail="custom auth failure reason")
+    assert exc.status == 401
+    assert exc.type_uri == "/errors/unauthenticated"
+    assert exc.title == "Unauthenticated"
+    assert exc.detail == "custom auth failure reason"
+
+
+# NFR-09 NFR-10
+def test_fr10_forbidden_problem_constructor_with_detail():
+    """[FR-10] Cover errors.py:89-90 — ForbiddenProblem.__init__
+    delegates to ProblemDetail with status=403. Explicit-detail
+    branch is otherwise unreached by the spec tests.
+    """
+
+    exc = ForbiddenProblem(detail="custom forbidden reason")
+    assert exc.status == 403
+    assert exc.type_uri == "/errors/forbidden"
+    assert exc.title == "Forbidden"
+    assert exc.detail == "custom forbidden reason"
+
+
+# NFR-09 NFR-10
+def test_fr10_conflict_problem_constructor_with_detail():
+    """[FR-10] Cover errors.py:117-118 — ConflictProblem.__init__
+    delegates to ProblemDetail with status=409. The duplicate-name
+    path that the spec tests already cover does pass through this
+    line, but a direct unit-test keeps the contract invariant
+    anchored even if the route layer is refactored.
+    """
+
+    exc = ConflictProblem(detail="custom conflict reason")
+    assert exc.status == 409
+    assert exc.type_uri == "/errors/conflict"
+    assert exc.title == "Conflict"
+    assert exc.detail == "custom conflict reason"
+
+
+# NFR-09 NFR-10
+@pytest.mark.asyncio
+async def test_fr10_sanitised_middleware_non_http_scope_passthrough():
+    """[FR-10] Cover errors.py:303-306 — _SanitisedExceptionMiddleware
+    passes non-HTTP scopes (e.g. ``lifespan``) through without
+    invoking the exception handler. The middleware MUST NOT swallow
+    lifespan or websocket scopes.
+    """
+
+    sentinel_seen = {"called": False}
+
+    async def _inner_app(scope, receive, send):
+        sentinel_seen["called"] = True
+
+    captured: dict = {}
+
+    async def _handler(_request, _exc):
+        captured["handler"] = True
+        return None  # pragma: no cover — handler must NOT be reached here
+
+    from taskq_api.errors import _SanitisedExceptionMiddleware
+    middleware = _SanitisedExceptionMiddleware(app=_inner_app, handler=_handler)
+
+    async def _noop_receive():
+        return {"type": "lifespan.startup"}
+
+    async def _noop_send(_message):
+        return None
+
+    await middleware({"type": "lifespan"}, _noop_receive, _noop_send)
+    assert sentinel_seen["called"] is True
+    assert "handler" not in captured
+
+
+# NFR-09 NFR-10
+@pytest.mark.asyncio
+async def test_fr10_sanitised_middleware_response_started_reraise():
+    """[FR-10] Cover errors.py:316-322 — _SanitisedExceptionMiddleware
+    re-raises exceptions raised AFTER the response has started so
+    ServerErrorMiddleware can still log them. The sanitised body
+    MUST NOT replace a response that is already in flight.
+    """
+
+    captured: dict = {}
+
+    async def _inner_app(scope, receive, send):
+        # Simulate a response that has already started before the
+        # exception fires, then raise so the middleware's except
+        # branch has to re-raise (response_started=True).
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        raise RuntimeError("late failure after response started")
+
+    async def _handler(_request, _exc):
+        captured["handler_called"] = True
+        return None  # pragma: no cover — must NOT be reached
+
+    from taskq_api.errors import _SanitisedExceptionMiddleware
+    middleware = _SanitisedExceptionMiddleware(app=_inner_app, handler=_handler)
+
+    async def _noop_receive():
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    send_calls: list[dict] = []
+
+    async def _send(message):
+        send_calls.append(message)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        await middleware(
+            {"type": "http", "method": "GET", "path": "/x", "headers": []},
+            _noop_receive,
+            _send,
+        )
+    assert "late failure" in str(excinfo.value)
+    assert "handler_called" not in captured
+    # The http.response.start message MUST have been forwarded to the
+    # outer send so the response stays valid through the re-raise.
+    assert any(m.get("type") == "http.response.start" for m in send_calls)
+
+
+# ---------------------------------------------------------------------------
+# Coverage backfill — api/deps.py
+# ---------------------------------------------------------------------------
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_read_rate_config_when_env_set(monkeypatch):
+    """[FR-10] Cover deps.py:73-78 — _read_rate_config returns a
+    populated _RateConfig when TASKQ_RATE_BURST is set. The spec
+    tests do not exercise the FR-05 surface; this anchors the
+    contract for the rate-limit opt-in.
+    """
+    from taskq_api.api import deps as _deps
+
+    monkeypatch.setenv("TASKQ_RATE_BURST", "5")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "0.5")
+    cfg = _deps._read_rate_config()
+    assert cfg is not None
+    assert cfg.burst == 5
+    assert cfg.rate_per_sec == 0.5
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_enforce_rate_limit_disabled_when_config_none(monkeypatch):
+    """[FR-10] Cover deps.py:95-97 — _enforce_rate_limit short-circuits
+    when no rate-limit config is present (the FR-05 opt-in default).
+    """
+    from taskq_api.api import deps as _deps
+
+    monkeypatch.delenv("TASKQ_RATE_BURST", raising=False)
+    # Must NOT raise — the env is unset so the bucket check is skipped.
+    _deps._enforce_rate_limit("any-token")
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_enforce_rate_limit_allowed(monkeypatch):
+    """[FR-10] Cover deps.py:99-107 — _enforce_rate_limit consumes a
+    token and returns None when the bucket has capacity. The ``with
+    _RATE_LOCK`` block + allowed branch are otherwise unreached.
+    """
+    from taskq_api.api import deps as _deps
+
+    monkeypatch.setenv("TASKQ_RATE_BURST", "3")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "1.0")
+
+    class _FakeDecision:
+        allowed = True
+        retry_after_seconds = 0
+        tokens = 2.0
+
+    monkeypatch.setattr(
+        _deps,
+        "check_and_consume",
+        lambda *, token, burst, rate_per_sec: _FakeDecision(),
+    )
+    # Must NOT raise — the bucket has capacity.
+    _deps._enforce_rate_limit("capacity-token")
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_enforce_rate_limit_denied_raises_429(monkeypatch):
+    """[FR-10] Cover deps.py:106-116 — _enforce_rate_limit raises
+    HTTPException(429) with the Retry-After header when the bucket
+    is exhausted.
+    """
+    from fastapi import HTTPException
+
+    from taskq_api.api import deps as _deps
+
+    monkeypatch.setenv("TASKQ_RATE_BURST", "1")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "0.5")
+
+    class _FakeDecision:
+        allowed = False
+        retry_after_seconds = 2
+        tokens = 0.0
+
+    monkeypatch.setattr(
+        _deps,
+        "check_and_consume",
+        lambda *, token, burst, rate_per_sec: _FakeDecision(),
+    )
+    with pytest.raises(HTTPException) as excinfo:
+        _deps._enforce_rate_limit("exhausted-token")
+    assert excinfo.value.status_code == 429
+    assert excinfo.value.headers is not None
+    assert "Retry-After" in excinfo.value.headers
+    assert excinfo.value.headers["Retry-After"] == "2"
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_get_current_key_missing_header():
+    """[FR-10] Cover deps.py:137-139 — get_current_key raises
+    AuthProblem when the X-API-Key header is absent.
+    """
+    from starlette.requests import Request
+
+    from taskq_api.api import deps as _deps
+
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/v1/x",
+        "headers": [],
+        "query_string": b"",
+    }
+    request = Request(scope)
+    with pytest.raises(AuthProblem) as excinfo:
+        _deps.get_current_key(request)
+    assert "X-API-Key header is required" in str(excinfo.value.detail)
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_get_current_key_invalid_key():
+    """[FR-10] Cover deps.py:143-144 — get_current_key raises
+    AuthProblem when ``verify_key`` returns False.
+    """
+    from starlette.requests import Request
+
+    from taskq_api.api import deps as _deps
+    from taskq_api.service import auth as _auth
+
+    original_verify = _auth.verify_key
+    _auth.verify_key = lambda _raw, _hashed: False
+    try:
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/v1/x",
+            "headers": [(b"x-api-key", b"any-key")],
+            "query_string": b"",
+        }
+        request = Request(scope)
+        with pytest.raises(AuthProblem) as excinfo:
+            _deps.get_current_key(request)
+        assert "not valid" in str(excinfo.value.detail)
+    finally:
+        _auth.verify_key = original_verify
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_get_current_key_valid_returns_raw():
+    """[FR-10] Cover deps.py:145 — get_current_key returns the raw
+    key when verify_key accepts it.
+    """
+    from starlette.requests import Request
+
+    from taskq_api.api import deps as _deps
+    from taskq_api.service import auth as _auth
+
+    original_verify = _auth.verify_key
+    _auth.verify_key = lambda raw, _hashed: True
+    try:
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/v1/x",
+            "headers": [(b"x-api-key", b"valid-key")],
+            "query_string": b"",
+        }
+        request = Request(scope)
+        result = _deps.get_current_key(request)
+        assert result == "valid-key"
+    finally:
+        _auth.verify_key = original_verify
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_scope_gate_init_and_call_allowed():
+    """[FR-10] Cover deps.py:166-178 — _ScopeGate.__init__ stores
+    the allowed_scopes frozenset, and the callable path returns the
+    key when scope_allows is True.
+    """
+    from taskq_api.api import deps as _deps
+    from taskq_api.service import auth as _auth
+
+    original_allows = _auth.scope_allows
+    _auth.scope_allows = lambda _key, _scopes: True
+    try:
+        gate = _deps._ScopeGate(frozenset({"write", "admin"}))
+        assert gate.allowed_scopes == frozenset({"write", "admin"})
+
+        # The __call__ path needs a Request; build a minimal one and
+        # call the gate directly with key= (the Depends default is
+        # bypassed by passing key as a kwarg).
+        from starlette.requests import Request
+
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/v1/x",
+            "headers": [],
+            "query_string": b"",
+        }
+        request = Request(scope)
+        result = gate(request, key="any-key")
+        assert result == "any-key"
+    finally:
+        _auth.scope_allows = original_allows
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_scope_gate_call_forbidden():
+    """[FR-10] Cover deps.py:176-177 — _ScopeGate.__call__ raises
+    ForbiddenProblem when scope_allows returns False.
+    """
+    from taskq_api.api import deps as _deps
+    from taskq_api.service import auth as _auth
+    from starlette.requests import Request
+
+    original_allows = _auth.scope_allows
+    _auth.scope_allows = lambda _key, _scopes: False
+    try:
+        gate = _deps._ScopeGate(frozenset({"admin"}))
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/v1/x",
+            "headers": [],
+            "query_string": b"",
+        }
+        request = Request(scope)
+        with pytest.raises(ForbiddenProblem) as excinfo:
+            gate(request, key="weak-key")
+        assert excinfo.value.status == 403
+    finally:
+        _auth.scope_allows = original_allows
+
+
+# NFR-09 NFR-10
+def test_fr10_deps_require_scope_returns_gate():
+    """[FR-10] Cover deps.py:193 — require_scope returns a
+    _ScopeGate carrying the supplied allowed_scopes.
+    """
+    from taskq_api.api import deps as _deps
+
+    gate = _deps.require_scope("write", "admin")
+    assert isinstance(gate, _deps._ScopeGate)
+    assert gate.allowed_scopes == frozenset({"write", "admin"})
+
+
+# ---------------------------------------------------------------------------
+# Coverage backfill — api/tasks.py
+# ---------------------------------------------------------------------------
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_result_from_runner_record_defaults():
+    """[FR-10] Cover tasks.py:43-65 — _result_from_runner_record fills
+    in defaults for omitted runner fields. The route handlers call
+    this helper, but the route tests do not exercise the
+    record-omits-fields branches directly.
+    """
+    from taskq_api.api.tasks import _result_from_runner_record
+    from taskq_api.models.orm import TaskResult
+
+    rec = _result_from_runner_record(
+        task_id="t-1",
+        run_id="r-1",
+        record={"exit_code": 0, "stdout_tail": "ok", "stderr_tail": ""},
+    )
+    assert isinstance(rec, TaskResult)
+    assert rec.task_id == "t-1"
+    assert rec.run_id == "r-1"
+    assert rec.exit_code == 0
+    assert rec.stdout_tail == "ok"
+    assert rec.status == "done"  # default
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_create_router_endpoints_exercised(monkeypatch):
+    """[FR-10] Cover tasks.py:71-215 — exercise the full router
+    surface so every branch (create / get / list / delete / run /
+    list-runs) is reached. The FR-10 spec tests mount their own
+    minimal apps, so this is the only test that drives the actual
+    tasks router.
+
+    Stubs ``repository.session.get_session`` with a no-op fake so
+    TaskRepo never hits the Phase-4 deployment wiring error. The
+    list endpoint reads from the in-process TaskRepo registry via
+    the SQLAlchemy expression, so the fake materialises the rows
+    from the registry on every execute() call.
+    """
+    from fastapi import FastAPI
+
+    from taskq_api.repository import session as _session_mod
+    from taskq_api.repository.task_repo import TaskRepo
+
+    class _FakeSession:
+        def __init__(self):
+            self._rows: list[dict] = []
+
+        def add(self, row):
+            self._rows.append(row)
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+        def execute(self, *_args, **_kwargs):
+            registry_rows = list(TaskRepo._registry.values())
+
+            class _Result:
+                def __init__(self, rows):
+                    self._rows = rows
+
+                def scalars(self):
+                    return self
+
+                def unique(self):
+                    return self
+
+                def all(self):
+                    return list(self._rows)
+
+            return _Result(registry_rows)
+
+    monkeypatch.setattr(_session_mod, "get_session", lambda: _FakeSession())
+
+    TaskRepo._registry.clear()
+    TaskRepo._by_name.clear()
+
+    app = FastAPI()
+    app.include_router(create_tasks_router())
+
+    # POST /v1/tasks — happy path (line 99: service.create).
+    create_response = _run(
+        _hit(
+            app,
+            "post",
+            "/v1/tasks",
+            json={"name": "fr10-coverage", "command": "echo hello"},
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert create_response.status_code == 201
+    created = create_response.json()
+    task_id = created["id"]
+    assert task_id
+    assert created["name"] == "fr10-coverage"
+
+    # GET /v1/tasks/{id} — line 114.
+    get_response = _run(
+        _hit(app, "get", f"/v1/tasks/{task_id}", headers={"X-API-Key": "any"})
+    )
+    assert get_response.status_code == 200
+    assert get_response.json()["id"] == task_id
+
+    # GET /v1/tasks — list (lines 134-139).
+    list_response = _run(
+        _hit(app, "get", "/v1/tasks", headers={"X-API-Key": "any"})
+    )
+    assert list_response.status_code == 200
+    body = list_response.json()
+    assert body["limit"] == 50
+    assert any(item["id"] == task_id for item in body["items"])
+
+    # DELETE /v1/tasks/{id} — line 154.
+    delete_response = _run(
+        _hit(app, "delete", f"/v1/tasks/{task_id}", headers={"X-API-Key": "any"})
+    )
+    assert delete_response.status_code == 204
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_create_rejects_shell_metacharacters(monkeypatch):
+    """[FR-10] Cover tasks.py:97-98 — POST /v1/tasks rejects shell
+    metacharacters in the command. ValidationProblem → 422 envelope.
+    """
+    from fastapi import FastAPI
+
+    from taskq_api.repository import session as _session_mod
+    from taskq_api.repository.task_repo import TaskRepo
+
+    class _FakeSession:
+        def add(self, _row):
+            pass
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+        def execute(self, *_args, **_kwargs):
+            class _Result:
+                def scalars(self):
+                    return self
+
+                def unique(self):
+                    return self
+
+                def all(self):
+                    return []
+
+            return _Result()
+
+    monkeypatch.setattr(_session_mod, "get_session", lambda: _FakeSession())
+
+    TaskRepo._registry.clear()
+    TaskRepo._by_name.clear()
+
+    app = FastAPI()
+    register_error_handlers(app)
+    app.include_router(create_tasks_router())
+
+    response = _run(
+        _hit(
+            app,
+            "post",
+            "/v1/tasks",
+            json={"name": "fr10-injection", "command": "echo `rm -rf /`"},
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert response.status_code == 422
+    body = response.json()
+    assert "forbidden" in body["detail"].lower()
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_duplicate_create_returns_409(monkeypatch):
+    """[FR-10] Cover tasks.py → service.tasks:43-44 — duplicate
+    task name returns 409 ConflictProblem.
+    """
+    from fastapi import FastAPI
+
+    from taskq_api.repository import session as _session_mod
+    from taskq_api.repository.task_repo import TaskRepo
+
+    class _FakeSession:
+        def add(self, _row):
+            pass
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+        def execute(self, *_args, **_kwargs):
+            class _Result:
+                def scalars(self):
+                    return self
+
+                def unique(self):
+                    return self
+
+                def all(self):
+                    return []
+
+            return _Result()
+
+    monkeypatch.setattr(_session_mod, "get_session", lambda: _FakeSession())
+
+    TaskRepo._registry.clear()
+    TaskRepo._by_name.clear()
+
+    app = FastAPI()
+    register_error_handlers(app)
+    app.include_router(create_tasks_router())
+
+    headers = {"X-API-Key": "any"}
+    first = _run(
+        _hit(
+            app,
+            "post",
+            "/v1/tasks",
+            json={"name": "dup-coverage", "command": "echo a"},
+            headers=headers,
+        )
+    )
+    assert first.status_code == 201
+
+    second = _run(
+        _hit(
+            app,
+            "post",
+            "/v1/tasks",
+            json={"name": "dup-coverage", "command": "echo b"},
+            headers=headers,
+        )
+    )
+    assert second.status_code == 409
+    body = second.json()
+    assert body["type"] == "/errors/conflict"
+    assert "dup-coverage" in body["detail"]
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_get_unknown_returns_404():
+    """[FR-10] Cover tasks.py:114 → service.tasks:71-72 — GET on a
+    unknown task id returns 404 NotFoundProblem.
+    """
+    from fastapi import FastAPI
+
+
+    app = FastAPI()
+    register_error_handlers(app)
+    app.include_router(create_tasks_router())
+
+    response = _run(
+        _hit(
+            app,
+            "get",
+            "/v1/tasks/00000000-0000-0000-0000-000000000000",
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert response.status_code == 404
+    body = response.json()
+    assert body["type"] == "/errors/not-found"
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_delete_unknown_returns_404(monkeypatch):
+    """[FR-10] Cover tasks.py:154 → service.delete:61-62 — DELETE on
+    an unknown task id returns 404 NotFoundProblem.
+    """
+    from fastapi import FastAPI
+
+    from taskq_api.repository import session as _session_mod
+
+    class _FakeSession:
+        def add(self, _row):
+            pass
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+        def execute(self, *_args, **_kwargs):
+            class _Result:
+                def scalars(self):
+                    return self
+
+                def unique(self):
+                    return self
+
+                def all(self):
+                    return []
+
+            return _Result()
+
+    monkeypatch.setattr(_session_mod, "get_session", lambda: _FakeSession())
+
+    app = FastAPI()
+    register_error_handlers(app)
+    app.include_router(create_tasks_router())
+
+    response = _run(
+        _hit(
+            app,
+            "delete",
+            "/v1/tasks/00000000-0000-0000-0000-000000000000",
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert response.status_code == 404
+    body = response.json()
+    assert body["type"] == "/errors/not-found"
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_list_with_status_filter(monkeypatch):
+    """[FR-10] Cover tasks.py:128-139 — list with an explicit status
+    filter. Exercises the ``status`` parameter branch of
+    ``service.list``.
+    """
+    from fastapi import FastAPI
+
+    from taskq_api.repository import session as _session_mod
+    from taskq_api.repository.task_repo import TaskRepo
+
+    class _FakeSession:
+        def add(self, _row):
+            pass
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+        def execute(self, *_args, **_kwargs):
+            class _Result:
+                def scalars(self):
+                    return self
+
+                def unique(self):
+                    return self
+
+                def all(self):
+                    return []
+
+            return _Result()
+
+    monkeypatch.setattr(_session_mod, "get_session", lambda: _FakeSession())
+
+    TaskRepo._registry.clear()
+    TaskRepo._by_name.clear()
+
+    app = FastAPI()
+    app.include_router(create_tasks_router())
+
+    # Seed one task so the list is non-empty.
+    create = _run(
+        _hit(
+            app,
+            "post",
+            "/v1/tasks",
+            json={"name": "fr10-list-filter", "command": "echo hi"},
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert create.status_code == 201
+
+    list_response = _run(
+        _hit(
+            app,
+            "get",
+            "/v1/tasks",
+            params={"status": "pending", "limit": "5"},
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert list_response.status_code == 200
+    body = list_response.json()
+    assert body["limit"] == 5
+    assert isinstance(body["items"], list)
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_run_then_list_runs(monkeypatch):
+    """[FR-10] Cover tasks.py:170-180 (run_task) + 193-213
+    (list_runs). The runner actually executes ``echo hello`` via
+    asyncio subprocess and the result row is appended to the
+    in-process TaskResult registry.
+    """
+    from fastapi import FastAPI
+
+    from taskq_api.models.orm import TaskResult
+    from taskq_api.repository import session as _session_mod
+    from taskq_api.repository.task_repo import TaskRepo
+
+    class _FakeSession:
+        def add(self, _row):
+            pass
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+        def execute(self, *_args, **_kwargs):
+            class _Result:
+                def scalars(self):
+                    return self
+
+                def unique(self):
+                    return self
+
+                def all(self):
+                    return []
+
+            return _Result()
+
+    monkeypatch.setattr(_session_mod, "get_session", lambda: _FakeSession())
+
+    TaskRepo._registry.clear()
+    TaskRepo._by_name.clear()
+    TaskResult._registry.clear()
+
+    app = FastAPI()
+    app.include_router(create_tasks_router())
+
+    create = _run(
+        _hit(
+            app,
+            "post",
+            "/v1/tasks",
+            json={"name": "fr10-run-coverage", "command": "echo hello"},
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert create.status_code == 201
+    task_id = create.json()["id"]
+
+    run_response = _run(
+        _hit(app, "post", f"/v1/tasks/{task_id}/run", headers={"X-API-Key": "any"})
+    )
+    assert run_response.status_code == 202
+    run_body = run_response.json()
+    assert run_body["run_id"]
+    assert run_body["status"] == "done"
+
+    list_runs_response = _run(
+        _hit(app, "get", f"/v1/tasks/{task_id}/runs", headers={"X-API-Key": "any"})
+    )
+    assert list_runs_response.status_code == 200
+    runs_body = list_runs_response.json()
+    assert len(runs_body["items"]) == 1
+    assert runs_body["items"][0]["run_id"] == run_body["run_id"]
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_run_unknown_task_returns_404():
+    """[FR-10] Cover tasks.py:174-175 — POST /v1/tasks/{id}/run on a
+    unknown task returns 404.
+    """
+    from fastapi import FastAPI
+
+
+    app = FastAPI()
+    register_error_handlers(app)
+    app.include_router(create_tasks_router())
+
+    response = _run(
+        _hit(
+            app,
+            "post",
+            "/v1/tasks/00000000-0000-0000-0000-000000000000/run",
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert response.status_code == 404
+    assert response.json()["type"] == "/errors/not-found"
+
+
+# NFR-09 NFR-10
+def test_fr10_tasks_list_runs_unknown_task_returns_404():
+    """[FR-10] Cover tasks.py:197-198 — GET /v1/tasks/{id}/runs on a
+    unknown task returns 404.
+    """
+    from fastapi import FastAPI
+
+
+    app = FastAPI()
+    register_error_handlers(app)
+    app.include_router(create_tasks_router())
+
+    response = _run(
+        _hit(
+            app,
+            "get",
+            "/v1/tasks/00000000-0000-0000-0000-000000000000/runs",
+            headers={"X-API-Key": "any"},
+        )
+    )
+    assert response.status_code == 404
+    assert response.json()["type"] == "/errors/not-found"
