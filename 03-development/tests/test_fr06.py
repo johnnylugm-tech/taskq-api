@@ -328,3 +328,471 @@ def test_fr06_transaction_context_manager_rollback(monkeypatch) -> None:
         for attr in vars(service)
     ), "service layer must not hold a Session (FR-06: repository owns it)"
     assert sys.modules["taskq_api.service.tasks"].__dict__.get("Session") is None
+
+
+# ---------------------------------------------------------------------------
+# Coverage tests — exercise the surface area of repository / service / ORM
+# modules targeted by Gate 1's coverage gate. These are added on top of the
+# four spec-mandated cases above; they do not rename or duplicate any
+# `test_fr06_*` function declared in TEST_SPEC.md §FR-06.
+#
+# Forbidden constants — keep these out of any test below:
+#   * `# pragma: no cover` on testable lines (Gate 1 forbids it)
+#   * xfail / skip of any existing case
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Coverage-case 5 — `repository.session` commit / rollback / get_session paths
+# ---------------------------------------------------------------------------
+
+
+class _RaisingSession:
+    """Session double that raises on the configured methods.
+
+    Used to drive the commit-failure and rollback-failure paths inside
+    ``unit_of_work`` — the only way to exercise lines 67–68 and 73–80
+    of ``session.py`` deterministically without a live DB.
+    """
+
+    def __init__(
+        self,
+        *,
+        commit_raises: bool = False,
+        rollback_raises: bool = False,
+    ) -> None:
+        self.commit_raises = commit_raises
+        self.rollback_raises = rollback_raises
+        self.committed = False
+        self.rolled_back = False
+
+    def commit(self) -> None:
+        if self.commit_raises:
+            raise RuntimeError("commit boom")
+        self.committed = True
+
+    def rollback(self) -> None:
+        if self.rollback_raises:
+            raise RuntimeError("rollback boom")
+        self.rolled_back = True
+
+
+def test_fr06_coverage_get_session_raises_when_unwired() -> None:
+    """`get_session()` raises ``RuntimeError`` until deployment wires it.
+
+    Covers line 31 of ``repository/session.py`` — the production-side
+    fail-loud path. All other tests monkeypatch ``get_session``; this
+    one drives it unmodified (other autouse fixtures have no effect on
+    the ``repository.session`` module's own attribute).
+    """
+    # Import the module fresh so any prior test's monkeypatch is gone.
+    from taskq_api.repository import session as session_module
+
+    with pytest.raises(RuntimeError, match="must be wired"):
+        session_module.get_session()
+
+
+def test_fr06_coverage_unit_of_work_commit_success_path(monkeypatch) -> None:
+    """Normal exit of ``unit_of_work`` runs ``commit()`` (lines 73–75).
+
+    The existing rollback test takes the ``except BaseException:``
+    branch; this case drives the ``else:`` branch on a clean exit.
+    """
+    recording = _RaisingSession()
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session", lambda: recording
+    )
+
+    with unit_of_work() as sess:
+        assert sess is recording
+        # no exception -> else branch
+
+    assert recording.committed is True, "else branch must commit on normal exit"
+    assert recording.rolled_back is False, "else branch must NOT roll back on success"
+
+
+def test_fr06_coverage_unit_of_work_commit_failure_rolls_back(monkeypatch) -> None:
+    """``commit()`` failing inside ``unit_of_work`` rolls back (lines 76–79).
+
+    The outer ``raise`` re-raises the original commit error so the
+    caller's exception handling is preserved.
+    """
+    recording = _RaisingSession(commit_raises=True, rollback_raises=False)
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session", lambda: recording
+    )
+
+    with pytest.raises(RuntimeError, match="commit boom"):
+        with unit_of_work() as sess:
+            assert sess is recording
+
+    # commit raised; the inner rollback was attempted (and recorded as
+    # rolled_back=True because this fake's rollback succeeds).
+    assert recording.rolled_back is True, (
+        "commit failure must trigger rollback on the session"
+    )
+
+
+def test_fr06_coverage_unit_of_work_commit_and_rollback_both_fail(monkeypatch) -> None:
+    """``commit()`` AND ``rollback()`` both failing is suppressed (lines 78–79).
+
+    The inner ``except Exception: pass`` swallows the rollback failure
+    so the original commit exception can still be re-raised.
+    """
+    recording = _RaisingSession(commit_raises=True, rollback_raises=True)
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session", lambda: recording
+    )
+
+    with pytest.raises(RuntimeError, match="commit boom"):
+        with unit_of_work() as sess:
+            assert sess is recording
+
+    # Both methods raised; the original error reaches the caller.
+    assert recording.committed is False
+
+
+def test_fr06_coverage_unit_of_work_rollback_failure_suppressed(monkeypatch) -> None:
+    """``rollback()`` raising inside ``unit_of_work`` is suppressed (lines 67–68).
+
+    The original exception is still re-raised so the caller's error
+    path is not masked by the rollback failure itself.
+    """
+    recording = _RaisingSession(rollback_raises=True)
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session", lambda: recording
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        with unit_of_work() as sess:
+            assert sess is recording
+            raise RuntimeError("boom")
+
+    # rollback() raised but the inner `except Exception: pass` caught it;
+    # the original `boom` was re-raised.
+
+
+# ---------------------------------------------------------------------------
+# Coverage-case 6 — `repository.task_repo` CRUD / lazy session / next_cursor
+# ---------------------------------------------------------------------------
+
+
+def test_fr06_coverage_task_repo_create_calls_session_add(monkeypatch) -> None:
+    """TaskRepo.create stages a new row in the session (lines 77–81).
+
+    The created row's id is left empty — the service layer fills it
+    with a UUID and registers it in the in-process registry.
+    """
+    sess = _CountingSession(rows=[])
+    repo = TaskRepo(session=sess)
+
+    row = repo.create(name="alpha", command="echo a")
+    assert row["name"] == "alpha"
+    assert row["command"] == "echo a"
+    assert row["status"] == "pending"
+    # `add()` on _CountingSession appends to rows; verify it was staged.
+    assert len(sess._rows) == 1
+    assert sess._rows[0]["name"] == "alpha"
+
+
+def test_fr06_coverage_task_repo_lazy_session_acquisition(monkeypatch) -> None:
+    """TaskRepo constructed without a session acquires one on first use
+    (lines 65–66).
+
+    The lazy path goes through ``_session_module.get_session()`` so
+    the test-suite's monkeypatch on ``repository.session.get_session``
+    is honoured — no direct construction of a SQLAlchemy session.
+    """
+    sentinel = _CountingSession(rows=[])
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session", lambda: sentinel
+    )
+
+    repo = TaskRepo()  # no explicit session
+    assert repo._session_acquired is False
+    sess = repo._ensure_session()
+    assert sess is sentinel
+    assert repo._session_acquired is True
+    # Second call reuses the acquired session.
+    assert repo._ensure_session() is sentinel
+
+
+def test_fr06_coverage_task_repo_commit_and_rollback_call_session(monkeypatch) -> None:
+    """TaskRepo.commit / rollback route to the session (lines 89–101)."""
+    sess = _CountingSession(rows=[])
+    repo = TaskRepo(session=sess)
+
+    repo.commit()
+    assert sess.committed is True
+    assert sess.rolled_back is False
+
+    repo.rollback()
+    assert sess.rolled_back is True
+
+
+def test_fr06_coverage_task_repo_delete_get_exists_register() -> None:
+    """TaskRepo delete / get / exists_by_name / register (lines 105–135)."""
+    repo = TaskRepo(session=_CountingSession(rows=[]))
+    row = {
+        "id": "task-abc",
+        "name": "alpha",
+        "command": "echo a",
+        "status": "pending",
+    }
+    repo.register(row)
+
+    # get() returns the row (line 119)
+    assert repo.get("task-abc") == row
+    # exists_by_name() returns True (line 126)
+    assert repo.exists_by_name("alpha") is True
+    assert repo.exists_by_name("missing") is False
+
+    # delete() removes the row (lines 105–109)
+    assert repo.delete("task-abc") is True
+    assert repo.get("task-abc") is None
+    assert repo.exists_by_name("alpha") is False
+
+    # Second delete returns False — row is no longer present
+    assert repo.delete("task-abc") is False
+
+
+def test_fr06_coverage_task_repo_list_status_filter_and_next_cursor() -> None:
+    """``list(status=...)`` applies the filter and sets ``next_cursor``
+    when more rows than limit exist (lines 172, 186–187).
+    """
+    rows = [
+        {
+            "id": f"row-{i:04d}",
+            "name": f"name-{i:04d}",
+            "command": "echo x",
+            "status": "pending" if i % 2 == 0 else "running",
+        }
+        for i in range(20)
+    ]
+    sess = _CountingSession(rows=rows)
+    repo = TaskRepo(session=sess)
+
+    page, next_cursor = repo.list(status="pending", cursor=None, limit=5)
+    assert len(page) == 5
+    # 10 pending rows, limit=5 -> next_cursor must be set
+    assert next_cursor is not None
+    # The filter was a bound parameter, not interpolated.
+    assert len(sess.statements) == 2
+
+    # Limit >= total rows -> next_cursor = None
+    page2, next_cursor2 = repo.list(status=None, cursor=None, limit=100)
+    assert len(page2) == 20
+    assert next_cursor2 is None
+
+
+def test_fr06_coverage_task_repo_list_count() -> None:
+    """``TaskRepo.list_count`` reports the registry size (line 192)."""
+    repo = TaskRepo(session=_CountingSession(rows=[]))
+    assert repo.list_count() == 0
+    repo.register({"id": "x", "name": "x", "command": "x", "status": "pending"})
+    repo.register({"id": "y", "name": "y", "command": "y", "status": "pending"})
+    assert repo.list_count() == 2
+
+
+# ---------------------------------------------------------------------------
+# Coverage-case 7 — `service.tasks` CRUD paths
+# ---------------------------------------------------------------------------
+
+
+def test_fr06_coverage_service_create_persists_unique_row(monkeypatch) -> None:
+    """Service.create persists a new task with a generated UUID (lines 41–55).
+
+    The duplicate-name branch (line 41–43) is covered by the explicit
+    conflict test below; this case drives the happy path through.
+    """
+    sess = _CountingSession(rows=[])
+    # Acquired by lazy access in repo._ensure_session
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session", lambda: sess
+    )
+
+    svc = TaskService()
+    row = svc.create(name="alpha", command="echo a")
+
+    # The row carries the canonical columns and a generated UUID
+    assert row["name"] == "alpha"
+    assert row["command"] == "echo a"
+    assert row["status"] == "pending"
+    assert len(row["id"]) == 36  # UUID4 string length
+
+    # The repo registered the row in the in-process registry
+    assert svc._repo.get(row["id"]) == row
+    assert svc._repo.exists_by_name("alpha") is True
+    assert sess.committed is True
+
+
+def test_fr06_coverage_service_create_duplicate_raises_conflict(monkeypatch) -> None:
+    """Duplicate ``name`` raises ``ConflictProblem`` (lines 41–43)."""
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session",
+        lambda: _CountingSession(rows=[]),
+    )
+    svc = TaskService()
+    svc.create(name="alpha", command="echo a")
+
+    from taskq_api.errors import ConflictProblem
+
+    with pytest.raises(ConflictProblem):
+        svc.create(name="alpha", command="echo a")
+
+    # Second create did NOT stage a new row in the registry
+    assert svc._repo.list_count() == 1
+
+
+def test_fr06_coverage_service_delete_not_found(monkeypatch) -> None:
+    """Service.delete on a missing id raises ``NotFoundProblem`` (lines 60–62)."""
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session",
+        lambda: _CountingSession(rows=[]),
+    )
+    svc = TaskService()
+
+    from taskq_api.errors import NotFoundProblem
+
+    with pytest.raises(NotFoundProblem):
+        svc.delete("nonexistent-id")
+
+
+def test_fr06_coverage_service_delete_success_path(monkeypatch) -> None:
+    """Service.delete on an existing id commits (line 63 — success branch)."""
+    sess = _CountingSession(rows=[])
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session", lambda: sess
+    )
+    svc = TaskService()
+    created = svc.create(name="alpha", command="echo a")
+    target_id = created["id"]
+    assert svc._repo.get(target_id) is not None
+
+    sess.committed = False  # reset so we observe the delete's commit
+    svc.delete(target_id)
+    assert sess.committed is True, "delete on existing row must commit"
+    assert svc._repo.get(target_id) is None
+
+
+def test_fr06_coverage_service_get_not_found(monkeypatch) -> None:
+    """Service.get on a missing id raises ``NotFoundProblem`` (lines 70–72)."""
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session",
+        lambda: _CountingSession(rows=[]),
+    )
+    svc = TaskService()
+
+    from taskq_api.errors import NotFoundProblem
+
+    with pytest.raises(NotFoundProblem):
+        svc.get("nonexistent-id")
+
+
+def test_fr06_coverage_service_get_returns_row(monkeypatch) -> None:
+    """Service.get returns the repo row when present (line 73 — success)."""
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session",
+        lambda: _CountingSession(rows=[]),
+    )
+    svc = TaskService()
+    created = svc.create(name="alpha", command="echo a")
+
+    got = svc.get(created["id"])
+    assert got["id"] == created["id"]
+    assert got["name"] == "alpha"
+
+
+def test_fr06_coverage_service_list_envelope(monkeypatch) -> None:
+    """Service.list returns the canonical envelope (lines 89–90)."""
+    sess = _CountingSession(
+        rows=[
+            {
+                "id": f"row-{i:04d}",
+                "name": f"name-{i:04d}",
+                "command": "echo x",
+                "status": "pending",
+            }
+            for i in range(3)
+        ]
+    )
+    monkeypatch.setattr(
+        "taskq_api.repository.session.get_session", lambda: sess
+    )
+    svc = TaskService()
+    result = svc.list(status=None, cursor=None, limit=10)
+
+    assert result["limit"] == 10
+    assert len(result["items"]) == 3
+    assert "next_cursor" in result
+
+
+# ---------------------------------------------------------------------------
+# Coverage-case 8 — `models.orm` row constructors and registry helpers
+# ---------------------------------------------------------------------------
+
+
+def test_fr06_coverage_orm_apikey_init_as_row_and_repr() -> None:
+    """ApiKey constructor, ``as_row``, and ``__repr`` (lines 72–92).
+
+    Covers the FR-03 ORM row construction contract:
+      - default id is a fresh UUID
+      - row shape is exactly the 4 documented columns (no plaintext)
+    """
+    from taskq_api.models.orm import ApiKey
+
+    a = ApiKey(scope="write", key_hash="a" * 64, revoked_at=None)
+    assert a.scope == "write"
+    assert a.key_hash == "a" * 64
+    assert a.revoked_at is None
+    assert len(a.id) == 36
+
+    row = a.as_row()
+    assert set(row.keys()) == {"id", "scope", "key_hash", "revoked_at"}
+    # Plaintext is NOT a column (NFR-02 / FR-03)
+    assert "plaintext" not in row
+    assert "key" not in row
+
+    # __repr__ should not raise and must surface the key_hash
+    rendered = repr(a)
+    assert "ApiKey" in rendered
+    assert a.scope in rendered
+
+
+def test_fr06_coverage_orm_taskresult_init_persist_and_list(monkeypatch) -> None:
+    """TaskResult full CRUD on the in-process registry (lines 124–158)."""
+    # TaskResult already imported at module level
+    # Reset the class-level registry so each test starts clean
+    TaskResult._registry.clear()
+    try:
+        # Construction defaults
+        r = TaskResult(task_id="t-1", run_id="run-1")
+        assert r.task_id == "t-1"
+        assert r.run_id == "run-1"
+        assert r.exit_code is None
+        assert r.stdout_tail == ""
+        assert r.stderr_tail == ""
+        assert r.duration_ms == 0
+        assert r.finished_at == ""
+        assert r.status == "done"
+        assert len(r.id) == 36
+
+        # Persistence appends to the class-level registry
+        TaskResult.add(r)
+        # Adding the same instance twice: registry has two rows
+        # (matches the per-row INSERT-then-DROP-COLUMN FR-07 narrative)
+        TaskResult.add(
+            TaskResult(task_id="t-1", run_id="run-1", exit_code=0)
+        )
+
+        # list_for_task returns newest-first
+        results = TaskResult.list_for_task("t-1")
+        assert len(results) == 2
+        # Newest-first ordering
+        assert results[0].run_id == "run-1"
+        assert results[1].run_id == "run-1"
+
+        # Different task_id isolates the rows
+        assert TaskResult.list_for_task("t-2") == []
+    finally:
+        TaskResult._registry.clear()
