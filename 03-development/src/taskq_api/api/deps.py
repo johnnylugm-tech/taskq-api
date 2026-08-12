@@ -16,6 +16,8 @@ exactly as SAD.md §2.7 describes.
 """
 from __future__ import annotations
 
+from typing import Protocol, cast
+
 from fastapi import Depends, Request
 
 from taskq_api.errors import AuthProblem, ForbiddenProblem
@@ -54,7 +56,23 @@ def get_current_key(request: Request) -> str:
     return raw
 
 
-def require_scope(*allowed: str):
+class ScopeDependency(Protocol):
+    """[FR-04] The callable `require_scope` hands back.
+
+    Declares the shape that was previously only implied by bolting an
+    attribute onto a plain function: a Depends-compatible callable that
+    also carries the scope set it guards. Typing it explicitly is what
+    lets `allowed_scopes` be both assignable and introspectable without
+    reaching into `FunctionType`, whose attributes are not statically
+    known.
+    """
+
+    allowed_scopes: frozenset[str]
+
+    def __call__(self, request: Request, key: str = ...) -> str: ...
+
+
+def require_scope(*allowed: str) -> ScopeDependency:
     """[FR-04] Scope gate — returns a Depends-compatible callable.
 
     Citations:
@@ -77,8 +95,9 @@ def require_scope(*allowed: str):
             raise ForbiddenProblem(detail="insufficient scope")
         return key
 
-    _dep.allowed_scopes = allowed_set
-    return _dep
+    dep = cast(ScopeDependency, _dep)
+    dep.allowed_scopes = allowed_set
+    return dep
 
 
-__all__ = ["get_current_key", "require_scope"]
+__all__ = ["get_current_key", "require_scope", "ScopeDependency"]
