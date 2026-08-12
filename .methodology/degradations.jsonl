@@ -14,3 +14,6 @@
 {"ts": 1786548263.230376, "component": "agent:developer:3", "what": "wall-clock timeout at 600s", "why": ""}
 {"ts": 1786548263.362402, "component": "run-fr-step:TDD-IMPROVE", "what": "step dispatch failed", "why": "FR-03 TDD-IMPROVE: TIMEOUT", "data": {"fr_id": "FR-03", "step": "TDD-IMPROVE", "signature": "ee0c72175119e69e", "tree": "dc82ea0345572c71", "error_class": "TIMEOUT"}}
 {"ts": 1786548263.3624718, "component": "run-fr-step:TDD-IMPROVE", "what": "task_timeout escalated 600 -> 1200", "why": "FR-03 TDD-IMPROVE hit its wall-clock budget; re-dispatching at the same budget cannot finish what did not fit"}
+{"ts": 1786549751.415915, "component": "run-fr-step:TDD-GREEN", "what": "step dispatch failed", "why": "FR-04 TDD-GREEN: TURN_BUDGET", "data": {"fr_id": "FR-04", "step": "TDD-GREEN", "signature": "1a18065c25ee90bb", "tree": "13c3b5741321fc8d", "error_class": "TURN_BUDGET"}}
+{"ts": 1786549751.416021, "component": "run-fr-step:TDD-GREEN", "what": "max_turns escalated 40 -> 80", "why": "FR-04 TDD-GREEN was cut off at its turn ceiling; re-dispatching at the same ceiling cannot finish what did not fit"}
+{"ts": 1786550786.078511, "component": "run-fr-step:CODE-FIX", "what": "max_turns escalated 50 -> 100", "why": "FR-04 CODE-FIX was cut off at its turn ceiling; re-dispatching at the same ceiling cannot finish what did not fit"}
