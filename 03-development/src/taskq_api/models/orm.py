@@ -137,7 +137,7 @@ class TaskResult:
     @classmethod
     def _from_dict(cls, row: dict[str, Any]) -> "TaskResult":
         """Rehydrate a row from the in-process registry."""
-        return cls(**{field: row[field] for field in _ROW_FIELDS})
+        return cls(**row)
 
     @classmethod
     def add(cls, row: "TaskResult") -> None:
