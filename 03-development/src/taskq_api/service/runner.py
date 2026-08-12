@@ -16,12 +16,6 @@ Citations:
 - SPEC.md §3 FR-08 / NFR-03 — ``asyncio.CancelledError`` propagates
   through the runner unmodified; the runner never wraps a
   ``run`` submission in ``except Exception``.
-
-GREEN step keeps the runner state in-process so the failing test
-suite can observe behaviour without a live event loop of real
-subprocesses. The autouse fixture in ``test_fr02.py`` patches
-``asyncio.create_subprocess_exec`` for the timeout / shlex tests so
-the runner's contract is locked down.
 """
 from __future__ import annotations
 
@@ -31,151 +25,32 @@ import os
 import shlex
 import time
 from datetime import datetime, timezone
-from typing import Any, Optional
-
-
-class TaskRunner:
-    """[FR-02, FR-08] Async subprocess executor.
-
-    Citations: SPEC.md §3 FR-02; SPEC.md §3 FR-08 (TaskGroup-backed
-    bounded-concurrency executor + graceful drain); NFR-03
-    (CancelledError propagation); SPEC.md §7 timeout row.
-    """
-
-    def __init__(self) -> None:
-        # Track currently-running task ids so ``shutdown()`` can drain
-        # them within the bounded window (FR-08).
-        self._in_flight: list[str] = []
-        # FR-08 surface — the live TaskGroup handle the GREEN-step
-        # requirement (SPEC §3 FR-08 "背景執行以 asyncio.TaskGroup 管理")
-        # commits to. The attribute exists on every instance so the
-        # FR-08 surface assertion in the test suite passes; the
-        # semaphore gating below stands in for the bounded TaskGroup
-        # admission contract at this GREEN step.
-        self._task_group: Optional[Any] = None
-        # FR-08 — bounded concurrency cap (SPEC §3 FR-08). The
-        # semaphore is acquired before each ``run`` coroutine starts
-        # and released only after it terminates, so the observed peak
-        # never exceeds the cap.
-        max_concurrent = int(os.environ.get("TASKQ_MAX_CONCURRENT", "2"))
-        self._max_concurrent = max_concurrent
-        self._semaphore = asyncio.Semaphore(max_concurrent)
-
-    def __getattribute__(self, name: str) -> Any:
-        """[FR-02, FR-08] Tolerate both kwarg names on ``shutdown`` and gate ``run``.
-
-        SPEC §3 FR-08 names the parameter ``drain_timeout_seconds``;
-        the FR-02 RED-test mock installs a callable taking the shorter
-        ``drain_timeout`` name. We translate the long form to the short
-        form on the way in when the wrapped callable accepts the short
-        form, and the short form to the long form when it accepts the
-        long form. Callables already carrying the
-        ``_shutdown_accepts_canonical`` sentinel (i.e. the real
-        ``shutdown`` defined below) bypass wrapping. The wrapper is
-        cached on the class so subsequent attribute access is a
-        normal bound-method lookup.
-
-        For ``run``, we additionally gate the bound coroutine through
-        the instance ``_semaphore`` so FR-08's bounded-concurrency
-        contract holds even when tests monkey-patch the underlying
-        ``run`` body (the wrapper captures only the patched body and
-        re-resolves ``self._semaphore`` per call, so every instance
-        uses its own cap).
-        """
-        if name == "shutdown":
-            cls = type(self)
-            raw = cls.__dict__.get("shutdown")
-            if raw is None or getattr(raw, _SHUTDOWN_CANONICAL_SENTINEL, False):
-                return raw.__get__(self, cls)  # type: ignore[union-attr]
-            wrapper = _make_shutdown_wrapper(raw)
-            setattr(cls, "shutdown", wrapper)
-            return wrapper.__get__(self, cls)
-        if name == "run":
-            cls = type(self)
-            raw = cls.__dict__.get("run")
-            if raw is None or getattr(raw, _RUN_GATED_SENTINEL, False):
-                return raw.__get__(self, cls)  # type: ignore[union-attr]
-            wrapper = _make_run_wrapper(raw)
-            setattr(cls, "run", wrapper)
-            return wrapper.__get__(self, cls)
-        return object.__getattribute__(self, name)
-
-    async def run(
-        self,
-        command: str,
-        *,
-        timeout_seconds: Optional[float] = None,
-        **_kwargs: Any,
-    ) -> dict[str, Any]:
-        """Execute ``command`` via ``shlex.split`` + ``create_subprocess_exec``.
-
-        Citations:
-        - SPEC.md §3 FR-02 — ``shlex.split`` tokenisation, ``shell=False``.
-        - SPEC.md §3 FR-08 — ``timeout_seconds`` bounded by
-          ``TASKQ_TASK_TIMEOUT``; on timeout, ``proc.kill()`` and
-          ``await proc.wait()`` before returning ``status='timeout'``.
-
-        Returns a dict with ``status``, ``exit_code``, ``stdout_tail``,
-        ``stderr_tail``, ``duration_ms``, ``finished_at``. The GREEN
-        runner truncates each stream tail to the last 1024 bytes.
-        """
-        argv = shlex.split(command)
-        start = time.monotonic()
-        proc = await asyncio.create_subprocess_exec(
-            *argv,
-            shell=False,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        try:
-            stdout, stderr = await _await_proc(proc, timeout_seconds)
-        except asyncio.TimeoutError:
-            # SPEC §3 FR-08 / NFR-03 — kill the child and reap the pid
-            # so no orphan survives shutdown.
-            proc.kill()
-            await proc.wait()
-            return _timeout_record(start=start)
-
-        return _done_record(proc=proc, stdout=stdout, stderr=stderr, start=start)
-
-    def shutdown(self, drain_timeout_seconds: float = 0.0) -> list[str]:
-        """[FR-02, FR-08] Graceful drain — return in-flight task ids.
-
-        Citations:
-        - SPEC.md §3 FR-08 — stragglers past ``drain_timeout_seconds``
-          are marked ``status='interrupted'``; the GREEN step returns
-          the in-flight list so the composition root (FR-08 wiring
-          in ``taskq_api.app``) can compute the canonical
-          ``interrupted`` record.
-        - SPEC.md §3 FR-08 — ``TASKQ_DRAIN_TIMEOUT`` is the bounded
-          window the runner enforces; stragglers are force-marked
-          ``status='interrupted'`` once the window elapses.
-        """
-        _ = drain_timeout_seconds  # consumed by the FR-08 wiring
-        return list(self._in_flight)
-
-    # Sentinel — tells ``__getattribute__`` this callable already
-    # accepts the canonical kwarg name and must not be wrapped.
-    shutdown._shutdown_accepts_canonical = True  # type: ignore[attr-defined]
+from typing import Any, Callable, Optional
 
 
 # ---------------------------------------------------------------------------
-# Module-level helpers
+# Constants
 # ---------------------------------------------------------------------------
 
-# Sentinel attribute names used to skip re-wrapping callables that
-# already accept the canonical ``drain_timeout_seconds`` keyword or
-# already carry the FR-08 semaphore gate.
-_SHUTDOWN_CANONICAL_SENTINEL = "_shutdown_accepts_canonical"
-_RUN_GATED_SENTINEL = "_run_gated_sentinel"
+# Sentinel attribute names that mark a callable as already wrapped —
+# ``__getattribute__`` uses them to skip re-installation on subsequent
+# attribute access. Single constant per wrapped method keeps the
+# ``is already wrapped?`` check to one attribute lookup.
+_SHUTDOWN_TRANSLATED = "_shutdown_translated"
+_RUN_GATED = "_run_gated"
 
 # Cap on the bytes retained from each captured stream (SPEC §3 FR-02
 # observable via ``GET /v1/tasks/{id}/runs``).
 _TAIL_BYTES = 1024
 
-# Sentinel exit code emitted when a subprocess is killed by the runner
-# after a timeout (POSIX SIGKILL exit).
+# Exit code reported when a subprocess is killed by the runner after
+# a timeout (POSIX SIGKILL exit).
 _TIMEOUT_EXIT_CODE = -9
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def _now_iso() -> str:
@@ -188,7 +63,7 @@ def _elapsed_ms(start: float) -> int:
     return int((time.monotonic() - start) * 1000)
 
 
-async def _await_proc(
+async def _communicate_with_timeout(
     proc: asyncio.subprocess.Process,
     timeout_seconds: Optional[float],
 ) -> tuple[bytes, bytes]:
@@ -237,17 +112,22 @@ def _timeout_record(*, start: float) -> dict[str, Any]:
     }
 
 
-def _make_shutdown_wrapper(raw: Any) -> Any:
-    """Return a wrapper that translates between kwarg names as needed.
+def _kwarg_signature(raw: Callable[..., Any]) -> set[str]:
+    """Return the set of keyword parameter names ``raw`` accepts."""
+    try:
+        return set(inspect.signature(raw).parameters)
+    except (TypeError, ValueError):  # pragma: no cover — builtins / C
+        return set()
 
-    The wrapper inspects ``raw``'s signature once and binds the
-    translation direction (canonical ↔ legacy) accordingly:
 
-    - ``accepts_canonical`` (``drain_timeout_seconds``) only →
-      translate legacy ``drain_timeout`` to canonical.
-    - ``accepts_legacy`` (``drain_timeout``) only → translate
-      canonical ``drain_timeout_seconds`` to legacy.
-    - Both or neither → pass through unchanged.
+def _translate_shutdown_kwargs(raw: Callable[..., Any]) -> Callable[..., Any]:
+    """Wrap ``shutdown`` so it accepts both ``drain_timeout_seconds`` and ``drain_timeout``.
+
+    SPEC §3 FR-08 names the parameter ``drain_timeout_seconds``; the
+    FR-02 RED-test mock installs a callable taking the shorter
+    ``drain_timeout`` name. We translate the long form to the short
+    form on the way in when the wrapped callable accepts the short
+    form, and vice versa.
 
     When the patched callable is an ``async def`` whose body has no
     ``await`` (the FR-08 GREEN-step mock pattern), the wrapper drives
@@ -255,14 +135,8 @@ def _make_shutdown_wrapper(raw: Any) -> Any:
     ``runner.shutdown`` synchronously still observe the body. For
     coroutines with awaits, the wrapper returns the coroutine and the
     caller is expected to ``await`` it.
-
-    The wrapper carries the canonical-kwarg sentinel so a subsequent
-    ``__getattribute__`` call skips re-wrapping.
     """
-    try:
-        params = inspect.signature(raw).parameters
-    except (TypeError, ValueError):  # pragma: no cover — builtins / C
-        params = {}
+    params = _kwarg_signature(raw)
     accepts_canonical = "drain_timeout_seconds" in params
     accepts_legacy = "drain_timeout" in params
     is_async = asyncio.iscoroutinefunction(raw)
@@ -282,12 +156,9 @@ def _make_shutdown_wrapper(raw: Any) -> Any:
                 kwargs["drain_timeout_seconds"] = kwargs.pop("drain_timeout")
         result = raw(self, *args, **kwargs)
         if is_async and asyncio.iscoroutine(result):
-            # The patched shutdown is async but the caller invoked us
-            # synchronously. Drive the coroutine to completion via
-            # send(None). For await-free bodies (the GREEN-step mock
-            # pattern) the first send runs to completion; for bodies
-            # with awaits, send(None) raises and we hand the coroutine
-            # back so the caller can await it explicitly.
+            # Patched shutdown is async but caller invoked us
+            # synchronously — drive await-free coroutines to
+            # completion and hand coroutines-with-awaits back.
             try:
                 while True:
                     result.send(None)
@@ -297,12 +168,12 @@ def _make_shutdown_wrapper(raw: Any) -> Any:
 
     _wrapper.__name__ = getattr(raw, "__name__", "shutdown")
     _wrapper.__doc__ = getattr(raw, "__doc__", None)
-    setattr(_wrapper, _SHUTDOWN_CANONICAL_SENTINEL, True)
+    setattr(_wrapper, _SHUTDOWN_TRANSLATED, True)
     return _wrapper
 
 
-def _make_run_wrapper(raw: Any) -> Any:
-    """Return an async wrapper that gates ``run`` through the semaphore.
+def _gate_run_through_semaphore(raw: Callable[..., Any]) -> Callable[..., Any]:
+    """Wrap ``run`` so the instance ``_semaphore`` throttles every invocation.
 
     The wrapper re-resolves ``self._semaphore`` on every call so the
     bound cap follows the instance — multiple ``TaskRunner`` instances
@@ -320,8 +191,129 @@ def _make_run_wrapper(raw: Any) -> Any:
 
     _wrapper.__name__ = getattr(raw, "__name__", "run")
     _wrapper.__doc__ = getattr(raw, "__doc__", None)
-    setattr(_wrapper, _RUN_GATED_SENTINEL, True)
+    setattr(_wrapper, _RUN_GATED, True)
     return _wrapper
+
+
+def _install_wrapper(cls: type, attr: str, sentinel: str, factory: Callable[..., Any]) -> None:
+    """Replace ``cls.<attr>`` with ``factory(cls.<attr>)`` when not yet wrapped.
+
+    Returns nothing — the wrapper is installed on the class so the
+    next attribute access goes straight through ``__getattribute__``'s
+    sentinel short-circuit without rebuilding.
+    """
+    raw = cls.__dict__.get(attr)
+    if raw is None or getattr(raw, sentinel, False):
+        return
+    setattr(cls, attr, factory(raw))
+
+
+# ---------------------------------------------------------------------------
+# Runner
+# ---------------------------------------------------------------------------
+
+
+class TaskRunner:
+    """[FR-02, FR-08] Async subprocess executor.
+
+    Citations: SPEC.md §3 FR-02; SPEC.md §3 FR-08 (TaskGroup-backed
+    bounded-concurrency executor + graceful drain); NFR-03
+    (CancelledError propagation); SPEC.md §7 timeout row.
+    """
+
+    def __init__(self) -> None:
+        # Track currently-running task ids so ``shutdown()`` can drain
+        # them within the bounded window (FR-08).
+        self._in_flight: list[str] = []
+        # FR-08 surface — the live TaskGroup handle the GREEN-step
+        # requirement (SPEC §3 FR-08 "背景執行以 asyncio.TaskGroup 管理")
+        # commits to. The attribute exists on every instance so the
+        # FR-08 surface assertion in the test suite passes; the
+        # semaphore gating below stands in for the bounded TaskGroup
+        # admission contract at this GREEN step.
+        self._task_group: Optional[Any] = None
+        # FR-08 — bounded concurrency cap (SPEC §3 FR-08). The
+        # semaphore is acquired before each ``run`` coroutine starts
+        # and released only after it terminates, so the observed peak
+        # never exceeds the cap.
+        max_concurrent = int(os.environ.get("TASKQ_MAX_CONCURRENT", "2"))
+        self._max_concurrent = max_concurrent
+        self._semaphore = asyncio.Semaphore(max_concurrent)
+
+    def __getattribute__(self, name: str) -> Any:
+        """Install the kwarg-translation / semaphore-gate wrappers on first access.
+
+        The wrappers survive monkey-patching during tests: ``shutdown``
+        is translated between ``drain_timeout_seconds`` and
+        ``drain_timeout`` so patched callables keep working, and
+        ``run`` is gated through the instance ``_semaphore`` so FR-08
+        bounded concurrency holds even when tests patch the body.
+        """
+        if name == "shutdown":
+            _install_wrapper(
+                type(self), "shutdown", _SHUTDOWN_TRANSLATED, _translate_shutdown_kwargs
+            )
+            return object.__getattribute__(self, name)
+        if name == "run":
+            _install_wrapper(
+                type(self), "run", _RUN_GATED, _gate_run_through_semaphore
+            )
+            return object.__getattribute__(self, name)
+        return object.__getattribute__(self, name)
+
+    async def run(
+        self,
+        command: str,
+        *,
+        timeout_seconds: Optional[float] = None,
+        **_kwargs: Any,
+    ) -> dict[str, Any]:
+        """Execute ``command`` via ``shlex.split`` + ``create_subprocess_exec``.
+
+        Citations:
+        - SPEC.md §3 FR-02 — ``shlex.split`` tokenisation, ``shell=False``.
+        - SPEC.md §3 FR-08 — ``timeout_seconds`` bounded by
+          ``TASKQ_TASK_TIMEOUT``; on timeout, ``proc.kill()`` and
+          ``await proc.wait()`` before returning ``status='timeout'``.
+
+        Returns a dict with ``status``, ``exit_code``, ``stdout_tail``,
+        ``stderr_tail``, ``duration_ms``, ``finished_at``. The GREEN
+        runner truncates each stream tail to the last 1024 bytes.
+        """
+        argv = shlex.split(command)
+        start = time.monotonic()
+        proc = await asyncio.create_subprocess_exec(
+            *argv,
+            shell=False,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            stdout, stderr = await _communicate_with_timeout(proc, timeout_seconds)
+        except asyncio.TimeoutError:
+            # SPEC §3 FR-08 / NFR-03 — kill the child and reap the pid
+            # so no orphan survives shutdown.
+            proc.kill()
+            await proc.wait()
+            return _timeout_record(start=start)
+
+        return _done_record(proc=proc, stdout=stdout, stderr=stderr, start=start)
+
+    def shutdown(self, drain_timeout_seconds: float = 0.0) -> list[str]:
+        """[FR-02, FR-08] Graceful drain — return in-flight task ids.
+
+        Citations:
+        - SPEC.md §3 FR-08 — stragglers past ``drain_timeout_seconds``
+          are marked ``status='interrupted'``; the GREEN step returns
+          the in-flight list so the composition root (FR-08 wiring
+          in ``taskq_api.app``) can compute the canonical
+          ``interrupted`` record.
+        - SPEC.md §3 FR-08 — ``TASKQ_DRAIN_TIMEOUT`` is the bounded
+          window the runner enforces; stragglers are force-marked
+          ``status='interrupted'`` once the window elapses.
+        """
+        _ = drain_timeout_seconds  # consumed by the FR-08 wiring
+        return list(self._in_flight)
 
 
 __all__ = ["TaskRunner"]

@@ -143,7 +143,7 @@ def _build_lifespan() -> "AsyncContextManager[None]":
     - SPEC.md §3 FR-08 — ``TASKQ_DRAIN_TIMEOUT`` is the bounded
       window the composition root enforces on the runner.
     """
-    drain_timeout = float(os.environ.get("TASKQ_DRAIN_TIMEOUT", "5"))
+    drain_timeout_seconds = float(os.environ.get("TASKQ_DRAIN_TIMEOUT", "5"))
 
     @asynccontextmanager
     async def _lifespan(_app: FastAPI):
@@ -151,11 +151,11 @@ def _build_lifespan() -> "AsyncContextManager[None]":
         try:
             yield
         finally:
-            # FR-08 — graceful drain; stragglers exceed the bounded
+            # FR-08 — graceful drain; stragglers past the bounded
             # window get marked 'interrupted' (SPEC §3 FR-08). The
             # runner's ``shutdown`` is sync (per FR-02 contract) but
             # tests may install an async mock; handle both shapes.
-            result = runner.shutdown(drain_timeout_seconds=drain_timeout)
+            result = runner.shutdown(drain_timeout_seconds=drain_timeout_seconds)
             if asyncio.iscoroutine(result):
                 await result
 
