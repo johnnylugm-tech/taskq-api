@@ -104,7 +104,7 @@ def _run_alembic(*, db_url: str, args: list[str], cwd: Path | None = None) -> su
 # ---------------------------------------------------------------------------
 
 
-# NFR-09 NFR-12 SEC T-10
+# NFR-03 NFR-09 NFR-12 SEC T-10
 def test_fr07_alembic_round_trip_byte_identical(tmp_path) -> None:
     """upgrade head → write sample → downgrade -1 → upgrade head preserves columns.
 
@@ -260,7 +260,7 @@ def test_fr07_alembic_round_trip_byte_identical(tmp_path) -> None:
 # ---------------------------------------------------------------------------
 
 
-# NFR-09 NFR-12
+# NFR-03 NFR-09 NFR-12
 def test_fr07_alembic_downgrade_base_clean(tmp_path) -> None:
     """alembic downgrade base exits 0 with no residual user tables.
 
