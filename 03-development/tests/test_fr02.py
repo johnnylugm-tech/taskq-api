@@ -121,6 +121,43 @@ def _stub_external_side_effects(monkeypatch):
 
     from taskq_api.repository import session as _session
 
+    class _FakeResult:
+        """Stand-in for SQLAlchemy ``Result`` returned by ``session.execute``.
+
+        Supports the ``scalars().unique().all()`` chain used by
+        ``TaskRepo.list()`` after FR-06 migrated the list query off
+        ``session.query(...)`` and onto ``session.execute(stmt)``.
+        Applies the WHERE clause extracted from the ``stmt`` so that
+        ``select(...).where(table.c.status == 'pending')`` returns only
+        rows whose ``status`` field equals the bound value — mirroring
+        what a real SQLAlchemy session would do.
+        """
+
+        def __init__(self, rows: list, filter_predicates: dict) -> None:
+            self._rows = rows
+            self._filters = filter_predicates
+
+        def scalars(self):
+            return self
+
+        def unique(self):
+            return self
+
+        def all(self):
+            try:
+                from taskq_api.repository.task_repo import TaskRepo
+                registry_rows = list(TaskRepo._registry.values())
+                if registry_rows:
+                    rows = list(registry_rows)
+                else:
+                    rows = list(self._rows)
+            except Exception:
+                rows = list(self._rows)
+
+            for col_name, value in self._filters.items():
+                rows = [r for r in rows if r.get(col_name) == value]
+            return rows
+
     class _FakeSession:
         def __init__(self):
             self._rows: list[dict] = []
@@ -138,6 +175,39 @@ def _stub_external_side_effects(monkeypatch):
 
         def close(self):
             pass
+
+        @staticmethod
+        def _extract_where_filters(stmt):
+            """Pull ``{column_name: bound_value}`` from the stmt's WHERE clause.
+
+            FR-06's ``TaskRepo.list()`` builds
+            ``select(_task_table).where(_task_table.c.status == status)``;
+            SQLAlchemy stores the resulting ``BinaryExpression`` on
+            ``stmt._whereclause``. Reading ``.left`` / ``.right`` gives
+            the column reference and bound value; the column's ``.name``
+            is the field name to filter on.
+            """
+            filters: dict = {}
+            try:
+                where = getattr(stmt, "_whereclause", None)
+                if where is None:
+                    return filters
+                left = getattr(where, "left", None)
+                right = getattr(where, "right", None)
+                if left is None or right is None:
+                    return filters
+                col_name = getattr(left, "name", None) or getattr(
+                    left, "key", None
+                )
+                value = getattr(right, "value", right)
+                if col_name is not None:
+                    filters[col_name] = value
+            except Exception:
+                pass
+            return filters
+
+        def execute(self, stmt, *_args, **_kwargs):
+            return _FakeResult(self._rows, self._extract_where_filters(stmt))
 
         def query(self, *_args, **_kwargs):
             return self

@@ -176,8 +176,8 @@ class TaskRepo:
         # statements at any row count). In production wiring SQLAlchemy
         # emits the selectinload query implicitly during scalar
         # materialisation; the count is the same.
-        result = sess.execute(stmt)  # Records statement 1 (page select).
-        sess.execute(stmt)  # Records statement 2 (selectinload eager-load).
+        result = sess.execute(stmt)  # type: ignore[attr-defined]  # Records statement 1 (page select).
+        sess.execute(stmt)  # type: ignore[attr-defined]  # Records statement 2 (selectinload eager-load).
 
         materialized = list(result.scalars().unique().all())
         page = materialized[:limit]
