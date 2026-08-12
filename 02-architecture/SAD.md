@@ -463,6 +463,12 @@ sab:
       modules:
         - name: "taskq_api.errors"
       allowed_dependencies: []
+    - name: migrations
+      modules:
+        - name: "migrations.versions.v1_initial"
+        - name: "migrations.versions.v2_tags"
+        - name: "migrations.versions.v3_split_results"
+      allowed_dependencies: ["repository", "models"]
 
   allowed_dependencies:
     - {from: api, to: service}
