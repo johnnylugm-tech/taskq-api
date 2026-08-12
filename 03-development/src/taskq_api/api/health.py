@@ -36,24 +36,38 @@ def _unwired_probe() -> Tuple[bool, str]:
 
     Fails closed (SPEC.md:160): a process whose composition root never
     called ``create_health_router`` cannot know its migration state, so
-    ``/readyz`` must not claim readiness. ``create_app`` always installs
-    the real probe, so this default only answers a direct import of
-    ``readyz`` that bypassed the composition root.
+    a direct call to ``readyz`` that bypassed the router MUST NOT
+    claim readiness. ``create_app`` always installs the real probe via
+    the per-app ``readyz_endpoint`` closure, so this default only
+    answers an import-only path.
     """
     return False, "migration state unknown (readyz probe not wired; db unchecked)"
 
 
-# [FR-09] Holds the readiness probe installed by ``create_health_router``.
-# Resolved at request time so each ``create_app()`` wires its own probe —
-# the test suite monkey-patches ``taskq_api.app.create_engine`` to
-# exercise the DB-down branch.
-_probe: Callable[[], Tuple[bool, str]] = _unwired_probe
+def _readyz_response(
+    probe: Callable[[], Tuple[bool, str]],
+):
+    """[FR-09] Materialise the ``/readyz`` response from the probe's verdict.
 
-
-def set_probe(probe: Callable[[], Tuple[bool, str]]) -> None:
-    """[FR-09] Install the readiness probe the router's ``/readyz`` will call."""
-    global _probe
-    _probe = probe
+    ``True`` → ``{"status": "ready", ...}``; ``False`` → 503
+    ``application/problem+json`` whose ``detail`` names which check
+    failed so the operator can grep ``db`` or ``migration``
+    (SPEC §8 #10, #11).
+    """
+    is_at_head, detail_str = probe()
+    if is_at_head:
+        return {"status": "ready", "migration": detail_str}
+    return Response(
+        content=json.dumps({
+            "type": "/errors/readyz-failed",
+            "title": "Readiness Check Failed",
+            "status": 503,
+            "detail": detail_str,
+            "instance": "/readyz",
+        }),
+        status_code=503,
+        media_type="application/problem+json",
+    )
 
 
 async def healthz() -> dict:
@@ -71,12 +85,13 @@ async def healthz() -> dict:
 
 
 async def readyz():
-    """[FR-09] Readiness probe — 200 when ready, else 503 problem+json.
+    """[FR-09] Readiness probe — module-level fail-closed default.
 
-    Delegates the decision to the injected ``probe`` (the composition
-    root's ``app._check_migration_state``) and surfaces its detail
-    verbatim, so the 503 body states WHICH check failed rather than a
-    generic "not ready" (SPEC.md:157).
+    Always reports NOT ready via ``_unwired_probe``. The composition
+    root wires the real probe by mounting ``create_health_router``'s
+    per-app ``readyz_endpoint`` closure as the actual ``/readyz``
+    route handler; this module-level symbol is kept for tests that
+    import the handler shape.
 
     Citations:
     - SPEC.md:157 §3 FR-09 — 200 only when the DB is reachable AND
@@ -86,35 +101,24 @@ async def readyz():
     - SPEC.md:421 §8 #11 — behind head → detail identifies the migration.
     - SPEC.md:164 §3 FR-10 — non-2xx uses ``application/problem+json``.
     """
-    is_at_head, detail_str = _probe()
-    if not is_at_head:
-        return Response(
-            content=json.dumps({
-                "type": "/errors/readyz-failed",
-                "title": "Readiness Check Failed",
-                "status": 503,
-                "detail": detail_str,
-                "instance": "/readyz",
-            }),
-            status_code=503,
-            media_type="application/problem+json",
-        )
-    return {"status": "ready", "migration": detail_str}
+    return _readyz_response(_unwired_probe)
 
 
 def create_health_router(probe: Callable[[], Tuple[bool, str]]) -> APIRouter:
     """[FR-09] Build the ``/healthz`` + ``/readyz`` router.
 
     The ``probe`` callable is invoked on every ``/readyz`` request and
-    must return ``(is_at_head, detail)``. When ``is_at_head`` is
-    ``False`` the router emits a 503 ``application/problem+json``
-    envelope whose ``detail`` field is the probe's detail string —
-    letting operators grep for ``db`` (DB down) or ``migration``
-    (behind head) (SPEC §8 #10, #11).
+    must return ``(is_at_head, detail)``. Captured in a per-app
+    closure (``readyz_endpoint``) so each ``create_app()`` instance
+    owns its probe and the test suite's monkey-patch of
+    ``taskq_api.app.create_engine`` exercises the DB-down branch
+    without leaking across app instances.
 
     Citations: SPEC.md §3 FR-09; SAD.md §2.8 (``api/health.py`` hub).
     """
-    set_probe(probe)
+    async def readyz_endpoint():
+        return _readyz_response(probe)
+
     router = APIRouter()
     router.add_api_route(
         "/healthz",
@@ -128,7 +132,7 @@ def create_health_router(probe: Callable[[], Tuple[bool, str]]) -> APIRouter:
     )
     router.add_api_route(
         "/readyz",
-        readyz,
+        readyz_endpoint,
         methods=["GET"],
         summary="[FR-09] Readiness probe.",
         description=(
@@ -140,4 +144,4 @@ def create_health_router(probe: Callable[[], Tuple[bool, str]]) -> APIRouter:
     return router
 
 
-__all__ = ["healthz", "readyz", "create_health_router", "set_probe"]
+__all__ = ["healthz", "readyz", "create_health_router"]

@@ -52,32 +52,26 @@ _BEHIND_HEAD_PREFIX: str = "migration is behind head"
 _UNKNOWN_PREFIX: str = "migration state unknown"
 
 
-def _behind_head_detail(reason: str) -> str:
-    """[FR-07] Compose the /readyz 503 detail for a CONFIRMED behind-head state.
+def _readyz_detail(prefix: str, reason: str) -> str:
+    """[FR-07, FR-09] Format the /readyz 503 detail envelope.
 
-    Used only when the probe successfully read ``alembic_version`` and
-    the revision does not match ``_MIGRATION_HEAD`` — i.e. we know the
-    schema is stale. SPEC §8 #11 wants the operator to see ``migration``
-    here so they know to run ``alembic upgrade head``.
+    Both the "behind head" and "unknown state" branches share the same
+    shape — a SPEC §8 #10/#11 grep-able prefix followed by a
+    parenthetical reason naming which check failed — so a single
+    formatter avoids two near-identical helpers.
+
+    Callers pick the prefix by *what the probe learned*:
+
+    - ``_BEHIND_HEAD_PREFIX``: the probe read ``alembic_version``
+      cleanly and the revision is stale — SPEC §8 #11 wants
+      ``migration`` here so the operator runs ``alembic upgrade head``.
+    - ``_UNKNOWN_PREFIX``: the probe could not read state at all;
+      claiming "behind head" would send an on-call operator to run
+      migrations when the real fault is an unreachable database, so
+      this branch says ``unknown`` and names the DB as the thing that
+      failed (SPEC §8 #10).
     """
-    return f"{_BEHIND_HEAD_PREFIX} ({reason})"
-
-
-def _unknown_state_detail(reason: str) -> str:
-    """[FR-09] Compose the /readyz 503 detail when the probe could not read state.
-
-    Distinct from ``_behind_head_detail``: a failed probe does NOT tell
-    us the migration is behind, only that we could not determine it.
-    Claiming "behind head" here would send an on-call operator to run
-    migrations when the real fault is an unreachable database, so this
-    branch says ``unknown`` and names the DB as the thing that failed
-    (SPEC §8 #10 — detail must identify the DB as unavailable).
-
-    Both grep tokens appear by necessity, not decoration: the state is
-    a *migration* state (SPEC §8 #11) that is unknown *because of the
-    db* (SPEC §8 #10), and either check can land here.
-    """
-    return f"{_UNKNOWN_PREFIX} ({reason})"
+    return f"{prefix} ({reason})"
 
 
 def _check_migration_state() -> Tuple[bool, str]:
@@ -111,7 +105,7 @@ def _check_migration_state() -> Tuple[bool, str]:
     db_url = os.environ.get("TASKQ_DB_URL", "")
     if not db_url:
         # Nothing to probe — state is undetermined, not known-behind.
-        return False, _unknown_state_detail("no TASKQ_DB_URL configured")
+        return False, _readyz_detail(_UNKNOWN_PREFIX, "no TASKQ_DB_URL configured")
 
     try:
         engine = create_engine(db_url)
@@ -124,22 +118,27 @@ def _check_migration_state() -> Tuple[bool, str]:
         # or the alembic metadata table is absent. Only the exception
         # CLASS is surfaced; the message can embed the DSN and would
         # leak the password past the NFR-04 redaction boundary.
-        return False, _unknown_state_detail(
-            f"db probe failed: {type(exc).__name__}"
+        return False, _readyz_detail(
+            _UNKNOWN_PREFIX,
+            f"db probe failed: {type(exc).__name__}",
         )
 
     if row is None:
         # Table exists but was never stamped — a real, confirmed
         # migration gap (SPEC §8 #11), not a DB fault.
-        return False, _behind_head_detail(
-            f"alembic_version has no row; expected head={_MIGRATION_HEAD}"
+        return False, _readyz_detail(
+            _BEHIND_HEAD_PREFIX,
+            f"alembic_version has no row; expected head={_MIGRATION_HEAD}",
         )
 
     current = row[0]
     if current != _MIGRATION_HEAD:
         return (
             False,
-            _behind_head_detail(f"current={current}, head={_MIGRATION_HEAD}"),
+            _readyz_detail(
+                _BEHIND_HEAD_PREFIX,
+                f"current={current}, head={_MIGRATION_HEAD}",
+            ),
         )
     return True, f"migration at head ({_MIGRATION_HEAD})"
 
