@@ -1,20 +1,829 @@
-# TEST_INVENTORY.yaml — P1 Naming Authority
-# Maps every FR to expected test function names. These are the AUTHORITATIVE names
-# that derive_test_cases.md preserves in TEST_SPEC.md (P2 single source of truth).
-# Specified per FR and per test category (unit/integration/cross_cutting).
-# If no name is specified for a category, derive_test_cases.md fills the gap with
-# names derived via the 7-Question Protocol.
-format_version: "1.1"
+# TEST_INVENTORY.yaml — P1 Naming Authority + 1:1 TC Enumeration (FR×AC)
+# SSOT for test function names that derive_test_cases.md preserves in TEST_SPEC.md.
+# Each tc_id is a SEPARATE contract item derived from one FR/NFR acceptance criterion
+# (canonical SPEC §8 #1..#27 and SRS §3/§4 inline ACs).
+# Range shorthand TC-XX-NNa..g MUST be expanded into independent entries below.
+# Cross-cutting coverage is signalled via metadata (cross_ref_frs / cross_ref_nfrs);
+# deletion of a §2 matrix FR/NFR row in favour of another is PROHIBITED.
+format_version: "2.0"
 
+test_inventory:
+  tests:
+
+    # ===== FR-01: Task CRUD API =====
+    - tc_id: TC-FR01-04a
+      fr: FR-01
+      layer: integration
+      spec_ref: "SPEC §8 #4"
+      description: "POST /v1/tasks with valid write key returns 201 + task id"
+      test_function_name: test_fr01_create_task_201
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-FR01-05a
+      fr: FR-01
+      layer: integration
+      spec_ref: "SPEC §8 #5"
+      description: "POST /v1/tasks without X-API-Key returns 401 + problem+json"
+      test_function_name: test_fr01_create_task_no_key_401
+      cross_ref_frs: [FR-03]
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR01-07a
+      fr: FR-01
+      layer: integration
+      spec_ref: "SPEC §8 #7"
+      description: "GET /v1/tasks/{unknown-id} returns 404 + problem+json"
+      test_function_name: test_fr01_get_task_unknown_404
+      cross_ref_frs: [FR-10]
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR01-08a
+      fr: FR-01
+      layer: integration
+      spec_ref: "SPEC §8 #8"
+      description: "POST /v1/tasks with duplicate name returns 409"
+      test_function_name: test_fr01_create_task_duplicate_409
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-FR01-14a
+      fr: FR-01
+      layer: integration
+      spec_ref: "SPEC §8 #14"
+      description: "GET /v1/tasks?limit=50 over 10,000 rows SQL-statement count is constant (N+1 guard)"
+      test_function_name: test_fr01_list_sql_count_constant
+      cross_ref_frs: [FR-06]
+      cross_ref_nfrs: [NFR-01]
+    - tc_id: TC-FR01-22a
+      fr: FR-01
+      layer: unit
+      spec_ref: "SRS §3 FR-01 pydantic row"
+      description: "TaskCreate pydantic validation (empty / >1000 chars / injection chars) returns 422"
+      test_function_name: test_fr01_pydantic_validation_422
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR01-23a
+      fr: FR-01
+      layer: integration
+      spec_ref: "SRS §3 FR-01 cursor row"
+      description: "Cursor pagination: default limit=50, upper bound 200, over-bound returns 422"
+      test_function_name: test_fr01_pagination_cursor
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== FR-02: Task run endpoint =====
+    - tc_id: TC-FR02-25a
+      fr: FR-02
+      layer: integration
+      spec_ref: "SRS §3 FR-02 + SPEC §8 #25"
+      description: "POST /v1/tasks/{id}/run returns 202 + run_id"
+      test_function_name: test_fr02_run_task_202
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-FR02-25b
+      fr: FR-02
+      layer: unit
+      spec_ref: "SRS §3 FR-02 (shlex.split)"
+      description: "TaskRunner.run() uses asyncio.create_subprocess_exec(*shlex.split(command))"
+      test_function_name: test_fr02_runner_uses_shlex_split
+      cross_ref_frs: [FR-08]
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR02-25c
+      fr: FR-02
+      layer: integration
+      spec_ref: "SRS §3 FR-02 result row"
+      description: "Execution result row written to task_results with exit_code / stdout_tail / stderr_tail / duration_ms / finished_at"
+      test_function_name: test_fr02_result_written_to_task_results
+      cross_ref_frs: [FR-07]
+      cross_ref_nfrs: []
+    - tc_id: TC-FR02-25d
+      fr: FR-02
+      layer: integration
+      spec_ref: "SPEC §8 #25"
+      description: "Graceful drain on shutdown: in-flight tasks marked interrupted, no orphan subprocess"
+      test_function_name: test_fr02_graceful_drain_interrupted
+      cross_ref_frs: [FR-08]
+      cross_ref_nfrs: [NFR-03]
+    - tc_id: TC-FR02-25e
+      fr: FR-02
+      layer: integration
+      spec_ref: "SPEC §7 timeout row"
+      description: "Task timeout kills child subprocess (kill() then await wait())"
+      test_function_name: test_fr02_timeout_kills_subprocess
+      cross_ref_frs: [FR-08]
+      cross_ref_nfrs: [NFR-03]
+    - tc_id: TC-FR02-16a
+      fr: FR-02
+      layer: unit
+      spec_ref: "SPEC §8 #16"
+      description: "grep -rn 'shell=True|eval(|exec(' 03-development/src/ returns 0 hits"
+      test_function_name: test_fr02_no_shell_true_in_codebase
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]
+
+    # ===== FR-03: API-Key auth =====
+    - tc_id: TC-FR03-05a
+      fr: FR-03
+      layer: integration
+      spec_ref: "SPEC §8 #5"
+      description: "All /v1/* endpoints reject missing or invalid X-API-Key with 401 + problem+json"
+      test_function_name: test_fr03_missing_or_invalid_key_401
+      cross_ref_frs: [FR-01, FR-02, FR-04, FR-05]
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR03-18a
+      fr: FR-03
+      layer: integration
+      spec_ref: "SPEC §8 #18"
+      description: "api_keys table stores no plaintext; key_hash is 64-hex SHA-256"
+      test_function_name: test_fr03_api_keys_no_plaintext_hash_64hex
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR03-20a
+      fr: FR-03
+      layer: integration
+      spec_ref: "SPEC §8 #20"
+      description: "Logs and /v1/metrics output contain no TASKQ_DB_URL password fragment"
+      test_function_name: test_fr03_logs_metrics_no_password
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-04]
+    - tc_id: TC-FR03-04a
+      fr: FR-03
+      layer: integration
+      spec_ref: "SRS §3 FR-03 plaintext row"
+      description: "API key plaintext printed only at 'key create' instant; never persisted"
+      test_function_name: test_fr03_plaintext_only_at_creation
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-04]
+    - tc_id: TC-FR03-18b
+      fr: FR-03
+      layer: unit
+      spec_ref: "SRS §3 FR-03 hmac row"
+      description: "verify_api_key uses hmac.compare_digest (constant-time)"
+      test_function_name: test_fr03_constant_time_compare
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]
+
+    # ===== FR-04: Scope authz =====
+    - tc_id: TC-FR04-06a
+      fr: FR-04
+      layer: integration
+      spec_ref: "SPEC §8 #6"
+      description: "DELETE /v1/tasks/{id} with write key (non-admin) returns 403; body does not reveal existence"
+      test_function_name: test_fr04_delete_forbidden_403_opaque
+      cross_ref_frs: [FR-01]
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR04-21a
+      fr: FR-04
+      layer: unit
+      spec_ref: "SPEC §8 #21"
+      description: "lint-imports exit 0; service/api layer import sqlalchemy is blocked"
+      test_function_name: test_fr04_lint_imports_exit_zero
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-06]
+    - tc_id: TC-FR04-04a
+      fr: FR-04
+      layer: integration
+      spec_ref: "SRS §3 FR-04 single-dep row"
+      description: "Every /v1 route passes through the same scope Depends(...) dependency"
+      test_function_name: test_fr04_single_scope_dependency
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== FR-05: Rate limit =====
+    - tc_id: TC-FR05-09a
+      fr: FR-05
+      layer: integration
+      spec_ref: "SPEC §8 #9"
+      description: "Bursting beyond TASKQ_RATE_BURST returns 429 + Retry-After header"
+      test_function_name: test_fr05_burst_returns_429_with_retry_after
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-FR05-09b
+      fr: FR-05
+      layer: integration
+      spec_ref: "SRS §3 FR-05 row-level-lock row"
+      description: "Rate bucket updated inside transaction with row-level lock (no race over-grant)"
+      test_function_name: test_fr05_bucket_row_level_lock
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-03]
+    - tc_id: TC-FR05-09c
+      fr: FR-05
+      layer: integration
+      spec_ref: "SRS §3 FR-05 /healthz row"
+      description: "/healthz and /readyz are exempt from rate limiting"
+      test_function_name: test_fr05_health_endpoints_exempt
+      cross_ref_frs: [FR-09]
+      cross_ref_nfrs: []
+
+    # ===== FR-06: Persistence + transaction boundaries =====
+    - tc_id: TC-FR06-14a
+      fr: FR-06
+      layer: integration
+      spec_ref: "SPEC §8 #14"
+      description: "List endpoint SQL statement count is constant regardless of returned row count"
+      test_function_name: test_fr06_list_sql_count_constant
+      cross_ref_frs: [FR-01]
+      cross_ref_nfrs: [NFR-01]
+    - tc_id: TC-FR06-17a
+      fr: FR-06
+      layer: unit
+      spec_ref: "SPEC §8 #17"
+      description: "Codebase scan for SQL string concatenation (f-string / % / + on SQL) returns 0 hits"
+      test_function_name: test_fr06_no_sql_string_concat
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR06-21a
+      fr: FR-06
+      layer: unit
+      spec_ref: "SPEC §8 #21"
+      description: "lint-imports exit 0; sqlalchemy importable only from repository/"
+      test_function_name: test_fr06_lint_imports_sqlalchemy_isolation
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-06]
+    - tc_id: TC-FR06-19a
+      fr: FR-06
+      layer: integration
+      spec_ref: "SRS §3 FR-06 transaction row"
+      description: "Per-request transaction context manager: commit on success, rollback on exception"
+      test_function_name: test_fr06_transaction_context_manager_rollback
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-03]
+
+    # ===== FR-07: Alembic schema migration (3 revisions, reversible) =====
+    - tc_id: TC-FR07-11a
+      fr: FR-07
+      layer: integration
+      spec_ref: "SPEC §8 #11"
+      description: "alembic downgrade -1 then GET /readyz returns 503 with detail naming migration-not-at-head"
+      test_function_name: test_fr07_readyz_503_when_migration_behind
+      cross_ref_frs: [FR-09]
+      cross_ref_nfrs: [NFR-03]
+    - tc_id: TC-FR07-12a
+      fr: FR-07
+      layer: integration
+      spec_ref: "SPEC §8 #12"
+      description: "Real SQLite file: upgrade head → write sample → downgrade -1 → upgrade head → sample byte-identical per column"
+      test_function_name: test_fr07_alembic_round_trip_byte_identical
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-09]
+    - tc_id: TC-FR07-13a
+      fr: FR-07
+      layer: integration
+      spec_ref: "SPEC §8 #13"
+      description: "alembic downgrade base exits 0 with no residual tables"
+      test_function_name: test_fr07_alembic_downgrade_base_clean
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-FR07-27a
+      fr: FR-07
+      layer: integration
+      spec_ref: "SPEC §8 #27"
+      description: "make verify-system exit 0 (chains alembic upgrade → tests → service smoke → downgrade base → upgrade head)"
+      test_function_name: test_fr07_make_verify_system_exit_zero
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-12]
+
+    # ===== FR-08: Async executor =====
+    - tc_id: TC-FR08-25a
+      fr: FR-08
+      layer: integration
+      spec_ref: "SPEC §8 #25"
+      description: "Graceful drain on shutdown up to TASKQ_DRAIN_TIMEOUT; exceeded tasks marked interrupted, no orphan"
+      test_function_name: test_fr08_graceful_drain_interrupted_no_orphan
+      cross_ref_frs: [FR-02]
+      cross_ref_nfrs: [NFR-03]
+    - tc_id: TC-FR08-25b
+      fr: FR-08
+      layer: integration
+      spec_ref: "SRS §3 FR-08 cancelled row"
+      description: "asyncio.CancelledError propagates; never swallowed by except Exception"
+      test_function_name: test_fr08_cancelled_error_propagates
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-03]
+    - tc_id: TC-FR08-25c
+      fr: FR-08
+      layer: integration
+      spec_ref: "SRS §3 FR-08 kill row"
+      description: "Task timeout kills child subprocess: process.kill() then await process.wait()"
+      test_function_name: test_fr08_timeout_kill_and_wait
+      cross_ref_frs: [FR-02]
+      cross_ref_nfrs: [NFR-03]
+    - tc_id: TC-FR08-25d
+      fr: FR-08
+      layer: integration
+      spec_ref: "SRS §3 FR-08 TaskGroup row"
+      description: "Background runner uses asyncio.TaskGroup with TASKQ_MAX_CONCURRENT cap"
+      test_function_name: test_fr08_taskgroup_max_concurrent_cap
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== FR-09: Health checks + observability =====
+    - tc_id: TC-FR09-10a
+      fr: FR-09
+      layer: integration
+      spec_ref: "SPEC §8 #10"
+      description: "GET /readyz returns 503 with detail naming DB-unreachable when database is down"
+      test_function_name: test_fr09_readyz_503_when_db_down
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-03]
+    - tc_id: TC-FR09-11a
+      fr: FR-09
+      layer: integration
+      spec_ref: "SPEC §8 #11"
+      description: "GET /readyz returns 503 when alembic current is not at head"
+      test_function_name: test_fr09_readyz_503_when_alembic_not_head
+      cross_ref_frs: [FR-07]
+      cross_ref_nfrs: []
+    - tc_id: TC-FR09-09a
+      fr: FR-09
+      layer: integration
+      spec_ref: "SRS §3 FR-09 healthz row"
+      description: "/healthz requires no authentication and returns 200"
+      test_function_name: test_fr09_healthz_no_auth
+      cross_ref_frs: [FR-03]
+      cross_ref_nfrs: []
+
+    # ===== FR-10: RFC 7807 error contract =====
+    - tc_id: TC-FR10-19a
+      fr: FR-10
+      layer: integration
+      spec_ref: "SPEC §8 #19"
+      description: "Triggered 500 response body contains no stack trace, SQL, or file paths"
+      test_function_name: test_fr10_500_body_no_leak
+      cross_ref_frs: []
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-FR10-19b
+      fr: FR-10
+      layer: integration
+      spec_ref: "SRS §3 FR-10 fields row"
+      description: "Error response uses application/problem+json with fixed fields type/title/status/detail/instance/correlation_id"
+      test_function_name: test_fr10_problem_json_fields
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-FR10-19c
+      fr: FR-10
+      layer: integration
+      spec_ref: "SRS §3 FR-10 correlation row"
+      description: "X-Correlation-Id header present on every error response"
+      test_function_name: test_fr10_x_correlation_id_header
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-01: Performance / query efficiency =====
+    - tc_id: TC-NFR01-14a
+      fr: NFR-01
+      layer: integration
+      spec_ref: "SPEC §8 #14"
+      description: "List endpoint SQL statement count is constant regardless of row count (N+1 ban)"
+      test_function_name: test_nfr01_list_sql_count_constant
+      cross_ref_frs: [FR-01, FR-06]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR01-15a
+      fr: NFR-01
+      layer: integration
+      spec_ref: "SPEC §8 #15"
+      description: "GET /v1/tasks/{id} p95 over 10,000 rows is < 30ms"
+      test_function_name: test_nfr01_get_task_p95_under_30ms
+      cross_ref_frs: [FR-01]
+      cross_ref_nfrs: []
+
+    # ===== NFR-02: HTTP + data-layer security =====
+    - tc_id: TC-NFR02-16a
+      fr: NFR-02
+      layer: unit
+      spec_ref: "SPEC §8 #16"
+      description: "grep -rn 'shell=True|eval(|exec(' 03-development/src/ returns 0 hits"
+      test_function_name: test_nfr02_no_shell_eval_exec
+      cross_ref_frs: [FR-02]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR02-17a
+      fr: NFR-02
+      layer: unit
+      spec_ref: "SPEC §8 #17"
+      description: "Codebase scan for SQL string concatenation returns 0 hits"
+      test_function_name: test_nfr02_no_sql_string_concat
+      cross_ref_frs: [FR-06]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR02-18a
+      fr: NFR-02
+      layer: integration
+      spec_ref: "SPEC §8 #18"
+      description: "api_keys table stores no plaintext; key_hash is 64 hex"
+      test_function_name: test_nfr02_api_keys_hash_only
+      cross_ref_frs: [FR-03]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR02-06a
+      fr: NFR-02
+      layer: integration
+      spec_ref: "SPEC §8 #6"
+      description: "403 response body does not reveal whether the resource exists"
+      test_function_name: test_nfr02_403_opaque_body
+      cross_ref_frs: [FR-04]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR02-19a
+      fr: NFR-02
+      layer: integration
+      spec_ref: "SPEC §8 #19"
+      description: "500 response body contains no stack trace, SQL, or file paths"
+      test_function_name: test_nfr02_500_no_leak
+      cross_ref_frs: [FR-10]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR02-21a
+      fr: NFR-02
+      layer: unit
+      spec_ref: "SPEC §8 #21"
+      description: "lint-imports exit 0; service/api layer import sqlalchemy is blocked"
+      test_function_name: test_nfr02_lint_imports_exit_zero
+      cross_ref_frs: [FR-04, FR-06]
+      cross_ref_nfrs: [NFR-06]
+    - tc_id: TC-NFR02-23a
+      fr: NFR-02
+      layer: unit
+      spec_ref: "SPEC §8 #23"
+      description: "bandit -r 03-development/src/ reports 0 HIGH, 0 MEDIUM"
+      test_function_name: test_nfr02_bandit_no_high_medium
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-03: Error handling, transactions, async correctness =====
+    - tc_id: TC-NFR03-10a
+      fr: NFR-03
+      layer: integration
+      spec_ref: "SPEC §8 #10"
+      description: "/readyz returns 503 when database is unreachable"
+      test_function_name: test_nfr03_readyz_db_unreachable
+      cross_ref_frs: [FR-09]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR03-19a
+      fr: NFR-03
+      layer: integration
+      spec_ref: "SRS §4 NFR-03 transaction row"
+      description: "Transaction context manager: commit on success, rollback on exception (no bare except)"
+      test_function_name: test_nfr03_transaction_rollback_on_exception
+      cross_ref_frs: [FR-06]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR03-25a
+      fr: NFR-03
+      layer: integration
+      spec_ref: "SPEC §8 #25"
+      description: "Task timeout kills child process — no orphan left behind"
+      test_function_name: test_nfr03_no_orphan_subprocess
+      cross_ref_frs: [FR-02, FR-08]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR03-12a
+      fr: NFR-03
+      layer: integration
+      spec_ref: "SRS §4 NFR-03 migration row"
+      description: "Migration failure rolls back transaction; database remains at prior revision"
+      test_function_name: test_nfr03_migration_failure_rollback
+      cross_ref_frs: [FR-07]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR03-25b
+      fr: NFR-03
+      layer: integration
+      spec_ref: "SRS §3 NFR-03 cancel row"
+      description: "asyncio.CancelledError is re-raised, never swallowed"
+      test_function_name: test_nfr03_cancelled_error_re_raised
+      cross_ref_frs: [FR-08]
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR03-99a
+      fr: NFR-03
+      layer: integration
+      spec_ref: "SRS §4 NFR-03 retry row"
+      description: "Retry policy has bounded attempts; no silent infinite retry"
+      test_function_name: test_nfr03_no_infinite_retry
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-04: Sensitive data redaction =====
+    - tc_id: TC-NFR04-20a
+      fr: NFR-04
+      layer: integration
+      spec_ref: "SPEC §8 #20"
+      description: "Logs and /v1/metrics output never contain TASKQ_DB_URL password fragment or matched secret patterns"
+      test_function_name: test_nfr04_no_password_in_logs_metrics
+      cross_ref_frs: [FR-03]
+      cross_ref_nfrs: []
+
+    # ===== NFR-05: Documentation coverage =====
+    - tc_id: TC-NFR05-05a
+      fr: NFR-05
+      layer: unit
+      spec_ref: "SRS §4 NFR-05 docstring row"
+      description: "Every public function/class in taskq_api has a docstring with [FR-XX] or [NFR-XX] citation; coverage 100%"
+      test_function_name: test_nfr05_public_docstring_coverage_100pct
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR05-05b
+      fr: NFR-05
+      layer: integration
+      spec_ref: "SRS §4 NFR-05 openapi row"
+      description: "Each API endpoint has summary and description in /openapi.json"
+      test_function_name: test_nfr05_openapi_summary_description
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-06: Layered architecture contract =====
+    - tc_id: TC-NFR06-21a
+      fr: NFR-06
+      layer: unit
+      spec_ref: "SRS §4 NFR-06 importlinter row"
+      description: ".importlinter exists at project root; not removable, not wildcarded"
+      test_function_name: test_nfr06_importlinter_exists
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR06-21b
+      fr: NFR-06
+      layer: unit
+      spec_ref: "SPEC §8 #21"
+      description: "lint-imports exits 0"
+      test_function_name: test_nfr06_lint_imports_exit_zero
+      cross_ref_frs: [FR-04, FR-06]
+      cross_ref_nfrs: [NFR-02]
+    - tc_id: TC-NFR06-21c
+      fr: NFR-06
+      layer: unit
+      spec_ref: "SRS §4 NFR-06 sqlalchemy row"
+      description: "sqlalchemy importable only from repository/; api/service imports blocked"
+      test_function_name: test_nfr06_sqlalchemy_isolated_to_repository
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-07: Dependency + license compliance =====
+    - tc_id: TC-NFR07-22a
+      fr: NFR-07
+      layer: unit
+      spec_ref: "SPEC §8 #22"
+      description: "pip-licenses --format=json --with-system shows every dependency license in allowlist (MIT/BSD-2-Clause/BSD-3-Clause/Apache-2.0/PSF)"
+      test_function_name: test_nfr07_licenses_in_allowlist
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR07-22b
+      fr: NFR-07
+      layer: unit
+      spec_ref: "SRS §4 NFR-07 sbom row"
+      description: "SBOM at 08-config/SBOM.json contains name/version/license/direct|transitive per dependency"
+      test_function_name: test_nfr07_sbom_schema_complete
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR07-22c
+      fr: NFR-07
+      layer: unit
+      spec_ref: "SRS §4 NFR-07 pinned row"
+      description: "requirements.txt uses == pinning for every direct dependency"
+      test_function_name: test_nfr07_requirements_txt_pinned
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR07-22d
+      fr: NFR-07
+      layer: unit
+      spec_ref: "SRS §4 NFR-07 lockfile row"
+      description: "requirements.lock pins every transitive dependency"
+      test_function_name: test_nfr07_requirements_lock_complete
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-08: Mutation testing =====
+    - tc_id: TC-NFR08-24a
+      fr: NFR-08
+      layer: unit
+      spec_ref: "SPEC §8 #24"
+      description: "mutmut results reports mutation score ≥ 70 over service/ and repository/"
+      test_function_name: test_nfr08_mutation_score_at_least_70
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-09: Zero-skip authenticity =====
+    - tc_id: TC-NFR09-01a
+      fr: NFR-09
+      layer: unit
+      spec_ref: "SPEC §8 #1"
+      description: "pytest 03-development/tests -q is fully green; skipped count is 0"
+      test_function_name: test_nfr09_pytest_zero_skipped
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR09-12a
+      fr: NFR-09
+      layer: integration
+      spec_ref: "SPEC §4 NFR-09 special row"
+      description: "FR-07 migration round-trip tested against real SQLite file (not in-memory mock); reversibility verified by actual data"
+      test_function_name: test_nfr09_migration_against_real_db
+      cross_ref_frs: [FR-07]
+      cross_ref_nfrs: []
+
+    # ===== NFR-10: Integration coverage =====
+    - tc_id: TC-NFR10-03a
+      fr: NFR-10
+      layer: unit
+      spec_ref: "SPEC §8 #3"
+      description: "pytest 03-development/tests/integration --cov=03-development/src line coverage ≥ 80%"
+      test_function_name: test_nfr10_integration_line_coverage_ge_80pct
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR10-03b
+      fr: NFR-10
+      layer: integration
+      spec_ref: "SRS §4 NFR-10 httpx row"
+      description: "Integration tests drive the app via httpx.AsyncClient(transport=ASGITransport(app))"
+      test_function_name: test_nfr10_uses_asgi_transport
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR10-03c
+      fr: NFR-10
+      layer: integration
+      spec_ref: "SRS §4 NFR-10 codes row"
+      description: "Every error code (401/403/404/409/422/429/503) covered by at least one integration test"
+      test_function_name: test_nfr10_all_error_codes_covered
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-11: Readability =====
+    - tc_id: TC-NFR11-11a
+      fr: NFR-11
+      layer: unit
+      spec_ref: "SRS §4 NFR-11 mi row"
+      description: "radon MI project-wide ≥ 80"
+      test_function_name: test_nfr11_radon_mi_ge_80
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+    - tc_id: TC-NFR11-11b
+      fr: NFR-11
+      layer: unit
+      spec_ref: "SRS §4 NFR-11 size rows"
+      description: "Per-function CC ≤ 10, single file ≤ 400 LOC, single directory ≤ 15 files, API handler ≤ 40 LOC"
+      test_function_name: test_nfr11_size_constraints
+      cross_ref_frs: []
+      cross_ref_nfrs: []
+
+    # ===== NFR-12: System verification =====
+    - tc_id: TC-NFR12-27a
+      fr: NFR-12
+      layer: integration
+      spec_ref: "SPEC §8 #27"
+      description: "make verify-system exit 0 with 'verify-system: PASS' on stdout (full round-trip)"
+      test_function_name: test_nfr12_make_verify_system_pass
+      cross_ref_frs: [FR-07]
+      cross_ref_nfrs: []
+
+  coverage_summary:
+    total_test_cases: 76
+    by_fr:
+      FR-01: { tc_count: 7 }
+      FR-02: { tc_count: 6 }
+      FR-03: { tc_count: 5 }
+      FR-04: { tc_count: 3 }
+      FR-05: { tc_count: 3 }
+      FR-06: { tc_count: 4 }
+      FR-07: { tc_count: 4 }
+      FR-08: { tc_count: 4 }
+      FR-09: { tc_count: 3 }
+      FR-10: { tc_count: 3 }
+      NFR-01: { tc_count: 2 }
+      NFR-02: { tc_count: 7 }
+      NFR-03: { tc_count: 6 }
+      NFR-04: { tc_count: 1 }
+      NFR-05: { tc_count: 2 }
+      NFR-06: { tc_count: 3 }
+      NFR-07: { tc_count: 4 }
+      NFR-08: { tc_count: 1 }
+      NFR-09: { tc_count: 2 }
+      NFR-10: { tc_count: 3 }
+      NFR-11: { tc_count: 2 }
+      NFR-12: { tc_count: 1 }
+    by_layer:
+      unit: { count: 24 }
+      integration: { count: 52 }
+    by_fr_total: 76
+    by_layer_total: 76
+
+# Backward-compatible fr_tests + cross_cutting blocks (P1 seed).
+# derive_test_cases.md (P2) preserves these names verbatim in TEST_SPEC.md.
 fr_tests:
   FR-01:
     unit:
-      - test_fr01_example_unit
+      - test_fr01_pydantic_validation_422
     integration:
-      - test_fr01_example_integration
+      - test_fr01_create_task_201
+      - test_fr01_create_task_no_key_401
+      - test_fr01_get_task_unknown_404
+      - test_fr01_create_task_duplicate_409
+      - test_fr01_list_sql_count_constant
+      - test_fr01_pagination_cursor
+  FR-02:
+    unit:
+      - test_fr02_runner_uses_shlex_split
+      - test_fr02_no_shell_true_in_codebase
+    integration:
+      - test_fr02_run_task_202
+      - test_fr02_result_written_to_task_results
+      - test_fr02_graceful_drain_interrupted
+      - test_fr02_timeout_kills_subprocess
+  FR-03:
+    unit:
+      - test_fr03_constant_time_compare
+    integration:
+      - test_fr03_missing_or_invalid_key_401
+      - test_fr03_api_keys_no_plaintext_hash_64hex
+      - test_fr03_logs_metrics_no_password
+      - test_fr03_plaintext_only_at_creation
+  FR-04:
+    unit:
+      - test_fr04_lint_imports_exit_zero
+    integration:
+      - test_fr04_delete_forbidden_403_opaque
+      - test_fr04_single_scope_dependency
+  FR-05:
+    integration:
+      - test_fr05_burst_returns_429_with_retry_after
+      - test_fr05_bucket_row_level_lock
+      - test_fr05_health_endpoints_exempt
+  FR-06:
+    unit:
+      - test_fr06_no_sql_string_concat
+      - test_fr06_lint_imports_sqlalchemy_isolation
+    integration:
+      - test_fr06_list_sql_count_constant
+      - test_fr06_transaction_context_manager_rollback
+  FR-07:
+    integration:
+      - test_fr07_readyz_503_when_migration_behind
+      - test_fr07_alembic_round_trip_byte_identical
+      - test_fr07_alembic_downgrade_base_clean
+      - test_fr07_make_verify_system_exit_zero
+  FR-08:
+    integration:
+      - test_fr08_graceful_drain_interrupted_no_orphan
+      - test_fr08_cancelled_error_propagates
+      - test_fr08_timeout_kill_and_wait
+      - test_fr08_taskgroup_max_concurrent_cap
+  FR-09:
+    integration:
+      - test_fr09_readyz_503_when_db_down
+      - test_fr09_readyz_503_when_alembic_not_head
+      - test_fr09_healthz_no_auth
+  FR-10:
+    integration:
+      - test_fr10_500_body_no_leak
+      - test_fr10_problem_json_fields
+      - test_fr10_x_correlation_id_header
 
 cross_cutting:
-  security:
-    - test_security_example
-  deployment:
-    - test_deployment_example
+  NFR-01:
+    integration:
+      - test_nfr01_list_sql_count_constant
+      - test_nfr01_get_task_p95_under_30ms
+  NFR-02:
+    unit:
+      - test_nfr02_no_shell_eval_exec
+      - test_nfr02_no_sql_string_concat
+      - test_nfr02_lint_imports_exit_zero
+      - test_nfr02_bandit_no_high_medium
+    integration:
+      - test_nfr02_api_keys_hash_only
+      - test_nfr02_403_opaque_body
+      - test_nfr02_500_no_leak
+  NFR-03:
+    integration:
+      - test_nfr03_readyz_db_unreachable
+      - test_nfr03_transaction_rollback_on_exception
+      - test_nfr03_no_orphan_subprocess
+      - test_nfr03_migration_failure_rollback
+      - test_nfr03_cancelled_error_re_raised
+      - test_nfr03_no_infinite_retry
+  NFR-04:
+    integration:
+      - test_nfr04_no_password_in_logs_metrics
+  NFR-05:
+    unit:
+      - test_nfr05_public_docstring_coverage_100pct
+    integration:
+      - test_nfr05_openapi_summary_description
+  NFR-06:
+    unit:
+      - test_nfr06_importlinter_exists
+      - test_nfr06_lint_imports_exit_zero
+      - test_nfr06_sqlalchemy_isolated_to_repository
+  NFR-07:
+    unit:
+      - test_nfr07_licenses_in_allowlist
+      - test_nfr07_sbom_schema_complete
+      - test_nfr07_requirements_txt_pinned
+      - test_nfr07_requirements_lock_complete
+  NFR-08:
+    unit:
+      - test_nfr08_mutation_score_at_least_70
+  NFR-09:
+    unit:
+      - test_nfr09_pytest_zero_skipped
+    integration:
+      - test_nfr09_migration_against_real_db
+  NFR-10:
+    unit:
+      - test_nfr10_integration_line_coverage_ge_80pct
+    integration:
+      - test_nfr10_uses_asgi_transport
+      - test_nfr10_all_error_codes_covered
+  NFR-11:
+    unit:
+      - test_nfr11_radon_mi_ge_80
+      - test_nfr11_size_constraints
+  NFR-12:
+    integration:
+      - test_nfr12_make_verify_system_pass
