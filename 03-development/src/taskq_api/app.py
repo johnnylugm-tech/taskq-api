@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 
 from fastapi import FastAPI, Response
-from fastapi.routing import APIRouter
+from fastapi.routing import APIRouter, _IncludedRouter
 
 from taskq_api.api.tasks import create_tasks_router
 from taskq_api.errors import register_error_handlers
@@ -60,7 +60,7 @@ def _flat_include_router(app: FastAPI, router: APIRouter) -> None:
     route object itself, which is the same instance FastAPI created.
     """
     for route in router.routes:
-        if type(route).__name__ == "_IncludedRouter":
+        if isinstance(route, _IncludedRouter):
             # Nested include — recurse with the inner router so every
             # leaf `APIRoute` lands on `app.routes`.
             _flat_include_router(app, route.original_router)
