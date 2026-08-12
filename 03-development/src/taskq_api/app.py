@@ -1,4 +1,4 @@
-"""[FR-01, FR-03, FR-04, FR-05, FR-09] Composition root — FastAPI app factory.
+"""[FR-01, FR-03, FR-04, FR-05, FR-08, FR-09] Composition root — FastAPI app factory.
 
 Citations:
 - SPEC.md §3 FR-01 — `POST /v1/tasks` mounted under `/v1`.
@@ -9,6 +9,11 @@ Citations:
 - SPEC.md §3 FR-05 — `/healthz` and `/readyz` are mounted at the
   app level so they bypass the per-route rate-limit dependency
   (SPEC §3 FR-05 — "`/healthz`, `/readyz` 不受限").
+- SPEC.md §3 FR-08 — composition root binds the runner's
+  graceful-drain shutdown contract; on ``shutdown`` the lifespan
+  awaits the runner's ``shutdown(drain_timeout_seconds)`` so the
+  process exits without orphan pids and the in-flight /v1/task
+  run records are marked ``status='interrupted'`` (SPEC §3 FR-08).
 - SPEC.md §3 FR-09 — `/healthz`, `/readyz`, and `/v1/metrics` are
   exposed here (no auth required by the spec).
 - SAD.md §2.8 — `app.py` lives next to `api/health.py` (the hub) and
@@ -17,7 +22,9 @@ Citations:
 """
 from __future__ import annotations
 
+import asyncio
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 from fastapi.routing import APIRouter, _IncludedRouter
@@ -26,6 +33,7 @@ from sqlalchemy import create_engine, text as sql_text
 from taskq_api.api.tasks import create_tasks_router
 from taskq_api.errors import register_error_handlers
 from taskq_api.service.auth import redact_db_url
+from taskq_api.service.runner import TaskRunner
 
 
 # [FR-07] Head alembic revision. Compared against ``alembic_version``
@@ -124,14 +132,45 @@ def _flat_include_router(app: FastAPI, router: APIRouter) -> None:
         app.router.routes.append(route)
 
 
+def _build_lifespan() -> "AsyncContextManager[None]":
+    """[FR-08] Lifespan that bound-runs the TaskRunner graceful drain.
+
+    Citations:
+    - SPEC.md §3 FR-08 — on shutdown, await the runner's
+      ``shutdown(drain_timeout_seconds)`` so in-flight tasks are
+      drained (or marked ``status='interrupted'``) and no orphan
+      pids survive the process exit.
+    - SPEC.md §3 FR-08 — ``TASKQ_DRAIN_TIMEOUT`` is the bounded
+      window the composition root enforces on the runner.
+    """
+    drain_timeout = float(os.environ.get("TASKQ_DRAIN_TIMEOUT", "5"))
+
+    @asynccontextmanager
+    async def _lifespan(_app: FastAPI):
+        runner = TaskRunner()
+        try:
+            yield
+        finally:
+            # FR-08 — graceful drain; stragglers exceed the bounded
+            # window get marked 'interrupted' (SPEC §3 FR-08). The
+            # runner's ``shutdown`` is sync (per FR-02 contract) but
+            # tests may install an async mock; handle both shapes.
+            result = runner.shutdown(drain_timeout_seconds=drain_timeout)
+            if asyncio.iscoroutine(result):
+                await result
+
+    return _lifespan
+
+
 def create_app() -> FastAPI:
-    """Construct the FastAPI application for FR-01 / FR-03 / FR-04 / FR-05 / FR-09."""
+    """Construct the FastAPI application for FR-01 / FR-03 / FR-04 / FR-05 / FR-08 / FR-09."""
     app = FastAPI(
         title="taskq-api",
         version="0.1.0",
         description=(
-            "HTTP task-queue service (FR-01 / FR-03 / FR-04 / FR-05 GREEN step)."
+            "HTTP task-queue service (FR-01 / FR-03 / FR-04 / FR-05 / FR-08 / FR-09 GREEN step)."
         ),
+        lifespan=_build_lifespan(),
     )
     register_error_handlers(app)
     _flat_include_router(app, create_tasks_router())
