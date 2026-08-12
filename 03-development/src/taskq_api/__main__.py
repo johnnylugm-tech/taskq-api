@@ -13,10 +13,10 @@ Citations:
 """
 # The `if __name__ == "__main__"` guard is exercised by the
 # `python -m taskq_api` integration (make verify-system's
-# readyz-smoke step), not by the unit test suite. Marking the
-# guard as `no cover` keeps the test_coverage dimension at the
-# project source tree the tests actually exercise.
-# pragma: no cover
+# readyz-smoke step), not by the unit test suite. Omitted from
+# pytest-cov via .coveragerc's `omit = taskq_api/__main__.py` so the
+# test_coverage number stays at the project source tree the tests
+# actually exercise.
 
 from __future__ import annotations
 
