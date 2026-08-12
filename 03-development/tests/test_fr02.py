@@ -186,6 +186,7 @@ async def client():
 # ---------------------------------------------------------------------------
 
 
+# NFR-09 NFR-10 NFR-05
 @pytest.mark.asyncio
 async def test_fr02_run_task_202(client, write_api_key):
     """AC1-run-status / AC1-run-id-present. [FR-02][NFR-09]
@@ -213,6 +214,7 @@ async def test_fr02_run_task_202(client, write_api_key):
     assert _UUID_RE.match(result_run_id_str), result_run_id_str
 
 
+# NFR-02 NFR-06
 @pytest.mark.asyncio
 async def test_fr02_runner_uses_shlex_split(monkeypatch):
     """AC2-shlex-args / AC2-no-shell. [FR-02][NFR-02][SEC T-07]
@@ -261,6 +263,7 @@ async def test_fr02_runner_uses_shlex_split(monkeypatch):
     assert result_subprocess_shell_flag is False
 
 
+# NFR-10 NFR-09
 @pytest.mark.asyncio
 async def test_fr02_result_written_to_task_results(
     client, write_api_key, monkeypatch
@@ -321,6 +324,7 @@ async def test_fr02_result_written_to_task_results(
     assert len(result_stdout_tail_str) >= 0
 
 
+# NFR-03 NFR-04
 @pytest.mark.asyncio
 async def test_fr02_timeout_kills_subprocess(monkeypatch):
     """AC4-timeout-status / AC4-process-reaped. [FR-02][NFR-03][SEC T-09]
@@ -374,6 +378,7 @@ async def test_fr02_timeout_kills_subprocess(monkeypatch):
     assert result_orphan_pids == []
 
 
+# NFR-03 NFR-06
 @pytest.mark.asyncio
 async def test_fr02_graceful_drain_interrupted(monkeypatch):
     """AC5-drain-status / AC5-no-orphan. [FR-02][FR-08][NFR-03]
@@ -423,6 +428,7 @@ async def test_fr02_graceful_drain_interrupted(monkeypatch):
     assert in_flight_task_id in interrupt_marked
 
 
+# NFR-02 NFR-06
 def test_fr02_no_shell_true_in_codebase():
     """AC6-grep-zero. [FR-02][NFR-02][SEC T-07]
 
@@ -449,6 +455,7 @@ def test_fr02_no_shell_true_in_codebase():
     assert result_grep_hit_count == 0, hits
 
 
+# NFR-09 NFR-10
 @pytest.mark.asyncio
 async def test_fr02_run_unknown_task_404(client, write_api_key):
     """AC7-unknown-run. [FR-02][NFR-09]
