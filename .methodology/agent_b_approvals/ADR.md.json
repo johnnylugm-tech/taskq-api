@@ -1,0 +1,26 @@
+{
+  "fr": "ADR.md",
+  "review_status": "APPROVE",
+  "reason": "ADR.md (02-architecture/adr/ADR.md, 417 lines) is a coherent decision-record collection that bound to the upstream SPEC/SRS/SAD contracts. ADR-001 (Python 3.11.15, verified via .venv/bin/python --version) matches SRS §1.1/§2.1. ADR-002/003/004/005 align with SRS §2.1 (FastAPI/SQLAlchemy 2.x/Alembic/pydantic v2). ADR-006 layer contract and ADR-013 import-linter + grep gate match SRS §2.2/NFR-06 and SAD §1.1/§2.7. ADR-007 subprocess discipline (shlex.split, shell=True forbidden, kill()+wait(), CancelledError re-raise) matches SRS §2.1/§2.5 + T-07/T-08 in SAD §6. ADR-008 row-level-lock token bucket matches SAD §3.4 and FR-05. ADR-009 SHA-256+hmac.compare_digest matches NFR-02/FR-03. ADR-010 single dependency module matches FR-04 single-decision-point contract. ADR-011 RFC 7807 problem+json wi",
+  "citations": [
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:11-26",
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:30-48",
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:154-173",
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:177-195",
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:199-217",
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:262-260",
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:264-282",
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:286-309",
+    "/Users/johnny/projects/taskq-api/02-architecture/adr/ADR.md:342-369",
+    "/Users/johnny/projects/taskq-api/02-architecture/SAD.md:18-31",
+    "/Users/johnny/projects/taskq-api/01-requirements/SRS.md:42-47",
+    "/Users/johnny/projects/taskq-api/harness/templates/ADR.md:16-32"
+  ],
+  "docs_embedded": [
+    "SRS.md",
+    "SAD.md",
+    "ADR.md",
+    "templates/ADR.md"
+  ],
+  "confidence": 0.9
+}
