@@ -89,7 +89,7 @@ def _exploding_create_engine(*_args, **_kwargs):
 # ---------------------------------------------------------------------------
 
 
-# NFR-03
+# NFR-03 NFR-05 NFR-09 NFR-10
 def test_fr09_healthz_no_auth():
     """AC1-healthz-status / AC1-no-auth-required. [FR-09][SPEC §3]
 
@@ -131,7 +131,7 @@ def test_fr09_healthz_no_auth():
     asyncio.get_event_loop().run_until_complete(_call())
 
 
-# NFR-03
+# NFR-03 NFR-05 NFR-09 NFR-10
 def test_fr09_readyz_200_when_ok(monkeypatch, tmp_path):
     """AC2-readyz-ok-status. [FR-09][SPEC §3][SPEC §8 #10, #11]
 
@@ -167,7 +167,7 @@ def test_fr09_readyz_200_when_ok(monkeypatch, tmp_path):
     asyncio.get_event_loop().run_until_complete(_call())
 
 
-# NFR-03
+# NFR-03 NFR-05 NFR-09 NFR-10
 def test_fr09_readyz_503_when_db_down(monkeypatch):
     """AC3-readyz-down-status / AC3-detail-db. [FR-09][SPEC §8 #10]
 
@@ -206,7 +206,7 @@ def test_fr09_readyz_503_when_db_down(monkeypatch):
     asyncio.get_event_loop().run_until_complete(_call())
 
 
-# NFR-03
+# NFR-03 NFR-05 NFR-09 NFR-10
 def test_fr09_readyz_503_when_alembic_not_head(monkeypatch, tmp_path):
     """AC4-readyz-migration-status / AC4-detail-migration. [FR-09][SPEC §8 #11]
 
