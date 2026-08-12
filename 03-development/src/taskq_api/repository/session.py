@@ -12,8 +12,6 @@ session per request. Tests stub this with a `_FakeSession` (see
 """
 from __future__ import annotations
 
-from typing import Optional
-
 
 def get_session() -> "object":
     """Return a new Session for the request unit-of-work.

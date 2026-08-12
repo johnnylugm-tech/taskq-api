@@ -19,7 +19,6 @@ from fastapi import APIRouter, Depends, Path, Query, Request
 from taskq_api.errors import (
     AuthProblem,
     ForbiddenProblem,
-    NotFoundProblem,
     ValidationProblem,
 )
 from taskq_api.models.schemas import TaskCreate, TaskOut
