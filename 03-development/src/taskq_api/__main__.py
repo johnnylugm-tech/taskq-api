@@ -14,20 +14,16 @@ Citations:
 from __future__ import annotations
 
 import argparse
-import hashlib
-import os
 import secrets
-import sys
+
+from taskq_api.models.orm import ApiKey
+from taskq_api.repository.key_repo import KeyRepo
+from taskq_api.service.auth import hash_key
 
 
 def _gen_plaintext() -> str:
     """[FR-03] Generate a URL-safe plaintext token (>=16 chars)."""
     return secrets.token_urlsafe(24)
-
-
-def _hash(plaintext: str) -> str:
-    """[FR-03] SHA-256 hex digest of the plaintext (64 lowercase hex)."""
-    return hashlib.sha256(plaintext.encode("utf-8")).hexdigest()
 
 
 def _cmd_key_create(scope: str) -> int:
@@ -36,30 +32,20 @@ def _cmd_key_create(scope: str) -> int:
     Citations:
     - SPEC.md §3 FR-03 — print `KEY=<plaintext>` exactly once on
       stdout; persist only the hash.
+
+    The CLI runs as a subprocess with no wired DB session, so it
+    persists through `KeyRepo.register` (the in-process registry path)
+    rather than `KeyRepo.create` — the latter acquires a session, and
+    `repository.session.get_session` raises until the deployment layer
+    wires one. Hashing goes through `service.auth.hash_key`, the same
+    digest the verification path uses.
     """
     plaintext = _gen_plaintext()
-    key_hash = _hash(plaintext)
+    row = ApiKey(scope=scope, key_hash=hash_key(plaintext)).as_row()
+    KeyRepo().register(row, raw_key=plaintext)
 
-    # The CLI runs as a subprocess without a wired DB session. Skip
-    # the SQLAlchemy session path and write directly to the in-process
-    # `KeyRepo` registry that the autouse fixture relies on for lookups.
-    # Production wiring replaces this with a real SQLAlchemy insert via
-    # `KeyRepo.create` (in-process CI is irrelevant for the CLI;
-    # `taskq_api.repository.session.get_session` raises if unstubbed).
-    import uuid as _uuid
-
-    from taskq_api.repository.key_repo import KeyRepo
-
-    row = {
-        "id": str(_uuid.uuid4()),
-        "scope": scope,
-        "key_hash": key_hash,
-        "revoked_at": None,
-    }
-    KeyRepo._registry[row["id"]] = row
-    KeyRepo._by_key[plaintext] = row["id"]
-
-    # Print the plaintext EXACTLY once on stdout.
+    # Print the plaintext EXACTLY once on stdout — this is the only
+    # moment it is ever visible; only the hash is persisted.
     print(f"KEY={plaintext}")
     return 0
 

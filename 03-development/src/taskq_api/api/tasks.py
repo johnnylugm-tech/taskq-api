@@ -19,62 +19,24 @@ import re
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import APIRouter, Depends, Path, Query
 
-from taskq_api.errors import (
-    AuthProblem,
-    ForbiddenProblem,
-    ValidationProblem,
-)
+from taskq_api.api.deps import get_current_key, require_scope
+from taskq_api.errors import ValidationProblem
 from taskq_api.models.orm import TaskResult
 from taskq_api.models.schemas import TaskCreate, TaskOut
-from taskq_api.service import auth as _auth
 from taskq_api.service.runner import TaskRunner
 from taskq_api.service.tasks import TaskService
 
 
-# ----------------------------------------------------------------------
-# Dependency: extract and verify the API key.
-# ----------------------------------------------------------------------
-# SPEC.md §7 — 401 + problem+json when X-API-Key is missing.
-# The autouse fixture in test_fr01.py patches `taskq_api.service.auth.verify_key`
-# at the module attribute level, so we MUST reach for it via the module
-# reference inside the dependency body (an `from … import verify_key`
-# would freeze the original and bypass the test stub).
+# Auth/scope dependencies live in `api.deps` (SAD.md §2.7 — the single
+# dependency point). They are imported here so the routes below can
+# declare them, and re-exported via `__all__` for callers that still
+# reach for `api.tasks.get_current_key` / `api.tasks.require_scope`.
+
+# SPEC.md §8 #16 — reject shell metacharacters in the submitted command
+# before it ever reaches the runner.
 _INJECTION_CHARS = re.compile(r"[;&|`$\\<>'\"]")
-
-
-def get_current_key(request: Request) -> str:
-    """[FR-03] Extract and verify the API key on every `/v1/*` route."""
-    raw = request.headers.get("X-API-Key")
-    if not raw:
-        raise AuthProblem(detail="X-API-Key header is required")
-    # `verify_key(raw, hashed)` — production wiring hashes the stored
-    # key and constant-time compares. The test stub accepts any two
-    # non-empty strings, so we pass `(raw, raw)` as a stand-in.
-    if not _auth.verify_key(raw, raw):
-        raise AuthProblem(detail="API key is not valid")
-    return raw
-
-
-def require_scope(*allowed: str):
-    """[FR-04] Scope gate — single dependency point.
-
-    Citations: SPEC.md §3 FR-04; SAD.md §2.7 — the deps module is the
-    single point of authorisation. Returns a dependency callable.
-    """
-    allowed_set = set(allowed)
-
-    def _dep(request: Request, key: str = Depends(get_current_key)) -> str:
-        # Phase 4 will resolve scope from the `api_keys` row via
-        # `service.auth.scope_allows(key, allowed_set)`. FR-01 only
-        # asserts authentication; the scope check is deferred.
-        if not _auth.verify_key(key, key):
-            raise ForbiddenProblem(detail="insufficient scope")
-        _ = allowed_set  # silence unused-warning; consumed by Phase 4
-        return key
-
-    return _dep
 
 
 def _result_from_runner_record(

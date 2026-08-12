@@ -1,13 +1,17 @@
-"""[FR-03, FR-04] API key verification.
+"""[FR-03, FR-04] API key hashing, verification, and log redaction.
 
 Citations:
 - SPEC.md §3 FR-03 — keys stored as SHA-256 hash; comparison via
   `hmac.compare_digest` (constant-time).
+- SPEC.md L211 (§4 NFR-04) — the DB connection string (with its
+  password) must not appear in any log, error message, or
+  `/v1/metrics` response.
 - SAD.md §2.6 — `auth.py` is the hub for the service community;
-  scope gate lives in `api.deps.require_scope`.
+  the scope gate lives in `api.deps.require_scope`.
 
-The GREEN test suite patches `verify_key` via `monkeypatch.setattr`,
-so this signature MUST exist verbatim:
+The test suites patch `verify_key` via `monkeypatch.setattr` on this
+MODULE, so this signature MUST exist verbatim and callers MUST reach
+it through a module attribute lookup (see `api.deps`):
 
     verify_key(raw: str, hashed: str) -> bool
 """
@@ -17,12 +21,50 @@ import hashlib
 import hmac
 import logging
 import re
+from typing import Any
+
+
+# ---------------------------------------------------------------------------
+# Key hashing / verification (FR-03)
+# ---------------------------------------------------------------------------
+def hash_key(raw: str) -> str:
+    """[FR-03] SHA-256 hex digest of ``raw`` — 64 lowercase hex chars.
+
+    The single definition of how a plaintext key becomes a stored
+    hash. The CLI write path (`python -m taskq_api key create`) and the
+    `verify_key` read path both route through here, so the two can
+    never drift into computing different digests for the same key.
+
+    Citations:
+    - SPEC.md §3 FR-03 — `api_keys.key_hash` is the SHA-256 of the
+      plaintext, stored as 64 lowercase hex chars; the plaintext is
+      never persisted.
+    """
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def verify_key(raw: str, hashed: str) -> bool:
+    """[FR-03] Constant-time comparison of ``raw`` against ``hashed``.
+
+    Citations:
+    - SPEC.md §3 FR-03 — `hmac.compare_digest` over SHA-256; a plain
+      `==` short-circuits on the first differing byte and leaks the
+      digest through response timing.
+    - SAD.md §2.6 — production wiring hashes `raw` then compares.
+
+    The test suites stub this via `monkeypatch.setattr` on the module
+    object; the real implementation must exist so the patch target
+    resolves.
+    """
+    if not raw or not hashed:
+        return False
+    return hmac.compare_digest(hash_key(raw), hashed)
 
 
 # ---------------------------------------------------------------------------
 # Log redaction — scrub the TASKQ_DB_URL password fragment (FR-03 / NFR-04)
 # ---------------------------------------------------------------------------
-# Pattern matches the password component of a typical
+# Matches the password component of a typical
 # ``postgres://user:password@host:port/db`` URL — the substring between
 # the first ``:`` after the userinfo and the ``@`` is replaced with
 # ``***``, leaving scheme/user/host intact so logs stay diagnosable.
@@ -31,8 +73,13 @@ _DB_URL_RE = re.compile(
 )
 
 
-def _redact_db_url(text: str) -> str:
+def redact_db_url(text: str) -> str:
     """[FR-03] Redact the password fragment of any DB URL in ``text``.
+
+    The one redaction implementation: the logging record factory below
+    and `/v1/metrics` (`app._build_metrics_body`) both call it, so the
+    two exits a password could escape through are scrubbed by the same
+    pattern.
 
     Citations:
     - SPEC.md L211 (§4 NFR-04) — the DB connection string (with its
@@ -51,7 +98,7 @@ def _scrub(value: Any) -> Any:
     - SPEC.md L211 (§4 NFR-04) — the password fragment is scrubbed
       wherever it enters the logging pipeline.
     """
-    return _redact_db_url(value) if isinstance(value, str) else value
+    return redact_db_url(value) if isinstance(value, str) else value
 
 
 # Captured at import time so the installer can delegate to whatever
@@ -82,7 +129,7 @@ def _redacting_record_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
     """
     record = _BASE_RECORD_FACTORY(*args, **kwargs)
     if isinstance(record.msg, str):
-        record.msg = _redact_db_url(record.msg)
+        record.msg = redact_db_url(record.msg)
     if isinstance(record.args, dict):
         record.args = {key: _scrub(val) for key, val in record.args.items()}
     elif isinstance(record.args, tuple):
@@ -109,31 +156,4 @@ def install_log_redaction() -> None:
 install_log_redaction()
 
 
-def verify_key(raw: str, hashed: str) -> bool:
-    """[FR-03] Constant-time comparison of `raw` against `hashed`.
-
-    Citations:
-    - SPEC.md §3 FR-03 — `hmac.compare_digest` over SHA-256.
-    - SAD.md §2.6 — production wiring hashes `raw` then compares.
-
-    The GREEN test (`test_fr01.py::_stub_external_side_effects`) stubs
-    this with `lambda raw, hashed: bool(raw) and bool(hashed)`. The
-    real implementation must exist so the autouse patch resolves.
-    """
-    if not raw or not hashed:
-        return False
-    candidate = hashlib.sha256(raw.encode("utf-8")).hexdigest()
-    return hmac.compare_digest(candidate, hashed)
-
-
-def redact_db_url(text: str) -> str:
-    """[FR-03] Public redaction helper — used by `/v1/metrics` too.
-
-    Citations:
-    - SPEC.md §3 FR-03 (NFR-04) — both logs and the metrics
-      endpoint must scrub the DB URL password.
-    """
-    return _redact_db_url(text)
-
-
-__all__ = ["verify_key", "redact_db_url", "install_redact_filter"]
+__all__ = ["hash_key", "verify_key", "redact_db_url", "install_log_redaction"]

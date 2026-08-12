@@ -74,14 +74,25 @@ class ApiKey:
         self.key_hash = key_hash
         self.revoked_at = revoked_at
 
+    def as_row(self) -> dict[str, Any]:
+        """[FR-03] Render this key as an ``api_keys`` registry row.
+
+        The single place a key row's column set is materialised — the
+        CLI write path and `KeyRepo.create` both build rows through
+        here, so a row can never be persisted with a missing column or
+        with a column the table does not have.
+
+        Citations:
+        - SPEC.md §3 FR-03 — the row carries the hash only; there is no
+          plaintext column to populate.
+        """
+        return {field: getattr(self, field) for field in _KEY_ROW_FIELDS}
+
     def __repr__(self) -> str:
         return (
             f"ApiKey(id={self.id!r}, scope={self.scope!r}, "
             f"key_hash={self.key_hash!r}, revoked_at={self.revoked_at!r})"
         )
-
-
-__all__ = ["ApiKey", "TaskResult"]
 
 
 class TaskResult:
@@ -145,3 +156,6 @@ class TaskResult:
         # insertion order; the runner appends in run-completion order).
         rows.reverse()
         return [cls._from_dict(r) for r in rows]
+
+
+__all__ = ["ApiKey", "TaskResult"]
