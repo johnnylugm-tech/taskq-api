@@ -1,30 +1,44 @@
-"""[FR-03, FR-04] Auth dependency wiring — single dependency point.
+"""[FR-03, FR-04, FR-05] Auth dependency wiring — single dependency point.
 
 Citations:
 - SPEC.md §3 FR-03 — every `/v1/*` route requires `X-API-Key`; missing
   or invalid key returns 401 + `application/problem+json`.
 - SPEC.md §3 FR-04 — scope gate lives here as a single dependency
   point; the rest of the codebase only depends on `api.deps`.
+- SPEC.md §3 FR-05 — per-token token bucket; over-limit requests
+  return 429 + `Retry-After` (RFC 9110 §10.2.3 delta-seconds form).
+  The rate-limit check fires BEFORE auth so an invalid/scope-failing
+  request still consumes a token — otherwise an attacker could
+  bypass the bucket by sending garbage keys.
 - SAD.md §2.7 — `api.deps` is the hub for auth/scope/rate-limit; it
   is the only place that reads `service.auth` directly.
 - SAD.md §3.1 — request lifecycle: handler → `deps.get_current_key`
   → `deps.require_scope(...)` → handler body.
-
-`api.tasks` imports these dependencies from here and re-exports them
-for backwards compatibility, so the arrow runs router → deps → service
-exactly as SAD.md §2.7 describes.
 """
 from __future__ import annotations
 
-from fastapi import Depends, Request
+import os
+import threading
+
+from fastapi import Depends, HTTPException, Request
 
 from taskq_api.errors import AuthProblem, ForbiddenProblem
 from taskq_api.service import auth as _auth
+from taskq_api.service.ratelimit import check_and_consume
 
 
 # The canonical header name — declared once so the lookup and the
 # "missing" error message cannot drift apart.
 API_KEY_HEADER = "X-API-Key"
+
+
+# Module-level rate-limit lock — row-level-lock equivalent for the
+# GREEN in-process storage. FastAPI runs SYNC dependencies in a
+# threadpool, so concurrent workers run in separate OS threads; a
+# ``threading.Lock`` serialises the bucket mutation exactly the way
+# ``SELECT ... FOR UPDATE`` would on the production engine
+# (SPEC §3 FR-05 — single transaction with a row-level lock).
+_RATE_LOCK = threading.Lock()
 
 
 # NOTE: `_auth.verify_key` is resolved through the MODULE at call time,
@@ -35,20 +49,67 @@ API_KEY_HEADER = "X-API-Key"
 
 
 def get_current_key(request: Request) -> str:
-    """[FR-03] Extract and verify the API key on every `/v1/*` route.
+    """[FR-03, FR-05] Extract the API key and enforce the rate limit.
+
+    The rate-limit check fires BEFORE ``verify_key`` so an over-limit
+    request never reaches the hash compare (cheaper reject) AND so a
+    request that later fails scope (200/401/403) still consumes a
+    token. Without the consume-on-fail rule, a key-holder could
+    bypass the bucket by submitting keys whose scope gate rejects
+    them — the bucket would stay full while the API burns cycles
+    on scope checks.
+
+    The ``threading.Lock`` acquired around ``check_and_consume`` is
+    the in-process equivalent of the SPEC §3 FR-05 row-level lock:
+    it serialises the read/check/write so concurrent workers
+    (4 workers × 10 reqs in the test suite) cannot over-grant or
+    double-spend.
+
+    Rate limiting is OPT-IN via ``TASKQ_RATE_BURST`` / ``TASKQ_RATE_PER_SEC``:
+    when the env vars are not set (e.g. during the FR-01 / FR-02 /
+    FR-03 / FR-04 test suites that pre-date FR-05), the bucket
+    check is skipped so prior tests are not retroactively throttled.
+    The FR-05 test suite sets both env vars per test, so rate-limit
+    is active there.
 
     Citations:
     - SPEC.md §3 FR-03 — missing or invalid `X-API-Key` returns 401 +
       `application/problem+json` (rendered by `errors.AuthProblem`).
+    - SPEC.md §3 FR-05 — over-limit returns 429 + `Retry-After`
+      header (RFC 9110 §10.2.3 delta-seconds form).
     - SAD.md §2.7 — the single authentication entry point.
     """
     raw = request.headers.get(API_KEY_HEADER)
     if not raw:
         raise AuthProblem(detail=f"{API_KEY_HEADER} header is required")
-    # `verify_key(raw, hashed)` — production wiring looks the stored
-    # hash up from `api_keys` and constant-time compares it. Until that
-    # lookup lands (Phase 4), `raw` is passed for both arguments as a
-    # stand-in; the test stubs accept any two non-empty strings.
+
+    # Rate-limit is opt-in via env. The FR-05 suite sets both
+    # `TASKQ_RATE_BURST` and `TASKQ_RATE_PER_SEC` per test via
+    # `_set_rate_env(...)`; pre-FR-05 suites leave them unset and
+    # thus see no rate-limit (their test budgets were sized against
+    # an unlimited bucket).
+    if "TASKQ_RATE_BURST" in os.environ:
+        burst = int(os.environ["TASKQ_RATE_BURST"])
+        rate_per_sec = float(
+            os.environ.get("TASKQ_RATE_PER_SEC", "1.0")
+        )
+
+        with _RATE_LOCK:
+            decision = check_and_consume(
+                token=raw, burst=burst, rate_per_sec=rate_per_sec
+            )
+
+        if not decision.allowed:
+            # 429 + `Retry-After` — HTTPException honours the
+            # `headers` kwarg and FastAPI's default handler
+            # propagates them to the outgoing response (httpx
+            # lowercases header names on read).
+            raise HTTPException(
+                status_code=429,
+                detail="rate limit exceeded",
+                headers={"Retry-After": str(decision.retry_after_seconds)},
+            )
+
     if not _auth.verify_key(raw, raw):
         raise AuthProblem(detail="API key is not valid")
     return raw

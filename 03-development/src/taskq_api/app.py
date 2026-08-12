@@ -1,4 +1,4 @@
-"""[FR-01, FR-03, FR-04, FR-09] Composition root — FastAPI app factory.
+"""[FR-01, FR-03, FR-04, FR-05, FR-09] Composition root — FastAPI app factory.
 
 Citations:
 - SPEC.md §3 FR-01 — `POST /v1/tasks` mounted under `/v1`.
@@ -6,6 +6,9 @@ Citations:
   redaction filter is wired into the logging pipeline at import time.
 - SPEC.md §3 FR-04 — scope gate is the single decision point for
   every `/v1/*` handler route (enforced via `_flat_include_router`).
+- SPEC.md §3 FR-05 — `/healthz` and `/readyz` are mounted at the
+  app level so they bypass the per-route rate-limit dependency
+  (SPEC §3 FR-05 — "`/healthz`, `/readyz` 不受限").
 - SPEC.md §3 FR-09 — `/healthz`, `/readyz`, and `/v1/metrics` are
   exposed here (no auth required by the spec).
 - SAD.md §2.8 — `app.py` lives next to `api/health.py` (the hub) and
@@ -69,14 +72,53 @@ def _flat_include_router(app: FastAPI, router: APIRouter) -> None:
 
 
 def create_app() -> FastAPI:
-    """Construct the FastAPI application for FR-01 / FR-03 / FR-04 / FR-09."""
+    """Construct the FastAPI application for FR-01 / FR-03 / FR-04 / FR-05 / FR-09."""
     app = FastAPI(
         title="taskq-api",
         version="0.1.0",
-        description="HTTP task-queue service (FR-01 / FR-03 / FR-04 GREEN step).",
+        description=(
+            "HTTP task-queue service (FR-01 / FR-03 / FR-04 / FR-05 GREEN step)."
+        ),
     )
     register_error_handlers(app)
     _flat_include_router(app, create_tasks_router())
+
+    # ------------------------------------------------------------------
+    # /healthz, /readyz — FR-05 + FR-09.
+    #
+    # These two routes are mounted DIRECTLY on `app` (not via the
+    # tasks router) so the per-route `require_scope`/rate-limit
+    # dependency chain never fires for them. SPEC §3 FR-05
+    # explicitly states "/healthz, /readyz 不受限" (not subject to
+    # the per-token bucket); mounting at the app level is the
+    # simplest way to honour that — every /v1/* route goes through
+    # `deps.get_current_key` (which consults the bucket), while
+    # /healthz and /readyz do not.
+    # ------------------------------------------------------------------
+    @app.get(
+        "/healthz",
+        summary="[FR-05, FR-09] Liveness probe.",
+        description=(
+            "GET /healthz (no auth, no rate limit). Returns 200 "
+            "as long as the process is up. SPEC §3 FR-05 exempts "
+            "this route from the token bucket so liveness checks "
+            "succeed even after a burst exhausts the budget."
+        ),
+    )
+    async def healthz() -> dict:
+        return {"status": "ok"}
+
+    @app.get(
+        "/readyz",
+        summary="[FR-05, FR-09] Readiness probe.",
+        description=(
+            "GET /readyz (no auth, no rate limit). Returns 200 "
+            "as long as the process can serve traffic. SPEC §3 "
+            "FR-05 exempts this route from the token bucket."
+        ),
+    )
+    async def readyz() -> dict:
+        return {"status": "ready"}
 
     # ------------------------------------------------------------------
     # /v1/metrics — FR-09 (no auth required).
