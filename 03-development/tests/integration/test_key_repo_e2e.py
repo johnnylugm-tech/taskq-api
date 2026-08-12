@@ -1,7 +1,6 @@
 """End-to-end integration tests for KeyRepo and rate-limit internals."""
 from __future__ import annotations
 
-import os
 
 import pytest
 
@@ -70,7 +69,6 @@ def test_key_repo_delegate_calls_session():
 
 def test_key_repo_create_uses_orm():
     """create() instantiates ApiKey ORM model."""
-    from taskq_api.models.orm import ApiKey
     from taskq_api.service.auth import hash_key
 
     repo = _key_repo.KeyRepo()

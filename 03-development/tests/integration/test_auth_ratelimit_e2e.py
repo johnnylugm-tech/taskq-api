@@ -6,7 +6,6 @@ denied path, the session context manager).
 """
 from __future__ import annotations
 
-import asyncio
 import os
 
 import pytest
@@ -122,7 +121,6 @@ def test_ratelimit_enforce_disabled_returns_none():
     """_enforce_rate_limit returns None when TASKQ_RATE_BURST unset."""
     # When _read_rate_config returns None, _enforce_rate_limit is a no-op
     from taskq_api.api.deps import _read_rate_config
-    import os
     os.environ.pop("TASKQ_RATE_BURST", None)
     config = _read_rate_config()
     assert config is None  # disabled
@@ -130,8 +128,7 @@ def test_ratelimit_enforce_disabled_returns_none():
 
 def test_ratelimit_enforce_allowed():
     """_enforce_rate_limit with TASKQ_RATE_BURST set allows first request."""
-    import os
-    from taskq_api.api.deps import _enforce_rate_limit, _read_rate_config
+    from taskq_api.api.deps import _read_rate_config
     os.environ["TASKQ_RATE_BURST"] = "10"
     os.environ["TASKQ_RATE_PER_SEC"] = "1.0"
     try:

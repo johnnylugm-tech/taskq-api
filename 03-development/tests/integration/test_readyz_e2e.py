@@ -5,12 +5,10 @@ table missing, current != head) and the lifespan handler.
 """
 from __future__ import annotations
 
-import os
 
-import pytest
 
 from taskq_api import app as app_module
-from taskq_api.app import _check_migration_state, _readyz_detail, _MIGRATION_HEAD
+from taskq_api.app import _check_migration_state, _MIGRATION_HEAD
 
 
 def test_check_migration_state_no_db_url(monkeypatch):
@@ -101,7 +99,6 @@ def test_check_migration_state_at_head(monkeypatch, tmp_path):
 def test_lifespan_runs_graceful_drain(monkeypatch):
     """lifespan handler is callable and exits cleanly."""
     from taskq_api.app import _build_lifespan
-    import inspect
 
     monkeypatch.setenv("TASKQ_DRAIN_TIMEOUT", "0.5")
     lifespan = _build_lifespan()

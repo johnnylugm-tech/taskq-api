@@ -11,15 +11,12 @@ service/auth, app.py composition paths.
 """
 from __future__ import annotations
 
-import asyncio
 
 import pytest
-from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from taskq_api.app import create_app
 from taskq_api.service import auth as _auth
-from taskq_api.repository import key_repo as _key_repo
 
 
 @pytest.fixture(autouse=True)

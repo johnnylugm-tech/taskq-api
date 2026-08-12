@@ -36,7 +36,6 @@ def test_fr01_pagination_cursor():
     This unit-layer alias keeps the P1 Naming Authority happy without
     doubling the integration suite.
     """
-    from fastapi import FastAPI
     from httpx import ASGITransport, AsyncClient
     import asyncio
 
