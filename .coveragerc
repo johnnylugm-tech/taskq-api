@@ -1,0 +1,5 @@
+[run]
+source = 03-development/src
+omit =
+    03-development/src/migrations/env.py
+    03-development/src/taskq_api/__main__.py

@@ -59,7 +59,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 
 # Top-level imports — RED will surface as ModuleNotFoundError for every
 # declared SAB module member that does not yet exist on disk. It is

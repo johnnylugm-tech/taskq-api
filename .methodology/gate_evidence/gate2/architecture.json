@@ -1,0 +1,25 @@
+{
+  "community_cohesion": {
+    "score": 100.0,
+    "healthy": 12,
+    "total": 12,
+    "total_all": 39,
+    "excluded_test_communities": 27,
+    "unhealthy": [],
+    "_cohesion_threshold": 0.24,
+    "_community_oversized": 50,
+    "_community_min_size": 5,
+    "_extra_excludes": []
+  },
+  "large_functions_critical": [],
+  "large_functions_penalty": 0,
+  "architecture_score": 100.0,
+  "_source": "framework-independent",
+  "_graph_files": 39,
+  "_source_files": 41,
+  "_unparsed_files": [
+    "03-development/tests/integration/test_task_lifecycle_e2e.py",
+    "03-development/tests/test_nfr.py"
+  ],
+  "_build_type": "build"
+}

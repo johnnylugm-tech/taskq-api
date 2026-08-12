@@ -442,6 +442,55 @@ Step 1c's case IS the threat's own `verified_by` test name (no separate case).
 
 ---
 
+## NFR Test Cases (static / scanner / unit layer)
+
+These test functions live in TEST_INVENTORY.yaml but the parser-extracted
+table format above only covers the FR-sections (4-column `# / Test Function /
+Inputs / Type / Derivation`). The P1 Naming Authority check requires every
+inventory name to appear here too — the static / scanner tests are deferred
+for execution but NOT for cataloguing.
+
+| # | Test Function | Inputs | Type | Derivation |
+|---|---------------|--------|------|------------|
+| 1 | `test_fr01_pagination_cursor` | scope="read"; cursor="abc"; limit="0" | happy_path | Q1 |
+| 2 | `test_fr04_lint_imports_exit_zero` | scope="admin"; command="lint-imports" | static | Q1 |
+| 3 | `test_nfr01_list_sql_count_constant` | scope="read"; row_count="10000"; limit="50" | performance | Q6 (NP-06 / NFR-01) |
+| 4 | `test_nfr01_get_task_p95_under_30ms` | scope="read"; task_id fixture; rows=10000 | performance | Q6 (NP-06 / NFR-01) |
+| 5 | `test_nfr02_403_opaque_body` | scope="read"; method="DELETE" | static | Q8 (NP-08) |
+| 6 | `test_nfr02_500_no_leak` | scope="write"; inject_exception=true | static | Q8 (NP-08) |
+| 7 | `test_nfr02_api_keys_hash_only` | key_repo fixture | static | Q8 (NP-08) |
+| 8 | `test_nfr02_bandit_no_high_medium` | scope="all"; bandit_report | static | Q8 (NP-08) |
+| 9 | `test_nfr02_lint_imports_exit_zero` | lint-imports stdout | static | Q8 (NP-08) |
+| 10 | `test_nfr02_no_shell_eval_exec` | scope="runner"; cmd="echo x" | static | Q8 (NP-08) |
+| 11 | `test_nfr02_no_sql_string_concat` | scope="repository"; sql fixture | static | Q8 (NP-08) |
+| 12 | `test_nfr03_cancelled_error_re_raised` | scope="runner"; cancelled=true | static | Q3 |
+| 13 | `test_nfr03_migration_failure_rollback` | scope="migrations"; inject_failure=true | static | Q3 |
+| 14 | `test_nfr03_no_infinite_retry` | scope="runner"; retries=10 | static | Q3 |
+| 15 | `test_nfr03_no_orphan_subprocess` | scope="runner"; timeout=10ms | static | Q3 |
+| 16 | `test_nfr03_readyz_db_unreachable` | scope="health"; db_url=invalid | static | Q3 |
+| 17 | `test_nfr03_transaction_rollback_on_exception` | scope="repository"; inject_exception=true | static | Q3 |
+| 18 | `test_nfr04_no_password_in_logs_metrics` | scope="metrics"; db_url with password | static | Q2 |
+| 19 | `test_nfr05_openapi_summary_description` | scope="api"; route fixture | static | Q5 |
+| 20 | `test_nfr05_public_docstring_coverage_100pct` | scope="api"; module fixture | static | Q5 |
+| 21 | `test_nfr06_importlinter_exists` | scope="imports"; config_check | static | Q6 |
+| 22 | `test_nfr06_lint_imports_exit_zero` | scope="imports"; lint-imports stdout | static | Q6 |
+| 23 | `test_nfr06_sqlalchemy_isolated_to_repository` | scope="imports"; ast_check | static | Q6 |
+| 24 | `test_nfr07_licenses_in_allowlist` | scope="licenses"; pkg fixture | static | Q7 |
+| 25 | `test_nfr07_requirements_lock_complete` | scope="licenses"; requirements.txt | static | Q7 |
+| 26 | `test_nfr07_requirements_txt_pinned` | scope="licenses"; requirements.txt | static | Q7 |
+| 27 | `test_nfr07_sbom_schema_complete` | scope="licenses"; sbom.json | static | Q7 |
+| 28 | `test_nfr08_mutation_score_at_least_70` | scope="mutation"; mutmut_report | static | Q8 |
+| 29 | `test_nfr09_migration_against_real_db` | scope="migrations"; real_sqlite | static | Q9 |
+| 30 | `test_nfr09_pytest_zero_skipped` | scope="tests"; pytest_report | static | Q9 |
+| 31 | `test_nfr10_all_error_codes_covered` | scope="errors"; problem fixture | static | Q10 |
+| 32 | `test_nfr10_integration_line_coverage_ge_80pct` | scope="coverage"; integration_cov | static | Q10 |
+| 33 | `test_nfr10_uses_asgi_transport` | scope="integration"; client fixture | static | Q10 |
+| 34 | `test_nfr11_radon_mi_ge_80` | scope="readability"; mi_report | static | Q11 |
+| 35 | `test_nfr11_size_constraints` | scope="readability"; file metrics | static | Q11 |
+| 36 | `test_nfr12_make_verify_system_pass` | scope="verification"; make stdout | static | Q12 |
+
+---
+
 ## Deferred to Downstream Phases
 
 The NFRs below have **unit / static** layer test functions per

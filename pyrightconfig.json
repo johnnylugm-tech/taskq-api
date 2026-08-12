@@ -1,0 +1,7 @@
+{
+  "include": ["03-development/src"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.11",
+  "reportMissingImports": "none"
+}

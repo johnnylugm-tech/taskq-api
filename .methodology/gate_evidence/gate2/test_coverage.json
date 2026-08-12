@@ -1,0 +1,5 @@
+--------------------------------------------------------------------------------
+TOTAL                                                          776      0   100%
+======================== 302 passed, 5 skipped in 6.33s ========================
+/Users/johnny/projects/taskq-api/.venv/lib/python3.11/site-packages/coverage/control.py:963: CoverageWarning: No data was collected. (no-data-collected); see https://coverage.readthedocs.io/en/7.15.4/messages.html#warning-no-data-collected
+  self._warn("No data was collected.", slug="no-data-collected")

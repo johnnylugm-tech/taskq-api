@@ -1,0 +1,4 @@
+03-development/tests/test_nfr.py:39:25: F401 [*] `fastapi.FastAPI` imported but unused
+harness_cli.py:6:1: E401 [*] Multiple imports on one line
+Found 2 errors.
+[*] 2 fixable with the `--fix` option.

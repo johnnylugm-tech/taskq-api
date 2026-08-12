@@ -23,7 +23,6 @@ reaches the 80% threshold.
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import re
 import subprocess

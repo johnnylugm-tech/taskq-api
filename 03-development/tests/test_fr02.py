@@ -33,7 +33,6 @@ from __future__ import annotations
 import asyncio
 import os
 import re
-import sys
 from pathlib import Path
 
 import pytest
@@ -809,7 +808,6 @@ async def test_fr02_list_runs_for_task(client, write_api_key, read_api_key, monk
 # NFR-09
 def test_fr02_task_repo_rollback():
     """Coverage for task_repo.py:81-83 — `TaskRepo.rollback` happy path."""
-    from taskq_api.repository.task_repo import TaskRepo
 
     repo = TaskRepo(session=None)
     # Should be a no-op stub when no real session is attached.
@@ -819,7 +817,6 @@ def test_fr02_task_repo_rollback():
 # NFR-09
 def test_fr02_task_repo_delete():
     """Coverage for task_repo.py:87-91 — `TaskRepo.delete` removes row."""
-    from taskq_api.repository.task_repo import TaskRepo
 
     TaskRepo._registry.clear()
     TaskRepo._by_name.clear()
@@ -836,7 +833,6 @@ def test_fr02_task_repo_delete():
 # NFR-09 NFR-01
 def test_fr02_task_repo_list_with_status_and_cursor():
     """Coverage for task_repo.py:137-149 — `TaskRepo.list` filters and emits cursor."""
-    from taskq_api.repository.task_repo import TaskRepo
 
     TaskRepo._registry.clear()
     TaskRepo._by_name.clear()
@@ -862,7 +858,6 @@ def test_fr02_task_repo_list_with_status_and_cursor():
 # NFR-09
 def test_fr02_task_repo_list_count():
     """Coverage for task_repo.py:151-153 — `TaskRepo.list_count` debug aid."""
-    from taskq_api.repository.task_repo import TaskRepo
 
     TaskRepo._registry.clear()
     TaskRepo._by_name.clear()

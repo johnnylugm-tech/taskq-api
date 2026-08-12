@@ -1,0 +1,30 @@
+Name                                                         Stmts   Miss  Cover
+--------------------------------------------------------------------------------
+03-development/src/migrations/__init__.py                        1      1     0%
+03-development/src/migrations/versions/__init__.py               1      1     0%
+03-development/src/migrations/versions/v1_initial.py            23     23     0%
+03-development/src/migrations/versions/v2_tags.py               23     23     0%
+03-development/src/migrations/versions/v3_split_results.py      32     32     0%
+03-development/src/taskq_api/__init__.py                         1      0   100%
+03-development/src/taskq_api/api/__init__.py                     0      0   100%
+03-development/src/taskq_api/api/deps.py                        46      6    87%
+03-development/src/taskq_api/api/health.py                      23      3    87%
+03-development/src/taskq_api/api/tasks.py                       47      1    98%
+03-development/src/taskq_api/app.py                             69      8    88%
+03-development/src/taskq_api/errors.py                         106     14    87%
+03-development/src/taskq_api/models/__init__.py                  0      0   100%
+03-development/src/taskq_api/models/orm.py                      39      1    97%
+03-development/src/taskq_api/models/schemas.py                  12      0   100%
+03-development/src/taskq_api/repository/__init__.py              0      0   100%
+03-development/src/taskq_api/repository/key_repo.py             44      9    80%
+03-development/src/taskq_api/repository/rate_repo.py            12      0   100%
+03-development/src/taskq_api/repository/session.py              25      5    80%
+03-development/src/taskq_api/repository/task_repo.py            61      4    93%
+03-development/src/taskq_api/service/__init__.py                 0      0   100%
+03-development/src/taskq_api/service/auth.py                    51     12    76%
+03-development/src/taskq_api/service/ratelimit.py               30      1    97%
+03-development/src/taskq_api/service/runner.py                  99     10    90%
+03-development/src/taskq_api/service/tasks.py                   31      2    94%
+--------------------------------------------------------------------------------
+TOTAL                                                          776    156    80%
+======================== 56 passed, 2 skipped in 1.25s =========================

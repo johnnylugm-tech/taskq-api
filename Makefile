@@ -23,33 +23,39 @@
 VERIFY_SYSTEM_DB_PATH := $(CURDIR)/.verify-system.sqlite
 VERIFY_SYSTEM_DB_URL := sqlite:///${VERIFY_SYSTEM_DB_PATH}
 
+# NFR-12: the verify-system target MUST exit 0 in CI / fresh shells where
+# ``python3`` on PATH is the system interpreter (no alembic). Pin to the
+# project venv so the target works regardless of the operator's PATH.
+VENV_PYTHON := $(CURDIR)/.venv/bin/python
+
 verify-system: alembic-up-head alembic-downgrade-base alembic-round-trip readyz-smoke
 	@echo "verify-system: PASS"
 
 alembic-up-head:
+	@rm -f "$(VERIFY_SYSTEM_DB_PATH)"
 	PYTHONPATH=03-development/src \
 	  TASKQ_DB_URL="$(VERIFY_SYSTEM_DB_URL)" \
-	  python3 -m alembic upgrade head
+	  $(VENV_PYTHON) -m alembic upgrade head
 
 alembic-downgrade-base:
 	PYTHONPATH=03-development/src \
 	  TASKQ_DB_URL="$(VERIFY_SYSTEM_DB_URL)" \
-	  python3 -m alembic downgrade base
+	  $(VENV_PYTHON) -m alembic downgrade base
 
 alembic-round-trip:
 	@rm -f "$(VERIFY_SYSTEM_DB_PATH).roundtrip"
 	PYTHONPATH=03-development/src \
 	  TASKQ_DB_URL="sqlite:///$(VERIFY_SYSTEM_DB_PATH).roundtrip" \
-	  python3 -m alembic upgrade head >/dev/null
+	  $(VENV_PYTHON) -m alembic upgrade head >/dev/null
 	PYTHONPATH=03-development/src \
 	  TASKQ_DB_URL="sqlite:///$(VERIFY_SYSTEM_DB_PATH).roundtrip" \
-	  python3 -m alembic downgrade -1 >/dev/null
+	  $(VENV_PYTHON) -m alembic downgrade -1 >/dev/null
 	PYTHONPATH=03-development/src \
 	  TASKQ_DB_URL="sqlite:///$(VERIFY_SYSTEM_DB_PATH).roundtrip" \
-	  python3 -m alembic upgrade head >/dev/null
+	  $(VENV_PYTHON) -m alembic upgrade head >/dev/null
 
 readyz-smoke:
 	@touch "$(VERIFY_SYSTEM_DB_PATH).readyz"
 	PYTHONPATH=03-development/src \
 	  TASKQ_DB_URL="sqlite:///$(VERIFY_SYSTEM_DB_PATH).readyz" \
-	  python3 -m taskq_api --help >/dev/null 2>&1 || true
+	  $(VENV_PYTHON) -m taskq_api --help >/dev/null 2>&1 || true

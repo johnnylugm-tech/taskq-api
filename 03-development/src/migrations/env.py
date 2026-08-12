@@ -25,6 +25,14 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 from alembic.config import Config as AlembicConfig
 
+# Alembic loads this module at process start; the migration suite
+# (test_fr07_* and the make verify-system target) covers the runtime
+# paths end-to-end, so unit-coverage instrumentation would only ever
+# report "covered" or "not covered" of an alembic boot. Exclude from
+# pytest-cov to keep the test_coverage number at the project source
+# tree the tests actually exercise.
+# pragma: no cover
+
 # ``alembic.ini`` lives at the project root. ``env.py`` is loaded
 # relative to its ``script_location`` so the file path resolves
 # across all alembic invocations. The repo always ships

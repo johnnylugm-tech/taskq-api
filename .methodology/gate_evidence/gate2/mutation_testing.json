@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "score": 72.7,
+  "killed": 552,
+  "survived": 207,
+  "message": "killed=552 survived=207 score=72.7 [scope: 03-development/src]"
+}

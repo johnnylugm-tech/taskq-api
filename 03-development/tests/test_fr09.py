@@ -30,10 +30,8 @@ match. Do NOT rename these functions.
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
-import pytest
 
 # Top-level imports — RED will surface as ModuleNotFoundError for the
 # FR-09 surface (the new ``taskq_api.api.health`` module the SAB binds
@@ -128,7 +126,7 @@ def test_fr09_healthz_no_auth():
             assert result_header_www_authenticate is None
             assert result_body == {"status": "ok"}
 
-    asyncio.get_event_loop().run_until_complete(_call())
+    asyncio.run(_call())
 
 
 # NFR-03 NFR-05 NFR-09 NFR-10
@@ -164,7 +162,7 @@ def test_fr09_readyz_200_when_ok(monkeypatch, tmp_path):
 
             assert result_status_code == 200
 
-    asyncio.get_event_loop().run_until_complete(_call())
+    asyncio.run(_call())
 
 
 # NFR-03 NFR-05 NFR-09 NFR-10
@@ -203,7 +201,7 @@ def test_fr09_readyz_503_when_db_down(monkeypatch):
             assert result_status_code == 503
             assert "db" in result_problem_detail_str
 
-    asyncio.get_event_loop().run_until_complete(_call())
+    asyncio.run(_call())
 
 
 # NFR-03 NFR-05 NFR-09 NFR-10
@@ -245,7 +243,7 @@ def test_fr09_readyz_503_when_alembic_not_head(monkeypatch, tmp_path):
             assert result_status_code == 503
             assert "migration" in result_problem_detail_str
 
-    asyncio.get_event_loop().run_until_complete(_call())
+    asyncio.run(_call())
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +282,7 @@ def test_fr09_readyz_module_level_unwired_probe_returns_503():
             assert "application/problem+json" in resp.headers["content-type"]
             assert "migration state unknown" in resp.text
 
-    asyncio.get_event_loop().run_until_complete(_call())
+    asyncio.run(_call())
 
 
 # NFR-03
@@ -323,7 +321,7 @@ def test_fr09_readyz_503_when_no_db_url(monkeypatch):
             assert "unknown" in resp.text
             assert "TASKQ_DB_URL" in resp.text
 
-    asyncio.get_event_loop().run_until_complete(_call())
+    asyncio.run(_call())
 
 
 # NFR-03
@@ -358,7 +356,7 @@ def test_fr09_readyz_503_when_alembic_table_empty(monkeypatch, tmp_path):
             assert "migration" in resp.text
             assert "no row" in resp.text
 
-    asyncio.get_event_loop().run_until_complete(_call())
+    asyncio.run(_call())
 
 
 # NFR-03
@@ -386,7 +384,7 @@ def test_fr09_metrics_endpoint_redacts_password(monkeypatch):
             assert "# HELP taskq_db_url" in body
             assert "# TYPE taskq_db_url" in body
 
-    asyncio.get_event_loop().run_until_complete(_call())
+    asyncio.run(_call())
 
 
 # NFR-03
@@ -476,7 +474,7 @@ def test_fr09_lifespan_runs_graceful_drain(monkeypatch):
         async with lifespan_cm(app):
             pass
 
-    asyncio.get_event_loop().run_until_complete(_enter_then_exit())
+    asyncio.run(_enter_then_exit())
 
     assert shutdown_called_holder["called"] is True
     assert isinstance(shutdown_called_holder["drain_timeout"], float)
@@ -514,6 +512,6 @@ def test_fr09_lifespan_awaits_async_shutdown(monkeypatch):
         async with lifespan_cm(app):
             pass
 
-    asyncio.get_event_loop().run_until_complete(_enter_then_exit())
+    asyncio.run(_enter_then_exit())
 
     assert await_count_holder["count"] == 1

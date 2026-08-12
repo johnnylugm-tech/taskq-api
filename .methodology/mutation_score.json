@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-08-12T21:15:49.638897+00:00",
+  "tool": "mutmut",
+  "score": 72.7,
+  "killed": 552,
+  "survived": 207,
+  "paths_to_mutate": "03-development/src",
+  "paths_to_exclude": [
+    "__init__.py",
+    "schemas.py",
+    "v1_initial.py",
+    "v2_tags.py"
+  ],
+  "mutated_files": 27,
+  "cache_sha256": "0776e769661b22249ce4338249306824ef2ee17243f8d3731be95f5778c0be10",
+  "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d"
+}

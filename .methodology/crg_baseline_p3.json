@@ -1,0 +1,24 @@
+{
+  "community_cohesion": {
+    "score": 100.0,
+    "healthy": 12,
+    "total": 12,
+    "total_all": 47,
+    "excluded_test_communities": 35,
+    "unhealthy": [],
+    "_cohesion_threshold": 0.24,
+    "_community_oversized": 50,
+    "_community_min_size": 5,
+    "_extra_excludes": []
+  },
+  "large_functions_critical": [],
+  "large_functions_penalty": 0,
+  "architecture_score": 100.0,
+  "_source": "framework-independent",
+  "_graph_files": 46,
+  "_source_files": 46,
+  "_unparsed_files": [],
+  "_build_type": "update",
+  "_baseline_sha": "a2ffed23f70435b3a2532a566a46b1651e15fce5",
+  "_baseline_phase": 3
+}

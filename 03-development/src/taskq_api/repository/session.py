@@ -62,10 +62,7 @@ def unit_of_work() -> Iterator[Any]:
         # no partial state escapes the unit-of-work. ``rollback()`` is
         # best-effort: if it raises we still re-raise the original
         # exception so the caller's error handling is not masked.
-        try:
-            session.rollback()
-        except Exception:
-            pass
+        _safe_rollback(session)
         raise
     else:
         # Normal exit — commit. If commit itself raises, roll back so
@@ -73,11 +70,23 @@ def unit_of_work() -> Iterator[Any]:
         try:
             session.commit()
         except Exception:
-            try:
-                session.rollback()
-            except Exception:
-                pass
+            _safe_rollback(session)
             raise
 
 
 __all__ = ["get_session", "unit_of_work"]
+
+
+def _safe_rollback(session: Any) -> None:
+    """Best-effort rollback that swallows secondary exceptions.
+
+    Rollback failures must not mask the original error from the caller
+    (NFR-03). The original exception is re-raised by the caller of this
+    helper, so silently dropping the secondary ``rollback()`` exception
+    is the correct behaviour here.
+    """
+    try:
+        session.rollback()
+    except Exception:  # noqa: BLE001 — best-effort cleanup; caller re-raises
+        return None
+    return None

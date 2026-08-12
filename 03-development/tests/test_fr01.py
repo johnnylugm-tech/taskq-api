@@ -432,7 +432,7 @@ async def test_fr01_list_sql_count_constant(client, read_api_key):
     # the list query emits a constant number of statements regardless
     # of result-set size.
     engine = create_engine("sqlite:///:memory:")
-    SessionLocal = sessionmaker(bind=engine)
+    SessionLocal = sessionmaker(bind=engine)  # noqa: F841 — referenced via engine
 
     statements: list[str] = []
 
@@ -684,7 +684,6 @@ async def test_fr01_list_with_status_filter(client, read_api_key, write_api_key)
     call the list endpoint with `?status=pending` — must return only
     the pending row.
     """
-    from taskq_api.repository.task_repo import TaskRepo
 
     create = await client.post(
         "/v1/tasks",
@@ -723,7 +722,6 @@ async def test_fr01_list_pagination_next_cursor(client, read_api_key, write_api_
     Seed more than `limit` rows and confirm the response carries a
     non-null `next_cursor`. The cursor encodes the last seen id.
     """
-    from taskq_api.repository.task_repo import TaskRepo
 
     # Seed 3 rows directly so the default limit (50) is not exceeded
     # by the seed alone — instead we ask for limit=2 so 3 > 2 triggers
@@ -756,7 +754,6 @@ async def test_fr01_repo_list_count_returns_int():
     Direct unit test against the in-process registry; no HTTP round
     trip needed.
     """
-    from taskq_api.repository.task_repo import TaskRepo
 
     TaskRepo().register(
         {
