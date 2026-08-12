@@ -1,0 +1,12 @@
+# .gitleaksignore — allowlist for false-positive gitleaks findings in this repo.
+#
+# Format: one fingerprint per line. A line starting with `#` is a comment.
+# Use `gitleaks detect --source .` to regenerate after rule updates.
+#
+# 2026-08-13 — Phase 3 exit (advance-phase): gitleaks `generic-api-key`
+# rule flagged the YAML `key:` field of a Phase 3 lesson file at
+# `.methodology/lessons/01db5fa7e924.md:2`. The value is the lesson's own
+# 12-hex-char identifier (the same as the filename stem), not a credential
+# — but gitleaks' generic entropy-based rule can't tell the difference.
+# Allowlist the file (line 2 is the only secret-shaped token in it).
+bfa25ee7a421060b132b4bfd5917298fc340f17e:.methodology/lessons/01db5fa7e924.md:generic-api-key:2
