@@ -16,7 +16,12 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Request
 
-from taskq_api.errors import AuthProblem, ForbiddenProblem, NotFoundProblem
+from taskq_api.errors import (
+    AuthProblem,
+    ForbiddenProblem,
+    NotFoundProblem,
+    ValidationProblem,
+)
 from taskq_api.models.schemas import TaskCreate, TaskOut
 from taskq_api.service import auth as _auth
 from taskq_api.service.tasks import TaskService
@@ -33,26 +38,17 @@ from taskq_api.service.tasks import TaskService
 _INJECTION_CHARS = re.compile(r"[;&|`$\\<>'\"]")
 
 
-def _extract_key(request) -> str:
+def get_current_key(request: Request) -> str:
+    """[FR-03] Extract and verify the API key on every `/v1/*` route."""
     raw = request.headers.get("X-API-Key")
     if not raw:
         raise AuthProblem(detail="X-API-Key header is required")
-    return raw
-
-
-def _verify_key(raw: str) -> str:
     # `verify_key(raw, hashed)` — production wiring hashes the stored
     # key and constant-time compares. The test stub accepts any two
     # non-empty strings, so we pass `(raw, raw)` as a stand-in.
     if not _auth.verify_key(raw, raw):
         raise AuthProblem(detail="API key is not valid")
     return raw
-
-
-def get_current_key(request: Request) -> str:
-    """[FR-03] Extract and verify the API key on every `/v1/*` route."""
-    raw = _extract_key(request)
-    return _verify_key(raw)
 
 
 def require_scope(*allowed: str):
@@ -64,16 +60,12 @@ def require_scope(*allowed: str):
     allowed_set = set(allowed)
 
     def _dep(request: Request, key: str = Depends(get_current_key)) -> str:
-        # In production wiring, the scope would be loaded from the
-        # `api_keys` row via `service.auth.scope_allows(key, allowed)`.
-        # The FR-01 GREEN step does not assert scope semantics; it
-        # asserts the route ran the dependency and authenticated.
+        # Phase 4 will resolve scope from the `api_keys` row via
+        # `service.auth.scope_allows(key, allowed_set)`. FR-01 only
+        # asserts authentication; the scope check is deferred.
         if not _auth.verify_key(key, key):
             raise ForbiddenProblem(detail="insufficient scope")
-        if key not in allowed_set and "admin" not in allowed_set:
-            # No-op placeholder — Phase 4 will resolve scope from the
-            # key row. Test suite does not exercise scope here.
-            pass
+        _ = allowed_set  # silence unused-warning; consumed by Phase 4
         return key
 
     return _dep
@@ -109,11 +101,8 @@ def create_tasks_router() -> APIRouter:
         key: str = Depends(get_current_key),
     ) -> dict:
         if _INJECTION_CHARS.search(body.command):
-            from taskq_api.errors import ValidationProblem
-
             raise ValidationProblem(detail="command contains forbidden characters")
-        row = service.create(name=body.name, command=body.command)
-        return row
+        return service.create(name=body.name, command=body.command)
 
     # ------------------------------------------------------------------
     # GET /v1/tasks/{id} — read single

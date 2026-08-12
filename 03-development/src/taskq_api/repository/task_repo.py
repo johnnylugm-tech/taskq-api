@@ -19,17 +19,6 @@ from typing import Any, Iterable, Optional
 from taskq_api.repository import session as _session_module
 
 
-def get_session():
-    """[FR-06] Reach the session factory through the module attribute so
-    `monkeypatch.setattr(_session, 'get_session', ...)` (see
-    `test_fr01.py::_stub_external_side_effects`) actually takes effect.
-
-    Citations: SAD.md §2.5 — every commit/rollback boundary goes
-    through `session.get_session()`.
-    """
-    return _session_module.get_session()
-
-
 class TaskRepo:
     """[FR-01] Task repository.
 
@@ -45,14 +34,17 @@ class TaskRepo:
     _by_name: dict[str, str] = {}
 
     def __init__(self, session: Optional["object"] = None) -> None:
-        # Defer `get_session()` until first use so tests can patch it via
-        # `monkeypatch.setattr` before the autouse fixture runs.
+        # Defer `_session_module.get_session()` until first use so tests
+        # can patch it via `monkeypatch.setattr` before the autouse
+        # fixture runs (see test_fr01._stub_external_side_effects).
         self._session = session
         self._session_acquired = session is not None
 
     def _ensure_session(self) -> "object":
         if not self._session_acquired:
-            self._session = get_session()
+            # Reach through the module so the test's monkeypatch on
+            # `_session_module.get_session` is honoured here too.
+            self._session = _session_module.get_session()
             self._session_acquired = True
         return self._session  # type: ignore[return-value]
 

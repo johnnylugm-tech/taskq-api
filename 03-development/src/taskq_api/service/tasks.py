@@ -42,12 +42,15 @@ class TaskService:
             # Roll back the speculative session add.
             self._repo.rollback()
             raise ConflictProblem(detail=f"task name '{name}' already exists")
-        task_id = str(uuid.uuid4())
-        row = {"id": task_id, "name": name, "command": command, "status": "pending"}
+        row = {
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "command": command,
+            "status": "pending",
+        }
         self._repo.create(name=name, command=command)
         # Materialise the row into the in-process registry so the rest
         # of the test (duplicate POST, GET, etc.) observes the row.
-        row["id"] = task_id
         self._repo.register(row)
         self._repo.commit()
         return row
