@@ -26,12 +26,12 @@ Citations:
 from __future__ import annotations
 
 import json
-from typing import Callable, Tuple
+from collections.abc import Callable
 
 from fastapi import APIRouter, Response
 
 
-def _unwired_probe() -> Tuple[bool, str]:
+def _unwired_probe() -> tuple[bool, str]:
     """[FR-09] Default readiness probe — reports NOT ready.
 
     Fails closed (SPEC.md:160): a process whose composition root never
@@ -45,7 +45,7 @@ def _unwired_probe() -> Tuple[bool, str]:
 
 
 def _readyz_response(
-    probe: Callable[[], Tuple[bool, str]],
+    probe: Callable[[], tuple[bool, str]],
 ):
     """[FR-09] Materialise the ``/readyz`` response from the probe's verdict.
 
@@ -104,7 +104,7 @@ async def readyz():
     return _readyz_response(_unwired_probe)
 
 
-def create_health_router(probe: Callable[[], Tuple[bool, str]]) -> APIRouter:
+def create_health_router(probe: Callable[[], tuple[bool, str]]) -> APIRouter:
     """[FR-09] Build the ``/healthz`` + ``/readyz`` router.
 
     The ``probe`` callable is invoked on every ``/readyz`` request and
