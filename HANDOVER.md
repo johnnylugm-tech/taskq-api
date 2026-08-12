@@ -1,8 +1,8 @@
 # Harness Methodology — Session Handover
 
-**Checkpoint**: `P2-exit-20260812`  
-**Phase**: P2 — Architecture & Design  
-**Generated**: 2026-08-12T13:38:34Z
+**Checkpoint**: `P3-entry-20260812`  
+**Phase**: P3 — Implementation  
+**Generated**: 2026-08-12T13:42:21Z
 
 > ⚠️  **開始下一個工作階段前，請先執行 `/compact` 壓縮上下文**，再從「接下來的工作」繼續。
 
@@ -14,9 +14,9 @@
 # 1. Clone (if working directory cleared)
 git clone --recurse-submodules https://github.com/johnnylugm-tech/taskq-api && cd taskq-api
 
-# 2. Read plan and start Phase 3
+# 2. Read plan and continue Phase 3
 cat .methodology/phase3_plan.md
-# Follow SKILL.md §0.1 Phase 3 entry check, then execute
+# Follow the active plan and continue from where you left off
 ```
 
 ---
@@ -31,7 +31,7 @@ git clone --recurse-submodules https://github.com/johnnylugm-tech/taskq-api /tmp
 git log --oneline -3
 
 # Confirm FSM state
-cat .methodology/state.json   # expected: phase=2 state=RUNNING
+cat .methodology/state.json   # expected: phase=3 state=RUNNING
 
 # Read active plan
 cat .methodology/phase3_plan.md
@@ -41,90 +41,29 @@ cat .methodology/phase3_plan.md
 |------|----|
 | Remote | `https://github.com/johnnylugm-tech/taskq-api` |
 | Branch | `main` |
-| State | `phase=2 state=RUNNING` |
+| State | `phase=3 state=RUNNING` |
 | Plan | `.methodology/phase3_plan.md` |
 
 ---
 
 ## 任務背景
 
-P2 phase completed — pushed for record.
-
-
-## 交付物清單
-
-- `02-architecture/SAD.md` ✅ (721L)
+Phase transition from Phase 2 to Phase 3.
 
 ## 目前執行狀況
 
-10 FR(s) in quality manifest [FR-01,FR-02,FR-03,FR-04,FR-05,…+5]. 1/3 P2 deliverables present, Agent-B APPROVED.
-
-**A/B Session Results:**
-  - ? / phase-cursor: **complete**
-  - ? / preflight-a1: **complete**
-  - ? / legal-artifacts: **complete**
-  - ? / sbr-1-r1: **complete**
-  - ? / persist-SRS.md-try1: **complete**
-  - ? / a-spec-tracking-r1: **complete**
-  - ? / persist-SPEC_TRACKING.md-try1: **complete**
-  - ? / persist-TRACEABILITY_MATRIX.md-try1: **complete**
-  - ? / loadpy-TEST_INVENTORY-yaml-a1: **complete**
-  - ? / b-spec-tracking-r1: **complete**
-  - ? / b-spec-tracking-r2: **complete**
-  - ? / b-traceability-r2: **complete**
-  - ? / forward-ref-check: **complete**
-  - ? / push-1: **complete**
-  - ? / advance: **complete**
-  - ? / resolve-repo: **complete**
-  - ? / a-adr-r1: **complete**
-  - ? / persist-ADR.md-try1: **complete**
-  - ? / constitution-adr: **complete**
-  - ? / aci-verify: **complete**
-  - ? / b-test-spec-r1: **complete**
-  - ? / sbr-2-r1: **complete**
-  - ? / persist-TEST_SPEC.md-try1: **complete**
-  - ? / aci-post-sab: **complete**
-  - ? / peer-b-r1: **complete**
-
-**Recently Committed Files:**
-  - `.methodology/fr_progress.json`
-  - `.methodology/state.json`
-  - `00-summary/Phase1_STAGE_PASS.md`
-  - `CLAUDE.md`
-  - `HANDOVER.md`
-  - `.methodology/.state.lock`
-  - `.methodology/agent_b_approvals/SPEC_TRACKING.md.json`
-  - `.methodology/agent_b_approvals/SRS.md.json`
-  - `.methodology/agent_b_approvals/TEST_INVENTORY.yaml.json`
-  - `.methodology/agent_b_approvals/TRACEABILITY_MATRIX.md.json`
-  - `01-requirements/SPEC_TRACKING.md`
-  - `01-requirements/SRS.md`
-  - `01-requirements/TRACEABILITY_MATRIX.md`
-  - `TEST_INVENTORY.yaml`
-  - `harness`
-  - `srs_vs_spec_diff.json`
-  - `.methodology/phase1_plan.md`
-  - `.methodology/phase2_plan.md`
-  - `.methodology/phase3_plan.md`
-  - `.methodology/phase4_plan.md`
+Phase 2 completed. Ready to begin Phase 3.
 
 ## 接下來的工作
 
-1. Open `.methodology/phase3_plan.md` and follow from the top
-2. Implement each FR with TDD (Gate 1 target per FR ≥75)
-3. Push P3-mid checkpoint at ≥50 % FR Gate 1 PASS
-4. Push P3-pre-gate2 checkpoint when all FRs done
+1. Follow SKILL.md §0.1 Phase 3 entry checklist
+2. Read the Phase 3 plan and execute
 
 ## 注意事項
 
 - 100% follow SKILL.md
 - Do NOT commit `.sessi-work/` or `.methodology/` runtime artifacts
 - Git failures are warnings — they never block the pipeline
-- Phase checkpoint push
-
-## 附加資訊
-
-- **fr_count**: 10
 
 ---
 *由 `HandoverGenerator` 自動生成。下次 push 時此檔案將被覆寫。*
