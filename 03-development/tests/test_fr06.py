@@ -138,6 +138,7 @@ def counting_session() -> _CountingSession:
 # Case 1 — AC1-sql-count-fixed (performance, Q6 / NFR-01)
 # ---------------------------------------------------------------------------
 
+# NFR-01 NFR-02 NFR-03 NFR-09
 # GREEN TODO: `TaskRepo.list(*, status, cursor, limit)` must issue exactly
 # TWO statements through `session.execute(stmt)` — (1) the parameterized
 # `select()` page query, (2) the `selectinload()` eager-load of the task's
@@ -177,6 +178,7 @@ _CONCAT_PATTERNS: tuple[tuple[str, str], ...] = (
 )
 
 
+# NFR-02 NFR-09
 def test_fr06_no_sql_string_concat() -> None:
     """No SQL is assembled by string concatenation anywhere under src.
 
@@ -223,6 +225,7 @@ def test_fr06_no_sql_string_concat() -> None:
 # ---------------------------------------------------------------------------
 
 
+# NFR-02 NFR-06 NFR-09
 def test_fr06_lint_imports_sqlalchemy_isolation() -> None:
     """`lint-imports` passes AND blocks `sqlalchemy` from api/service.
 
@@ -286,6 +289,7 @@ def test_fr06_lint_imports_sqlalchemy_isolation() -> None:
 # Case 4 — AC4-rollback-applied (failure, Q5 / NP-08)
 # ---------------------------------------------------------------------------
 
+# NFR-03 NFR-09
 # GREEN TODO: `taskq_api.repository.session.unit_of_work()` must be a
 # `contextlib.contextmanager` yielding a Session that commits on normal
 # exit and calls `session.rollback()` on ANY exception before re-raising.
