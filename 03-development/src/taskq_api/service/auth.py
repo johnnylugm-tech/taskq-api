@@ -21,7 +21,7 @@ import hashlib
 import hmac
 import logging
 import re
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 from taskq_api.repository.key_repo import KeyRepo
 
