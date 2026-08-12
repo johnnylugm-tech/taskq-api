@@ -16,8 +16,6 @@ exactly as SAD.md §2.7 describes.
 """
 from __future__ import annotations
 
-from typing import Protocol, cast
-
 from fastapi import Depends, Request
 
 from taskq_api.errors import AuthProblem, ForbiddenProblem
@@ -56,49 +54,52 @@ def get_current_key(request: Request) -> str:
     return raw
 
 
-class ScopeDependency(Protocol):
-    """[FR-04] The callable `require_scope` hands back.
+class _ScopeGate:
+    """[FR-04] Depends-compatible callable that enforces `allowed_scopes`.
 
-    Declares the shape that was previously only implied by bolting an
-    attribute onto a plain function: a Depends-compatible callable that
-    also carries the scope set it guards. Typing it explicitly is what
-    lets `allowed_scopes` be both assignable and introspectable without
-    reaching into `FunctionType`, whose attributes are not statically
-    known.
+    Returning an instance (rather than a closure bolted onto a plain
+    function) keeps the gate's scope set as a real attribute — tests
+    assert `hasattr(route.call, "allowed_scopes")` to enforce the
+    single-dependency invariant (SPEC §3 FR-04 / FR-09), and the
+    earlier closure form required a `cast` + post-assignment to make
+    that attribute statically knowable. A class removes the cast.
+
+    The 403 body is the opaque `"forbidden"` token (SPEC §3 FR-04 /
+    FR-09 — response MUST NOT leak whether the resource exists), so
+    the rejection path never interpolates the task id or the missing
+    scope.
     """
 
-    allowed_scopes: frozenset[str]
+    __slots__ = ("allowed_scopes",)
 
-    def __call__(self, request: Request, key: str = ...) -> str: ...
+    def __init__(self, allowed_scopes: frozenset[str]) -> None:
+        self.allowed_scopes = allowed_scopes
+
+    def __call__(
+        self,
+        request: Request,
+        key: str = Depends(get_current_key),
+    ) -> str:
+        # FR-04 — compare the authenticated key's stored scope against
+        # the gate's `allowed_scopes`.
+        if not _auth.scope_allows(key, self.allowed_scopes):
+            raise ForbiddenProblem(detail="forbidden")
+        return key
 
 
-def require_scope(*allowed: str) -> ScopeDependency:
+def require_scope(*allowed: str) -> _ScopeGate:
     """[FR-04] Scope gate — returns a Depends-compatible callable.
 
     Citations:
     - SPEC.md §3 FR-04 — authorisation is decided in one place.
     - SAD.md §2.7 — `api.deps` is the single authorisation point.
 
-    The returned dependency carries the scopes it guards on
-    `allowed_scopes`, so the gate a route declares stays introspectable
-    (Phase 4 resolves the caller's actual scope from the `api_keys` row
-    via `service.auth.scope_allows` and compares it against this set).
+    The returned gate carries the scopes it guards on `allowed_scopes`,
+    so the gate a route declares stays introspectable (Phase 4 resolves
+    the caller's actual scope from the `api_keys` row via
+    `service.auth.scope_allows` and compares it against this set).
     """
-    allowed_set = frozenset(allowed)
-
-    def _dep(request: Request, key: str = Depends(get_current_key)) -> str:
-        # FR-04 — compare the authenticated key's stored scope against
-        # the gate's `allowed_scopes`. The 403 body is the opaque
-        # `"forbidden"` token (SPEC §3 FR-04 / FR-09 — response MUST
-        # NOT leak whether the resource exists), so the rejection
-        # path never interpolates the task id or the missing scope.
-        if not _auth.scope_allows(key, allowed_set):
-            raise ForbiddenProblem(detail="forbidden")
-        return key
-
-    dep = cast(ScopeDependency, _dep)
-    dep.allowed_scopes = allowed_set
-    return dep
+    return _ScopeGate(frozenset(allowed))
 
 
-__all__ = ["get_current_key", "require_scope", "ScopeDependency"]
+__all__ = ["get_current_key", "require_scope"]

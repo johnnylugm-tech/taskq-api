@@ -66,6 +66,32 @@ def verify_key(raw: str, hashed: str) -> bool:
 # ---------------------------------------------------------------------------
 # Scope authorisation (FR-04)
 # ---------------------------------------------------------------------------
+def _resolve_active_key_row(raw: str) -> Optional[dict[str, Any]]:
+    """[FR-04] Look up the active api_keys row for ``raw`` plaintext.
+
+    Returns the row only when every precondition holds: the plaintext
+    is non-empty, the side-table resolves it to an id, the registry
+    actually has that row, and the row has not been revoked.
+    Returning ``None`` for any of those failures lets callers flatten
+    the four-step lookup into a single None check.
+
+    A revoked row (non-null `revoked_at`) is rejected here so a stale
+    key cannot bypass the gate even though `get_current_key` already
+    returned the raw key.
+    """
+    if not raw:
+        return None
+    key_id = KeyRepo._by_key.get(raw)
+    if key_id is None:
+        return None
+    row = KeyRepo._registry.get(key_id)
+    if row is None:
+        return None
+    if row.get("revoked_at") is not None:
+        return None
+    return row
+
+
 def scope_allows(raw: str, allowed_scopes: Iterable[str]) -> bool:
     """[FR-04] True iff the stored scope for ``raw`` is in ``allowed_scopes``.
 
@@ -80,23 +106,12 @@ def scope_allows(raw: str, allowed_scopes: Iterable[str]) -> bool:
 
     Production wiring hashes ``raw`` and looks the row up by hash; the
     GREEN step consults the in-process `KeyRepo._by_key` /
-    `KeyRepo._registry` side-tables the test suite pre-populates. A
-    revoked row (non-null `revoked_at`) is rejected here so a stale
-    key cannot bypass the gate even though `get_current_key` already
-    returned the raw key.
+    `KeyRepo._registry` side-tables the test suite pre-populates.
     """
-    if not raw:
-        return False
-    allowed = set(allowed_scopes)
-    key_id = KeyRepo._by_key.get(raw)
-    if key_id is None:
-        return False
-    row = KeyRepo._registry.get(key_id)
+    row = _resolve_active_key_row(raw)
     if row is None:
         return False
-    if row.get("revoked_at") is not None:
-        return False
-    return row.get("scope") in allowed
+    return row.get("scope") in set(allowed_scopes)
 
 
 # ---------------------------------------------------------------------------
