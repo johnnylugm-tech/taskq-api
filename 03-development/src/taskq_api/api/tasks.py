@@ -77,6 +77,31 @@ def require_scope(*allowed: str):
     return _dep
 
 
+def _result_from_runner_record(
+    *,
+    task_id: str,
+    run_id: str,
+    record: dict,
+) -> TaskResult:
+    """[FR-02] Build a TaskResult ORM row from a runner record dict.
+
+    The runner returns a dict of execution fields; this helper fills in
+    the row's identity (task_id / run_id) and applies defaults for any
+    optional fields the runner may omit (FR-08 `status='interrupted'`,
+    FR-08 `status='timeout'`).
+    """
+    return TaskResult(
+        task_id=task_id,
+        run_id=run_id,
+        exit_code=record.get("exit_code"),
+        stdout_tail=record.get("stdout_tail", ""),
+        stderr_tail=record.get("stderr_tail", ""),
+        duration_ms=record.get("duration_ms", 0),
+        finished_at=record.get("finished_at", ""),
+        status=record.get("status", "done"),
+    )
+
+
 # ----------------------------------------------------------------------
 # Router factory
 # ----------------------------------------------------------------------
@@ -186,18 +211,8 @@ def create_tasks_router() -> APIRouter:
         # 404 if the target task does not exist (AC7-unknown-run).
         task = service.get(task_id)
         run_id = str(uuid.uuid4())
-        runner = TaskRunner()
-        record = await runner.run(task["command"])
-        result = TaskResult(
-            task_id=task_id,
-            run_id=run_id,
-            exit_code=record.get("exit_code"),
-            stdout_tail=record.get("stdout_tail", ""),
-            stderr_tail=record.get("stderr_tail", ""),
-            duration_ms=record.get("duration_ms", 0),
-            finished_at=record.get("finished_at", ""),
-            status=record.get("status", "done"),
-        )
+        record = await TaskRunner().run(task["command"])
+        result = _result_from_runner_record(task_id=task_id, run_id=run_id, record=record)
         TaskResult.add(result)
         return {"run_id": run_id, "status": result.status}
 

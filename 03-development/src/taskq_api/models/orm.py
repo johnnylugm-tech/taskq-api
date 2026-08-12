@@ -23,6 +23,19 @@ import uuid
 from typing import Any, Optional
 
 
+_ROW_FIELDS: tuple[str, ...] = (
+    "id",
+    "task_id",
+    "run_id",
+    "exit_code",
+    "stdout_tail",
+    "stderr_tail",
+    "duration_ms",
+    "finished_at",
+    "status",
+)
+
+
 class TaskResult:
     """[FR-02] ORM row for the ``task_results`` table (FR-07 v3 schema).
 
@@ -63,21 +76,14 @@ class TaskResult:
     # Persistence (in-process registry)
     # ------------------------------------------------------------------
     @classmethod
+    def _from_dict(cls, row: dict[str, Any]) -> "TaskResult":
+        """Rehydrate a row from the in-process registry."""
+        return cls(**{field: row[field] for field in _ROW_FIELDS})
+
+    @classmethod
     def add(cls, row: "TaskResult") -> None:
         """Persist a result row in the in-process registry."""
-        cls._registry.append(
-            {
-                "id": row.id,
-                "task_id": row.task_id,
-                "run_id": row.run_id,
-                "exit_code": row.exit_code,
-                "stdout_tail": row.stdout_tail,
-                "stderr_tail": row.stderr_tail,
-                "duration_ms": row.duration_ms,
-                "finished_at": row.finished_at,
-                "status": row.status,
-            }
-        )
+        cls._registry.append({field: getattr(row, field) for field in _ROW_FIELDS})
 
     @classmethod
     def list_for_task(cls, task_id: str) -> list["TaskResult"]:
@@ -90,20 +96,7 @@ class TaskResult:
         # Newest-first by insertion order (Python 3.7+ preserves dict
         # insertion order; the runner appends in run-completion order).
         rows.reverse()
-        return [
-            cls(
-                id=r["id"],
-                task_id=r["task_id"],
-                run_id=r["run_id"],
-                exit_code=r["exit_code"],
-                stdout_tail=r["stdout_tail"],
-                stderr_tail=r["stderr_tail"],
-                duration_ms=r["duration_ms"],
-                finished_at=r["finished_at"],
-                status=r["status"],
-            )
-            for r in rows
-        ]
+        return [cls._from_dict(r) for r in rows]
 
 
 __all__ = ["TaskResult"]

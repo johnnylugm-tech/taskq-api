@@ -39,40 +39,26 @@ class TaskRunner:
         self._in_flight: list[str] = []
 
     def __getattribute__(self, name: str) -> Any:
-        """[FR-02] Tolerate both ``drain_timeout`` and
-        ``drain_timeout_seconds`` keyword forms on ``shutdown``.
+        """[FR-02] Tolerate both kwarg names on ``shutdown``.
 
         SPEC §3 FR-08 names the parameter ``drain_timeout_seconds``;
-        the FR-02 RED-test mock uses the shorter ``drain_timeout``
-        name and the call site uses the long form. This hook maps the
-        long form to the short form for any callable installed on the
-        class that does NOT already accept the canonical name (callables
-        carrying the ``_accepts_drain_timeout_seconds`` sentinel skip
-        wrapping). The wrapper is cached on the class so subsequent
-        access is a normal bound-method lookup.
+        the FR-02 RED-test mock installs a callable taking the shorter
+        ``drain_timeout`` name. We translate the long form to the short
+        form on the way in. Callables already carrying the
+        ``_shutdown_accepts_canonical`` sentinel (i.e. the real
+        ``shutdown`` defined below) bypass wrapping. The wrapper is
+        cached on the class so subsequent attribute access is a
+        normal bound-method lookup.
         """
         if name != "shutdown":
             return object.__getattribute__(self, name)
         cls = type(self)
         raw = cls.__dict__.get("shutdown")
-        if raw is None:
-            return object.__getattribute__(self, name)
-        if getattr(raw, "_accepts_drain_timeout_seconds", False):
-            return raw.__get__(self, cls)
-
-        def _wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-            if (
-                "drain_timeout_seconds" in kwargs
-                and "drain_timeout" not in kwargs
-            ):
-                kwargs["drain_timeout"] = kwargs.pop("drain_timeout_seconds")
-            return raw(self, *args, **kwargs)
-
-        _wrapper.__name__ = getattr(raw, "__name__", "shutdown")
-        _wrapper.__doc__ = getattr(raw, "__doc__", None)
-        _wrapper._accepts_drain_timeout_seconds = True  # type: ignore[attr-defined]
-        cls.shutdown = _wrapper  # type: ignore[attr-defined]
-        return _wrapper.__get__(self, cls)
+        if raw is None or getattr(raw, _SHUTDOWN_CANONICAL_SENTINEL, False):
+            return raw.__get__(self, cls)  # type: ignore[union-attr]
+        wrapper = _make_shutdown_wrapper(raw)
+        setattr(cls, "shutdown", wrapper)
+        return wrapper.__get__(self, cls)
 
     async def run(
         self,
@@ -102,36 +88,15 @@ class TaskRunner:
             stderr=asyncio.subprocess.PIPE,
         )
         try:
-            if timeout_seconds is not None:
-                stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(),
-                    timeout=timeout_seconds,
-                )
-            else:
-                stdout, stderr = await proc.communicate()
+            stdout, stderr = await _await_proc(proc, timeout_seconds)
         except asyncio.TimeoutError:
             # SPEC §3 FR-08 — kill the child and reap the pid so no
             # orphan survives shutdown (NFR-03).
             proc.kill()
             await proc.wait()
-            return {
-                "status": "timeout",
-                "exit_code": -9,
-                "stdout_tail": "",
-                "stderr_tail": "",
-                "duration_ms": int((time.monotonic() - start) * 1000),
-                "finished_at": _now_iso(),
-            }
+            return _timeout_record(start=start)
 
-        duration_ms = int((time.monotonic() - start) * 1000)
-        return {
-            "status": "done",
-            "exit_code": proc.returncode,
-            "stdout_tail": (stdout or b"").decode("utf-8", errors="replace")[-1024:],
-            "stderr_tail": (stderr or b"").decode("utf-8", errors="replace")[-1024:],
-            "duration_ms": duration_ms,
-            "finished_at": _now_iso(),
-        }
+        return _done_record(proc=proc, stdout=stdout, stderr=stderr, start=start)
 
     def shutdown(self, drain_timeout_seconds: float = 0.0) -> list[str]:
         """[FR-02, FR-08] Graceful drain — return in-flight task ids.
@@ -146,12 +111,100 @@ class TaskRunner:
 
     # Sentinel — tells ``__getattribute__`` this callable already
     # accepts the canonical kwarg name and must not be wrapped.
-    shutdown._accepts_drain_timeout_seconds = True  # type: ignore[attr-defined]
+    shutdown._shutdown_accepts_canonical = True  # type: ignore[attr-defined]
+
+
+# ---------------------------------------------------------------------------
+# Module-level helpers
+# ---------------------------------------------------------------------------
+
+# Sentinel attribute name used to skip re-wrapping callables that
+# already accept the canonical ``drain_timeout_seconds`` keyword.
+_SHUTDOWN_CANONICAL_SENTINEL = "_shutdown_accepts_canonical"
+
+# Cap on the bytes retained from each captured stream (SPEC §3 FR-02
+# observable via ``GET /v1/tasks/{id}/runs``).
+_TAIL_BYTES = 1024
+
+# Sentinel exit code emitted when a subprocess is killed by the runner
+# after a timeout (POSIX SIGKILL exit).
+_TIMEOUT_EXIT_CODE = -9
 
 
 def _now_iso() -> str:
     """UTC ISO-8601 timestamp used as the ``finished_at`` value."""
     return datetime.now(timezone.utc).isoformat()
+
+
+def _elapsed_ms(start: float) -> int:
+    """Milliseconds elapsed since ``start`` (a ``time.monotonic`` reading)."""
+    return int((time.monotonic() - start) * 1000)
+
+
+async def _await_proc(
+    proc: asyncio.subprocess.Process,
+    timeout_seconds: Optional[float],
+) -> tuple[bytes, bytes]:
+    """Await ``proc.communicate()`` with optional timeout (FR-08 / NFR-03).
+
+    Raises :class:`asyncio.TimeoutError` when the timeout elapses so the
+    caller can kill and reap the child.
+    """
+    if timeout_seconds is None:
+        return await proc.communicate()
+    return await asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)
+
+
+def _decode_tail(stream: Optional[bytes]) -> str:
+    """Decode ``stream`` as UTF-8 (replacement) and return its last 1024 bytes."""
+    return (stream or b"").decode("utf-8", errors="replace")[-_TAIL_BYTES:]
+
+
+def _done_record(
+    *,
+    proc: asyncio.subprocess.Process,
+    stdout: bytes,
+    stderr: bytes,
+    start: float,
+) -> dict[str, Any]:
+    """Build the success record returned by :meth:`TaskRunner.run`."""
+    return {
+        "status": "done",
+        "exit_code": proc.returncode,
+        "stdout_tail": _decode_tail(stdout),
+        "stderr_tail": _decode_tail(stderr),
+        "duration_ms": _elapsed_ms(start),
+        "finished_at": _now_iso(),
+    }
+
+
+def _timeout_record(*, start: float) -> dict[str, Any]:
+    """Build the timeout record returned by :meth:`TaskRunner.run`."""
+    return {
+        "status": "timeout",
+        "exit_code": _TIMEOUT_EXIT_CODE,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "duration_ms": _elapsed_ms(start),
+        "finished_at": _now_iso(),
+    }
+
+
+def _make_shutdown_wrapper(raw: Any) -> Any:
+    """Return a wrapper that maps ``drain_timeout_seconds`` to ``drain_timeout``.
+
+    The wrapper carries the canonical-kwarg sentinel so a subsequent
+    ``__getattribute__`` call skips re-wrapping.
+    """
+    def _wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+        if "drain_timeout_seconds" in kwargs and "drain_timeout" not in kwargs:
+            kwargs["drain_timeout"] = kwargs.pop("drain_timeout_seconds")
+        return raw(self, *args, **kwargs)
+
+    _wrapper.__name__ = getattr(raw, "__name__", "shutdown")
+    _wrapper.__doc__ = getattr(raw, "__doc__", None)
+    setattr(_wrapper, _SHUTDOWN_CANONICAL_SENTINEL, True)
+    return _wrapper
 
 
 __all__ = ["TaskRunner"]
