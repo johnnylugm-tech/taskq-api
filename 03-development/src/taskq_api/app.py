@@ -21,10 +21,52 @@ import os
 
 from fastapi import FastAPI, Response
 from fastapi.routing import APIRouter, _IncludedRouter
+from sqlalchemy import create_engine, text as sql_text
 
 from taskq_api.api.tasks import create_tasks_router
 from taskq_api.errors import register_error_handlers
 from taskq_api.service.auth import redact_db_url
+
+
+# [FR-07] Head alembic revision. Compared against ``alembic_version``
+# at /readyz time (SPEC §3 FR-07 / SPEC §8 #11).
+_MIGRATION_HEAD: str = "v3_split_results"
+
+
+def _check_migration_state() -> tuple[bool, str]:
+    """[FR-07] Compare alembic current revision against the configured head.
+
+    Returns ``(is_at_head, detail_str)``. When the DB has no alembic
+    metadata table, or its ``alembic_version.version_num`` does not
+    match ``_MIGRATION_HEAD``, the helper reports ``(False, detail)``
+    so /readyz can return 503 + ``application/problem+json`` (SPEC
+    §8 #11).
+    """
+    db_url = os.environ.get("TASKQ_DB_URL", "")
+    if not db_url:
+        # No DB configured — report "behind" with a generic detail so
+        # the operator sees "migration" in the response.
+        return False, "migration is behind head (no TASKQ_DB_URL configured)"
+
+    try:
+        engine = create_engine(db_url)
+        with engine.connect() as conn:
+            row = conn.execute(
+                sql_text("SELECT version_num FROM alembic_version")
+            ).first()
+    except Exception as exc:  # pragma: no cover — defensive
+        return False, f"migration is behind head (alembic probe error)"
+
+    if row is None:
+        return False, "migration is behind head (no alembic_version row)"
+
+    current = row[0]
+    if current != _MIGRATION_HEAD:
+        return (
+            False,
+            f"migration is behind head (current={current}, head={_MIGRATION_HEAD})",
+        )
+    return True, f"migration at head ({_MIGRATION_HEAD})"
 
 
 def _build_metrics_body() -> str:
@@ -110,15 +152,32 @@ def create_app() -> FastAPI:
 
     @app.get(
         "/readyz",
-        summary="[FR-05, FR-09] Readiness probe.",
+        summary="[FR-05, FR-07, FR-09] Readiness probe.",
         description=(
-            "GET /readyz (no auth, no rate limit). Returns 200 "
-            "as long as the process can serve traffic. SPEC §3 "
-            "FR-05 exempts this route from the token bucket."
+            "GET /readyz (no auth, no rate limit). Returns 200 when "
+            "the process can serve traffic AND the alembic migration "
+            "is at head. Returns 503 `application/problem+json` with a "
+            "detail that mentions `migration` when the DB is behind "
+            "head (SPEC §3 FR-05 + SPEC §8 #11)."
         ),
     )
-    async def readyz() -> dict:
-        return {"status": "ready"}
+    async def readyz():
+        is_at_head, detail_str = _check_migration_state()
+        if is_at_head:
+            return {"status": "ready", "migration": detail_str}
+        # FR-07 / SPEC §8 #11 — /readyz returns 503 with a
+        # ``migration``-mentioning detail when the alembic revision is
+        # behind head.
+        return Response(
+            content=(
+                '{"type":"/errors/migration","title":"Migration Behind Head",'
+                '"status":503,'
+                f'"detail":"{detail_str}"'
+                ',"instance":"/readyz"}'
+            ),
+            status_code=503,
+            media_type="application/problem+json",
+        )
 
     # ------------------------------------------------------------------
     # /v1/metrics — FR-09 (no auth required).
