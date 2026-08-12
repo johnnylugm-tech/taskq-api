@@ -457,9 +457,384 @@ def test_fr07_make_verify_system_exit_zero() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Case 5+ — In-process migration coverage tests
+# ---------------------------------------------------------------------------
+# The four subprocess tests above drive alembic through a child Python
+# interpreter; pytest-cov CANNOT measure coverage of code that runs in a
+# subprocess. These in-process tests call each migration's
+# ``upgrade()`` / ``downgrade()`` directly inside an
+# :class:`alembic.operations.Operations` context so the migration source
+# is exercised in-process and becomes measurable by pytest-cov. The
+# subprocess tests verify the real CLI entry point; the in-process
+# tests provide measurable coverage for the internal upgrade/downgrade
+# logic and the SQL fragments. Both shapes coexist.
+
+
+def _run_in_process(*steps, db_path: Path | None = None):
+    """Run migration upgrade/downgrade callables in-process.
+
+    Each ``step`` is invoked inside an
+    :class:`alembic.operations.Operations` context bound to a single
+    SQLAlchemy connection (so :memory: SQLite keeps a consistent DB
+    across all steps). The engine is returned so callers can inspect
+    the resulting schema.
+    """
+    from alembic.operations import Operations  # noqa: PLC0415 — late import
+    from alembic.runtime.migration import MigrationContext  # noqa: PLC0415
+    from sqlalchemy import create_engine  # noqa: PLC0415
+
+    url = f"sqlite:///{db_path}" if db_path is not None else "sqlite:///:memory:"
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        ctx = MigrationContext.configure(conn)
+        with Operations.context(ctx):
+            for step in steps:
+                step()
+    return engine
+
+
+# NFR-03 NFR-12 SEC T-10
+def test_fr07_v1_initial_upgrade_in_process(tmp_path) -> None:
+    """[FR-07 v1] In-process ``upgrade()`` creates ``tasks`` + ``api_keys``.
+
+    Lines covered: v1_initial.upgrade() body (43-57). The subprocess
+    round-trip test above drives alembic in a child interpreter; this
+    test exercises the migration source directly so pytest-cov
+    measures every line of the schema-creation logic.
+    """
+    from sqlalchemy import inspect  # noqa: PLC0415 — late import
+
+    engine = _run_in_process(v1_initial.upgrade, db_path=tmp_path / "v1_up.sqlite")
+    inspector = inspect(engine)
+
+    table_names = set(inspector.get_table_names())
+    assert "tasks" in table_names, f"v1_initial.upgrade() must create tasks; got {table_names!r}"
+    assert "api_keys" in table_names, (
+        f"v1_initial.upgrade() must create api_keys; got {table_names!r}"
+    )
+
+    tasks_col_names = {c["name"] for c in inspector.get_columns("tasks")}
+    assert {"id", "name", "command", "result_json", "status"}.issubset(tasks_col_names), (
+        f"tasks schema must include the FR-07 v1 columns; got {tasks_col_names!r}"
+    )
+
+    api_keys_col_names = {c["name"] for c in inspector.get_columns("api_keys")}
+    assert {"id", "scope", "key_hash", "revoked_at"}.issubset(api_keys_col_names), (
+        f"api_keys schema must include the FR-03 hash columns; got {api_keys_col_names!r}"
+    )
+
+
+# NFR-03 NFR-12
+def test_fr07_v1_initial_downgrade_in_process(tmp_path) -> None:
+    """[FR-07 v1] In-process ``downgrade()`` drops both v1 tables.
+
+    Lines covered: v1_initial.downgrade() body (76-77).
+    """
+    from sqlalchemy import inspect  # noqa: PLC0415
+
+    engine = _run_in_process(
+        v1_initial.upgrade, v1_initial.downgrade, db_path=tmp_path / "v1_down.sqlite"
+    )
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    assert "tasks" not in table_names, (
+        f"v1_initial.downgrade() must drop tasks; residual: {table_names!r}"
+    )
+    assert "api_keys" not in table_names, (
+        f"v1_initial.downgrade() must drop api_keys; residual: {table_names!r}"
+    )
+
+
+# NFR-03 NFR-12
+def test_fr07_v2_tags_upgrade_in_process(tmp_path) -> None:
+    """[FR-07 v2] In-process ``upgrade()`` adds tags + task_tags + unique idx.
+
+    Lines covered: v2_tags.upgrade() body (42-65).
+    """
+    from sqlalchemy import inspect  # noqa: PLC0415
+
+    engine = _run_in_process(
+        v1_initial.upgrade, v2_tags.upgrade, db_path=tmp_path / "v2_up.sqlite"
+    )
+    inspector = inspect(engine)
+
+    table_names = set(inspector.get_table_names())
+    assert "tags" in table_names, f"v2_tags.upgrade() must create tags; got {table_names!r}"
+    assert "task_tags" in table_names, (
+        f"v2_tags.upgrade() must create task_tags; got {table_names!r}"
+    )
+
+    # Unique index on tasks.name — FR-01 DB-level uniqueness invariant.
+    tasks_indexes = inspector.get_indexes("tasks")
+    assert any(
+        idx.get("unique") and "name" in idx["column_names"] for idx in tasks_indexes
+    ), (
+        f"v2_tags.upgrade() must create a unique index on tasks.name; got {tasks_indexes!r}"
+    )
+
+    # Unique constraint on tags.name.
+    tags_unique_constraints = inspector.get_unique_constraints("tags")
+    assert any(
+        "name" in c["column_names"] for c in tags_unique_constraints
+    ), (
+        f"v2_tags.upgrade() must create a unique constraint on tags.name; "
+        f"got {tags_unique_constraints!r}"
+    )
+
+
+# NFR-03 NFR-12
+def test_fr07_v2_tags_downgrade_in_process(tmp_path) -> None:
+    """[FR-07 v2] In-process ``downgrade()`` reverses only the v2 artefacts.
+
+    Lines covered: v2_tags.downgrade() body (75-77).
+    """
+    from sqlalchemy import inspect  # noqa: PLC0415
+
+    engine = _run_in_process(
+        v1_initial.upgrade,
+        v2_tags.upgrade,
+        v2_tags.downgrade,
+        db_path=tmp_path / "v2_down.sqlite",
+    )
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+
+    # v1 artefacts still present (downgrade is scoped to v2).
+    assert "tasks" in table_names, "v2.downgrade() must NOT drop v1 tables"
+    assert "api_keys" in table_names, "v2.downgrade() must NOT drop v1 tables"
+
+    # v2 artefacts dropped.
+    assert "tags" not in table_names, (
+        f"v2_tags.downgrade() must drop tags; residual: {table_names!r}"
+    )
+    assert "task_tags" not in table_names, (
+        f"v2_tags.downgrade() must drop task_tags; residual: {table_names!r}"
+    )
+
+    # Unique index on tasks.name dropped — back to plain index/column.
+    tasks_indexes = inspector.get_indexes("tasks")
+    assert not any(
+        idx.get("unique") and "name" in idx["column_names"] for idx in tasks_indexes
+    ), (
+        f"v2_tags.downgrade() must drop the unique tasks.name index; got {tasks_indexes!r}"
+    )
+
+
+# NFR-03 NFR-09 NFR-12 SEC T-10
+def test_fr07_v3_split_results_upgrade_in_process(tmp_path) -> None:
+    """[FR-07 v3] In-process ``upgrade()`` creates task_results + drops result_json.
+
+    Lines covered: v3_split_results.upgrade() body (129-179). The
+    backfill INSERT-SELECT runs against ``tasks.result_json`` — that
+    column exists after v1, so the backfill completes against any
+    pre-existing rows. With an empty tasks table the backfill inserts
+    zero rows and the column-drop proceeds cleanly.
+    """
+    from sqlalchemy import inspect, text  # noqa: PLC0415
+
+    db_path = tmp_path / "v3_up.sqlite"
+    engine = _run_in_process(
+        v1_initial.upgrade, v2_tags.upgrade, db_path=db_path
+    )
+
+    # Seed one legacy task BEFORE v3 upgrade so the backfill branch
+    # is exercised (line ~162-165 — the INSERT INTO task_results
+    # SELECT ... FROM tasks WHERE result_json IS NOT NULL). Use a
+    # placeholder + bind param so SQLAlchemy doesn't mistake the JSON
+    # ``:NNN`` substrings for bind parameters.
+    legacy_result_json = (
+        '{"id":"res-legacy","run_id":"run-legacy",'
+        '"exit_code":0,"stdout_tail":"out","stderr_tail":"err",'
+        '"duration_ms":10,"finished_at":"2026-01-01T00:00:00Z",'
+        '"status":"done"}'
+    )
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO tasks (id, name, command, status, result_json) "
+                "VALUES ('legacy-001', 'legacy-task', 'echo legacy', 'pending', "
+                ":result_json)"
+            ),
+            {"result_json": legacy_result_json},
+        )
+
+    # Now run v3 upgrade — the backfill reads tasks.result_json (the
+    # legacy row above) and the column-drop branch is exercised.
+    _run_in_process(v3_split_results.upgrade, db_path=db_path)
+
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    assert "task_results" in table_names, (
+        f"v3.upgrade() must create task_results; got {table_names!r}"
+    )
+
+    # tasks.result_json column dropped (line 179 — batch_alter_table drop_column).
+    tasks_col_names = {c["name"] for c in inspector.get_columns("tasks")}
+    assert "result_json" not in tasks_col_names, (
+        f"v3.upgrade() must drop tasks.result_json; residual cols: {tasks_col_names!r}"
+    )
+
+    # Backfilled legacy row surfaced in task_results (lines 60-76 — _BACKFILL_FROM_RESULT_JSON).
+    with engine.connect() as conn:
+        backfilled_count = conn.execute(
+            text("SELECT COUNT(*) FROM task_results WHERE task_id = 'legacy-001'")
+        ).scalar_one()
+    assert backfilled_count == 1, (
+        f"v3.upgrade() backfill must produce 1 task_results row for legacy-001; "
+        f"got {backfilled_count}"
+    )
+
+
+# NFR-03 NFR-09 NFR-12 SEC T-10
+def test_fr07_v3_split_results_downgrade_in_process(tmp_path) -> None:
+    """[FR-07 v3] In-process ``downgrade()`` restores tasks.result_json + drops task_results.
+
+    Lines covered: v3_split_results.downgrade() body (190-205).
+    """
+    from sqlalchemy import inspect, text  # noqa: PLC0415
+
+    engine = _run_in_process(
+        v1_initial.upgrade,
+        v2_tags.upgrade,
+        v3_split_results.upgrade,
+        db_path=tmp_path / "v3_down.sqlite",
+    )
+
+    # Seed a tasks row + a task_results row so the downgrade has data
+    # to reverse. Exercises _RESTORE_ORPHAN_TASKS (no-op since
+    # task_id matches a real tasks row) and _REPOPULATE_RESULT_JSON.
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO tasks (id, name, command, status) "
+                "VALUES ('tid-down-001', 'name-down-001', 'echo x', 'pending')"
+            )
+        )
+        conn.execute(
+            text(
+                "INSERT INTO task_results (id, task_id, run_id, exit_code, "
+                "stdout_tail, stderr_tail, duration_ms, finished_at, status) "
+                "VALUES ('res-down-001', 'tid-down-001', 'run-down-001', 0, "
+                "'out', 'err', 7, '2026-08-13T00:00:00Z', 'done')"
+            )
+        )
+
+    # Now run the v3 downgrade in-process.
+    from alembic.operations import Operations  # noqa: PLC0415
+    from alembic.runtime.migration import MigrationContext  # noqa: PLC0415
+
+    with engine.begin() as conn:
+        ctx = MigrationContext.configure(conn)
+        with Operations.context(ctx):
+            v3_split_results.downgrade()
+
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+
+    # tasks.result_json re-created (line 194 — batch_alter_table add_column).
+    tasks_col_names = {c["name"] for c in inspector.get_columns("tasks")}
+    assert "result_json" in tasks_col_names, (
+        f"v3.downgrade() must re-create tasks.result_json; got {tasks_col_names!r}"
+    )
+
+    # task_results dropped (line 205 — op.drop_table).
+    assert "task_results" not in table_names, (
+        f"v3.downgrade() must drop task_results; residual: {table_names!r}"
+    )
+
+    # Repopulated result_json carries the original payload (line 201 —
+    # _REPOPULATE_RESULT_JSON UPDATE).
+    with engine.connect() as conn:
+        result_json_value = conn.execute(
+            text("SELECT result_json FROM tasks WHERE id = 'tid-down-001'")
+        ).scalar_one()
+    assert "res-down-001" in (result_json_value or ""), (
+        f"v3.downgrade() _REPOPULATE_RESULT_JSON must restore task_results data "
+        f"into tasks.result_json; got {result_json_value!r}"
+    )
+
+
+# NFR-03 NFR-09 NFR-12
+def test_fr07_v3_split_results_upgrade_swallows_backfill_error(tmp_path) -> None:
+    """[FR-07 v3] In-process ``upgrade()`` swallows backfill ``SQLAlchemyError``.
+
+    Lines covered: 166-174 — the ``except SQLAlchemyError: pass`` branch.
+    The defensive backfill INSERT-SELECT guards against malformed legacy
+    ``tasks.result_json`` rows (or any pre-existing schema quirk) that
+    would otherwise abort the migration before the column-drop runs.
+    The handler swallows the failure so the column-drop proceeds and the
+    schema converges on the v3 layout. We trigger the branch with a
+    targeted mock of ``op.get_bind().execute`` so the assertion is
+    deterministic.
+    """
+    from unittest.mock import patch  # noqa: PLC0415
+
+    from sqlalchemy import create_engine, inspect  # noqa: PLC0415
+    from sqlalchemy.exc import SQLAlchemyError  # noqa: PLC0415
+    from alembic.operations import Operations  # noqa: PLC0415
+    from alembic.runtime.migration import MigrationContext  # noqa: PLC0415
+
+    db_path = tmp_path / "v3_backfill_err.sqlite"
+    # Bring up v1+v2 so the backfill SELECT has a ``tasks`` table to read.
+    _run_in_process(v1_initial.upgrade, v2_tags.upgrade, db_path=db_path)
+
+    class _FailingBind:
+        """Wraps a real bind; raises ``SQLAlchemyError`` on the backfill."""
+
+        def __init__(self, real_bind: object) -> None:
+            self._real = real_bind
+            self.backfill_attempts: int = 0
+
+        def execute(self, stmt, *args, **kwargs):  # type: ignore[no-untyped-def]
+            sql_str = str(stmt)
+            if "INSERT INTO task_results" in sql_str and "SELECT" in sql_str:
+                self.backfill_attempts += 1
+                raise SQLAlchemyError("simulated backfill failure")
+            return self._real.execute(stmt, *args, **kwargs)  # type: ignore[attr-defined]
+
+        def __getattr__(self, name: str) -> object:
+            return getattr(self._real, name)
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with engine.begin() as conn:
+        failing_bind = _FailingBind(conn)
+        with patch(
+            "migrations.versions.v3_split_results.op.get_bind",
+            return_value=failing_bind,
+        ):
+            ctx = MigrationContext.configure(conn)
+            with Operations.context(ctx):
+                v3_split_results.upgrade()
+
+    inspector = inspect(engine)
+    # task_results created BEFORE the failing backfill (lines 131-147).
+    assert "task_results" in inspector.get_table_names(), (
+        "v3.upgrade() must still create task_results even when the backfill fails"
+    )
+    # tasks.result_json dropped AFTER the swallowed error (lines 178-179).
+    tasks_col_names = {c["name"] for c in inspector.get_columns("tasks")}
+    assert "result_json" not in tasks_col_names, (
+        f"v3.upgrade() must drop tasks.result_json after swallowed backfill; "
+        f"residual cols: {tasks_col_names!r}"
+    )
+    # The except branch was actually entered (not just skipped over).
+    assert failing_bind.backfill_attempts == 1, (
+        "v3.upgrade() backfill branch must be exercised exactly once to "
+        f"cover the except clause; got {failing_bind.backfill_attempts}"
+    )
+
+
 __all__ = [
     "test_fr07_alembic_round_trip_byte_identical",
     "test_fr07_alembic_downgrade_base_clean",
     "test_fr07_readyz_503_when_migration_behind",
     "test_fr07_make_verify_system_exit_zero",
+    "test_fr07_v1_initial_upgrade_in_process",
+    "test_fr07_v1_initial_downgrade_in_process",
+    "test_fr07_v2_tags_upgrade_in_process",
+    "test_fr07_v2_tags_downgrade_in_process",
+    "test_fr07_v3_split_results_upgrade_in_process",
+    "test_fr07_v3_split_results_downgrade_in_process",
+    "test_fr07_v3_split_results_upgrade_swallows_backfill_error",
 ]
