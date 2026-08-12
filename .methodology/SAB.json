@@ -108,6 +108,33 @@
         "taskq_api"
       ],
       "allowed_dependencies": []
+    },
+    {
+      "name": "migrations",
+      "modules": [
+        {
+          "name": "migrations"
+        },
+        {
+          "name": "migrations.env"
+        },
+        {
+          "name": "migrations.versions"
+        },
+        {
+          "name": "migrations.versions.v1_initial"
+        },
+        {
+          "name": "migrations.versions.v2_tags"
+        },
+        {
+          "name": "migrations.versions.v3_split_results"
+        }
+      ],
+      "allowed_dependencies": [
+        "repository",
+        "models"
+      ]
     }
   ],
   "dependencies": {
