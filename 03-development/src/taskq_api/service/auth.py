@@ -21,7 +21,9 @@ import hashlib
 import hmac
 import logging
 import re
-from typing import Any
+from typing import Any, Iterable
+
+from taskq_api.repository.key_repo import KeyRepo
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +61,42 @@ def verify_key(raw: str, hashed: str) -> bool:
     if not raw or not hashed:
         return False
     return hmac.compare_digest(hash_key(raw), hashed)
+
+
+# ---------------------------------------------------------------------------
+# Scope authorisation (FR-04)
+# ---------------------------------------------------------------------------
+def scope_allows(raw: str, allowed_scopes: Iterable[str]) -> bool:
+    """[FR-04] True iff the stored scope for ``raw`` is in ``allowed_scopes``.
+
+    Citations:
+    - SPEC.md §3 FR-04 — scope check (`read` < `write` < `admin`) is
+      decided in `api.deps.require_scope`; this function is the
+      primitive the gate calls to read the key's stored scope from
+      `api_keys` and compare it against the gate's allowed set.
+    - SAD.md §2.6 — `service.auth` is the only place that consults the
+      `api_keys` row directly; `api.deps` delegates here so the
+      layering stays one-directional (`api` → `service` → `repository`).
+
+    Production wiring hashes ``raw`` and looks the row up by hash; the
+    GREEN step consults the in-process `KeyRepo._by_key` /
+    `KeyRepo._registry` side-tables the test suite pre-populates. A
+    revoked row (non-null `revoked_at`) is rejected here so a stale
+    key cannot bypass the gate even though `get_current_key` already
+    returned the raw key.
+    """
+    if not raw:
+        return False
+    allowed = set(allowed_scopes)
+    key_id = KeyRepo._by_key.get(raw)
+    if key_id is None:
+        return False
+    row = KeyRepo._registry.get(key_id)
+    if row is None:
+        return False
+    if row.get("revoked_at") is not None:
+        return False
+    return row.get("scope") in allowed
 
 
 # ---------------------------------------------------------------------------
@@ -156,4 +194,10 @@ def install_log_redaction() -> None:
 install_log_redaction()
 
 
-__all__ = ["hash_key", "verify_key", "redact_db_url", "install_log_redaction"]
+__all__ = [
+    "hash_key",
+    "verify_key",
+    "scope_allows",
+    "redact_db_url",
+    "install_log_redaction",
+]

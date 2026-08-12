@@ -87,12 +87,13 @@ def require_scope(*allowed: str) -> ScopeDependency:
     allowed_set = frozenset(allowed)
 
     def _dep(request: Request, key: str = Depends(get_current_key)) -> str:
-        # Phase 4 replaces this re-verification with a real scope
-        # comparison against `allowed_scopes`. FR-01/FR-03 only assert
-        # authentication, so the gate currently rejects exactly the
-        # keys that fail verification.
-        if not _auth.verify_key(key, key):
-            raise ForbiddenProblem(detail="insufficient scope")
+        # FR-04 — compare the authenticated key's stored scope against
+        # the gate's `allowed_scopes`. The 403 body is the opaque
+        # `"forbidden"` token (SPEC §3 FR-04 / FR-09 — response MUST
+        # NOT leak whether the resource exists), so the rejection
+        # path never interpolates the task id or the missing scope.
+        if not _auth.scope_allows(key, allowed_set):
+            raise ForbiddenProblem(detail="forbidden")
         return key
 
     dep = cast(ScopeDependency, _dep)

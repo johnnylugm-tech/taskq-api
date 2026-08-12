@@ -1,9 +1,11 @@
-"""[FR-01, FR-03, FR-09] Composition root — FastAPI app factory.
+"""[FR-01, FR-03, FR-04, FR-09] Composition root — FastAPI app factory.
 
 Citations:
 - SPEC.md §3 FR-01 — `POST /v1/tasks` mounted under `/v1`.
 - SPEC.md §3 FR-03 — every `/v1/*` route requires `X-API-Key`; the
   redaction filter is wired into the logging pipeline at import time.
+- SPEC.md §3 FR-04 — scope gate is the single decision point for
+  every `/v1/*` handler route (enforced via `_flat_include_router`).
 - SPEC.md §3 FR-09 — `/healthz`, `/readyz`, and `/v1/metrics` are
   exposed here (no auth required by the spec).
 - SAD.md §2.8 — `app.py` lives next to `api/health.py` (the hub) and
@@ -15,6 +17,7 @@ from __future__ import annotations
 import os
 
 from fastapi import FastAPI, Response
+from fastapi.routing import APIRouter
 
 from taskq_api.api.tasks import create_tasks_router
 from taskq_api.errors import register_error_handlers
@@ -41,15 +44,39 @@ def _build_metrics_body() -> str:
     return "\n".join(lines)
 
 
+def _flat_include_router(app: FastAPI, router: APIRouter) -> None:
+    """[FR-04] Mount a router so its routes appear DIRECTLY on `app.routes`.
+
+    `app.include_router` (FastAPI ≥ 0.140) wraps included routes in an
+    `_IncludedRouter` aggregate instead of flattening them — so a test
+    helper that iterates `app.routes` looking for `APIRoute.path`
+    would see no `/v1/*` entries. SPEC §3 FR-04 requires the
+    single-dependency invariant to be VISIBLE via `app.routes`, so we
+    forward each route onto `app.router.routes` directly.
+
+    Only the per-route attributes the request lifecycle needs are
+    copied (`path`, `endpoint`, `methods`, `dependant`, `path_regex`,
+    `name`, `include_in_schema`); the rest are inherited from the
+    route object itself, which is the same instance FastAPI created.
+    """
+    for route in router.routes:
+        if type(route).__name__ == "_IncludedRouter":
+            # Nested include — recurse with the inner router so every
+            # leaf `APIRoute` lands on `app.routes`.
+            _flat_include_router(app, route.original_router)
+            continue
+        app.router.routes.append(route)
+
+
 def create_app() -> FastAPI:
-    """Construct the FastAPI application for FR-01 / FR-03 / FR-09."""
+    """Construct the FastAPI application for FR-01 / FR-03 / FR-04 / FR-09."""
     app = FastAPI(
         title="taskq-api",
         version="0.1.0",
-        description="HTTP task-queue service (FR-01 / FR-03 GREEN step).",
+        description="HTTP task-queue service (FR-01 / FR-03 / FR-04 GREEN step).",
     )
     register_error_handlers(app)
-    app.include_router(create_tasks_router())
+    _flat_include_router(app, create_tasks_router())
 
     # ------------------------------------------------------------------
     # /v1/metrics — FR-09 (no auth required).

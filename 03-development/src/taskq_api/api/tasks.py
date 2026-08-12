@@ -21,7 +21,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Path, Query
 
-from taskq_api.api.deps import get_current_key, require_scope
+from taskq_api.api.deps import require_scope
 from taskq_api.errors import ValidationProblem
 from taskq_api.models.orm import TaskResult
 from taskq_api.models.schemas import TaskCreate, TaskOut
@@ -30,9 +30,10 @@ from taskq_api.service.tasks import TaskService
 
 
 # Auth/scope dependencies live in `api.deps` (SAD.md §2.7 — the single
-# dependency point). They are imported here so the routes below can
-# declare them, and re-exported via `__all__` for callers that still
-# reach for `api.tasks.get_current_key` / `api.tasks.require_scope`.
+# dependency point). `require_scope` is imported here so every route
+# below declares its scope gate through the same closure factory, and
+# re-exported via `__all__` for callers that reach for
+# `api.tasks.require_scope` directly.
 
 # SPEC.md §8 #16 — reject shell metacharacters in the submitted command
 # before it ever reaches the runner.
@@ -91,7 +92,7 @@ def create_tasks_router() -> APIRouter:
     )
     async def create_task(
         body: TaskCreate,
-        key: str = Depends(get_current_key),
+        key: str = Depends(require_scope("write")),
     ) -> dict:
         if _INJECTION_CHARS.search(body.command):
             raise ValidationProblem(detail="command contains forbidden characters")
@@ -108,7 +109,7 @@ def create_tasks_router() -> APIRouter:
     )
     async def get_task(
         task_id: str = Path(..., min_length=36, max_length=36),
-        key: str = Depends(get_current_key),
+        key: str = Depends(require_scope("read")),
     ) -> dict:
         return service.get(task_id)
 
@@ -128,7 +129,7 @@ def create_tasks_router() -> APIRouter:
         status: Optional[str] = Query(default=None),
         cursor: Optional[str] = Query(default=None),
         limit: int = Query(default=50, ge=1, le=200),
-        key: str = Depends(get_current_key),
+        key: str = Depends(require_scope("read")),
     ) -> dict:
         page = service.list(status=status, cursor=cursor, limit=limit)
         return {
@@ -148,7 +149,7 @@ def create_tasks_router() -> APIRouter:
     )
     async def delete_task(
         task_id: str = Path(..., min_length=36, max_length=36),
-        key: str = Depends(get_current_key),
+        key: str = Depends(require_scope("admin")),
     ) -> None:
         service.delete(task_id)
 
@@ -168,7 +169,7 @@ def create_tasks_router() -> APIRouter:
     )
     async def run_task(
         task_id: str = Path(..., min_length=36, max_length=36),
-        key: str = Depends(get_current_key),
+        key: str = Depends(require_scope("write")),
     ) -> dict:
         # 404 if the target task does not exist (AC7-unknown-run).
         task = service.get(task_id)
@@ -191,7 +192,7 @@ def create_tasks_router() -> APIRouter:
     )
     async def list_runs(
         task_id: str = Path(..., min_length=36, max_length=36),
-        key: str = Depends(get_current_key),
+        key: str = Depends(require_scope("read")),
     ) -> dict:
         # 404 if the target task does not exist.
         service.get(task_id)
@@ -216,6 +217,5 @@ def create_tasks_router() -> APIRouter:
 
 __all__ = [
     "create_tasks_router",
-    "get_current_key",
     "require_scope",
 ]
