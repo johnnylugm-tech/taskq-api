@@ -31,6 +31,17 @@ from taskq_api.service.auth import redact_db_url
 # [FR-07] Head alembic revision. Compared against ``alembic_version``
 # at /readyz time (SPEC §3 FR-07 / SPEC §8 #11).
 _MIGRATION_HEAD: str = "v3_split_results"
+_BEHIND_HEAD_PREFIX: str = "migration is behind head"
+
+
+def _behind_head_detail(reason: str) -> str:
+    """[FR-07] Compose the /readyz 503 detail string for a behind-head state.
+
+    Centralises the prefix so every branch in ``_check_migration_state``
+    produces a detail string with the same shape — operators can rely
+    on the leading ``migration`` token regardless of which check fired.
+    """
+    return f"{_BEHIND_HEAD_PREFIX} ({reason})"
 
 
 def _check_migration_state() -> tuple[bool, str]:
@@ -46,7 +57,7 @@ def _check_migration_state() -> tuple[bool, str]:
     if not db_url:
         # No DB configured — report "behind" with a generic detail so
         # the operator sees "migration" in the response.
-        return False, "migration is behind head (no TASKQ_DB_URL configured)"
+        return False, _behind_head_detail("no TASKQ_DB_URL configured")
 
     try:
         engine = create_engine(db_url)
@@ -54,17 +65,17 @@ def _check_migration_state() -> tuple[bool, str]:
             row = conn.execute(
                 sql_text("SELECT version_num FROM alembic_version")
             ).first()
-    except Exception as exc:  # pragma: no cover — defensive
-        return False, f"migration is behind head (alembic probe error)"
+    except Exception:  # pragma: no cover — defensive
+        return False, _behind_head_detail("alembic probe error")
 
     if row is None:
-        return False, "migration is behind head (no alembic_version row)"
+        return False, _behind_head_detail("no alembic_version row")
 
     current = row[0]
     if current != _MIGRATION_HEAD:
         return (
             False,
-            f"migration is behind head (current={current}, head={_MIGRATION_HEAD})",
+            _behind_head_detail(f"current={current}, head={_MIGRATION_HEAD}"),
         )
     return True, f"migration at head ({_MIGRATION_HEAD})"
 
