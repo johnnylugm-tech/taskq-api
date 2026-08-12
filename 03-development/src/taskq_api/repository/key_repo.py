@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from taskq_api.models.orm import ApiKey
 from taskq_api.repository import session as _session_module
 
 
@@ -39,17 +40,27 @@ class KeyRepo:
     _by_key: dict[str, str] = {}
 
     def __init__(self, session: Optional["object"] = None) -> None:
-        # Defer `_session_module.get_session()` until first use so tests
-        # can patch it via `monkeypatch.setattr` before the autouse
-        # fixture runs.
+        # `None` is the sentinel for "fetch lazily": tests pass no
+        # session and patch `_session_module.get_session` first, so
+        # we only resolve on the first command.
         self._session = session
-        self._session_acquired = session is not None
 
     def _ensure_session(self) -> "object":
-        if not self._session_acquired:
+        if self._session is None:
             self._session = _session_module.get_session()
-            self._session_acquired = True
         return self._session  # type: ignore[return-value]
+
+    def _delegate(self, method_name: str, *args: Any) -> None:
+        """Forward ``method_name`` to the session if it supports it.
+
+        `_FakeSession` (tests) may omit methods; the real SQLAlchemy
+        session has them. The `getattr` check keeps both shapes
+        callable through the same surface.
+        """
+        sess = self._ensure_session()
+        method = getattr(sess, method_name, None)
+        if method is not None:
+            method(*args)
 
     # ------------------------------------------------------------------
     # Commands
@@ -57,32 +68,24 @@ class KeyRepo:
     def create(self, *, scope: str, key_hash: str) -> dict[str, Any]:
         """[FR-03] Insert a new api_keys row and return it.
 
+        The row is materialised by the `ApiKey` ORM so it gets a real
+        primary key and the exact `api_keys` column set.
+
         Citations:
         - SPEC.md §3 FR-03 — only the hash is persisted; the
           plaintext is never accepted or stored here.
         """
-        row = {
-            "id": "",
-            "scope": scope,
-            "key_hash": key_hash,
-            "revoked_at": None,
-        }
-        sess = self._ensure_session()
-        if hasattr(sess, "add"):
-            sess.add(row)  # type: ignore[attr-defined]
+        row = ApiKey(scope=scope, key_hash=key_hash).as_row()
+        self._delegate("add", row)
         return row
 
     def commit(self) -> None:
         """Commit the current unit-of-work."""
-        sess = self._ensure_session()
-        if hasattr(sess, "commit"):
-            sess.commit()  # type: ignore[attr-defined]
+        self._delegate("commit")
 
     def rollback(self) -> None:
         """Rollback the current unit-of-work."""
-        sess = self._ensure_session()
-        if hasattr(sess, "rollback"):
-            sess.rollback()  # type: ignore[attr-defined]
+        self._delegate("rollback")
 
     # ------------------------------------------------------------------
     # Queries
@@ -103,12 +106,14 @@ class KeyRepo:
             return None
         return KeyRepo._registry.get(key_id)
 
-    def register(self, row: dict[str, Any], *, raw_key: str) -> None:
+    @staticmethod
+    def register(row: dict[str, Any], *, raw_key: str) -> None:
         """Persist a key row in the in-process registry.
 
         The caller is responsible for hashing the plaintext before
         calling ``create``; this method only maps a primary key and
-        the lookup-by-hash side table.
+        the lookup-by-hash side table. Static because it operates on
+        the module-level registry, not instance state.
         """
         KeyRepo._registry[row["id"]] = row
         KeyRepo._by_key[raw_key] = row["id"]
