@@ -51,6 +51,10 @@ class ValidationProblem(ProblemDetail):
     type_uri = "/errors/validation"
     title = "Validation Error"
 
+    def __init__(self, detail: Any = "validation error", **kw: Any) -> None:
+        kw.setdefault("status", 422)
+        super().__init__(detail=detail, **kw)
+
 
 class AuthProblem(ProblemDetail):
     """[FR-10] 401 — missing or invalid API key.

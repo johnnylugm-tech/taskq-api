@@ -128,6 +128,17 @@ def _stub_external_side_effects(monkeypatch):
             return self
 
         def all(self):
+            # Mirror the TaskRepo in-process registry so the list
+            # endpoint reflects rows POSTed in earlier requests (each
+            # request gets a fresh `_FakeSession`, so the session's
+            # own `_rows` is empty by the time `list` runs).
+            try:
+                from taskq_api.repository.task_repo import TaskRepo
+                registry_rows = list(TaskRepo._registry.values())
+                if registry_rows:
+                    return list(registry_rows)
+            except Exception:
+                pass
             return list(self._rows)
 
         def first(self):
@@ -174,7 +185,7 @@ def _problem_detail_str(response) -> str:
 
 @pytest.mark.asyncio
 async def test_fr01_create_task_201(client, write_api_key):
-    """AC1-create-status / AC1-create-id-present.
+    """AC1-create-status / AC1-create-id-present. [NFR-09][NFR-10]
 
     POST /v1/tasks with a valid write key returns 201 and a 36-char
     task id (UUIDv4). happy_path / Q1.
@@ -193,7 +204,7 @@ async def test_fr01_create_task_201(client, write_api_key):
 
 @pytest.mark.asyncio
 async def test_fr01_create_task_no_key_401(client):
-    """AC2-no-key-status.
+    """AC2-no-key-status. [NFR-02][NFR-10]
 
     POST /v1/tasks with no X-API-Key header returns 401. Q2 / NP-01.
     """
@@ -210,7 +221,7 @@ async def test_fr01_create_task_no_key_401(client):
 
 @pytest.mark.asyncio
 async def test_fr01_get_task_unknown_404(client, read_api_key):
-    """AC3-unknown-status.
+    """AC3-unknown-status. [NFR-09]
 
     GET /v1/tasks/{unknown} with a read key returns 404 + problem+json.
     Q2.
@@ -228,7 +239,7 @@ async def test_fr01_get_task_unknown_404(client, read_api_key):
 
 @pytest.mark.asyncio
 async def test_fr01_create_task_duplicate_409(client, write_api_key):
-    """AC4-duplicate-status.
+    """AC4-duplicate-status. [NFR-03]
 
     POST /v1/tasks with a name that already exists returns 409.
     Q2.
@@ -250,7 +261,7 @@ async def test_fr01_create_task_duplicate_409(client, write_api_key):
 
 @pytest.mark.asyncio
 async def test_fr01_pydantic_validation_422(client, write_api_key):
-    """AC5-empty-name-status / AC5-empty-name-detail.
+    """AC5-empty-name-status / AC5-empty-name-detail. [NFR-02]
 
     POST /v1/tasks with an empty `name` violates the non-empty rule
     and returns 422 + problem+json whose detail mentions 'name'.
@@ -272,7 +283,7 @@ async def test_fr01_pydantic_validation_422(client, write_api_key):
 
 @pytest.mark.asyncio
 async def test_fr01_pydantic_validation_oversize_422(client, write_api_key):
-    """AC6-oversize-status / AC6-oversize-detail.
+    """AC6-oversize-status / AC6-oversize-detail. [NFR-02]
 
     POST /v1/tasks with a 1001-char command violates the <=1000 rule
     and returns 422 + problem+json whose detail mentions '1000' or
@@ -297,7 +308,7 @@ async def test_fr01_pydantic_validation_oversize_422(client, write_api_key):
 
 @pytest.mark.asyncio
 async def test_fr01_pagination_cursor_default(client, read_api_key, monkeypatch):
-    """AC7-cursor-default-limit.
+    """AC7-cursor-default-limit. [NFR-01]
 
     GET /v1/tasks with no `limit` param returns a page whose
     `limit` field equals 50. Q1 / NP-12.
@@ -315,7 +326,7 @@ async def test_fr01_pagination_cursor_default(client, read_api_key, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_fr01_pagination_cursor_overbound_422(client, read_api_key):
-    """AC8-overbound-status.
+    """AC8-overbound-status. [NFR-02]
 
     GET /v1/tasks?limit=201 exceeds the upper bound and returns 422.
     Q3 / NP-12.
@@ -333,7 +344,7 @@ async def test_fr01_pagination_cursor_overbound_422(client, read_api_key):
 
 @pytest.mark.asyncio
 async def test_fr01_list_sql_count_constant(client, read_api_key):
-    """AC9-sql-count-constant / AC9-no-n-plus-1.
+    """AC9-sql-count-constant / AC9-no-n-plus-1. [NFR-01]
 
     GET /v1/tasks?limit=50 against 10,000 rows runs a CONSTANT number
     of SQL statements (N+1 ban, NFR-01). The TASK_SPEC allows <= 2
@@ -380,3 +391,276 @@ async def test_fr01_list_sql_count_constant(client, read_api_key):
     assert result_sql_statement_count == 2
     assert result_sql_statement_count < 5
     assert response.status_code == 200, response.text
+
+
+# ---------------------------------------------------------------------------
+# FR-01 — Coverage tests (added by COVERAGE-FIX step)
+#
+# Each function below targets a previously-uncovered source line that is
+# REACHABLE from a normal request flow. None of them use `# pragma: no
+# cover` — the project's PRAGMA_NO_COVER_ALLOWLIST exempts only
+# `except BaseException` (atomic-write cleanup), so unreachable lines are
+# either deleted or covered by a unit test.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fr01_get_existing_task_200(client, write_api_key, read_api_key):
+    """Coverage: `service.tasks.get` line 73 (`return row`).
+
+    After a successful POST, GET on the returned id must surface the
+    row. The earlier `test_fr01_get_task_unknown_404` only covers the
+    `raise NotFoundProblem` branch; this test covers the happy-path
+    `return row` line.
+    """
+    create = await client.post(
+        "/v1/tasks",
+        json={"name": "alpha-build", "command": "echo alpha"},
+        headers={"X-API-Key": write_api_key},
+    )
+    assert create.status_code == 201, create.text
+    task_id = create.json()["id"]
+    response = await client.get(
+        f"/v1/tasks/{task_id}",
+        headers={"X-API-Key": read_api_key},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["id"] == task_id
+    assert body["name"] == "alpha-build"
+
+
+@pytest.mark.asyncio
+async def test_fr01_delete_task_204(client, write_api_key):
+    """Coverage: `service.tasks.delete` + `repo.TaskRepo.delete` body.
+
+    The DELETE endpoint exists in `api.tasks.delete_task` but no test
+    had exercised it. This test creates a row, deletes it, and asserts
+    204 + the row is gone.
+    """
+    create = await client.post(
+        "/v1/tasks",
+        json={"name": "delta-build", "command": "echo delta"},
+        headers={"X-API-Key": write_api_key},
+    )
+    assert create.status_code == 201, create.text
+    task_id = create.json()["id"]
+    response = await client.delete(
+        f"/v1/tasks/{task_id}",
+        headers={"X-API-Key": write_api_key},
+    )
+    assert response.status_code == 204, response.text
+    # And a second delete is now a 404 (covers the NotFoundProblem
+    # branch in service.delete).
+    repeat = await client.delete(
+        f"/v1/tasks/{task_id}",
+        headers={"X-API-Key": write_api_key},
+    )
+    assert repeat.status_code == 404, repeat.text
+    assert repeat.headers.get("content-type", "").startswith(
+        "application/problem+json"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fr01_create_task_injection_char_422(
+    client, write_api_key, monkeypatch
+):
+    """Coverage: `api.tasks.create_task` line 103 (injection blacklist).
+
+    The router raises ValidationProblem when the command contains
+    shell-metacharacters (`; & | ` $ \\ < > ' "`). Force the auth
+    verifier to accept so the request reaches the route body.
+    """
+    response = await client.post(
+        "/v1/tasks",
+        json={"name": "injection-task", "command": "echo hi; rm -rf /"},
+        headers={"X-API-Key": write_api_key},
+    )
+    result_status_code = response.status_code
+    result_problem_detail_str = _problem_detail_str(response)
+    assert result_status_code == 422
+    assert (
+        "command" in result_problem_detail_str
+        or "forbidden" in result_problem_detail_str
+    )
+    assert response.headers.get("content-type", "").startswith(
+        "application/problem+json"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fr01_invalid_api_key_401(client, monkeypatch):
+    """Coverage: `api.tasks.get_current_key` line 49 (invalid key).
+
+    Force `verify_key` to return False so the dependency raises
+    AuthProblem with the 'API key is not valid' detail.
+    """
+    from taskq_api.service import auth as _auth
+
+    monkeypatch.setattr(
+        _auth,
+        "verify_key",
+        lambda raw, hashed: False,
+    )
+    response = await client.get(
+        "/v1/tasks",
+        headers={"X-API-Key": "any-key"},
+    )
+    result_status_code = response.status_code
+    result_problem_detail_str = _problem_detail_str(response)
+    assert result_status_code == 401
+    assert "not valid" in result_problem_detail_str
+    assert response.headers.get("content-type", "").startswith(
+        "application/problem+json"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fr01_require_scope_dependency_returns_key(monkeypatch):
+    """Coverage: `api.tasks.require_scope` lines 59-70.
+
+    Build a tiny FastAPI app with a `/probe` route gated by
+    `require_scope("read")`. The dependency MUST resolve to the
+    authenticated key.
+    """
+    from fastapi import FastAPI, Depends
+    from taskq_api.api.tasks import require_scope
+
+    app = FastAPI()
+    dep = require_scope("read")
+
+    @app.get("/probe")
+    async def _probe(key: str = Depends(dep)):
+        return {"key": key}
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        # Happy path — key resolves through the dependency.
+        ok = await ac.get(
+            "/probe", headers={"X-API-Key": "test-read-key"}
+        )
+        assert ok.status_code == 200, ok.text
+        assert ok.json()["key"] == "test-read-key"
+
+    # Forbidden path — drive the inner `_dep` callback directly. Going
+    # through the route would short-circuit at `get_current_key` (which
+    # also calls `verify_key`); calling `_dep` with a pre-authenticated
+    # `key` exercises the inner scope check.
+    from taskq_api.api import tasks as _tasks
+
+    inner_dep = _tasks.require_scope("read")
+
+    class _StubRequest:
+        pass
+
+    # 1) verify_key True → returns key
+    monkeypatch.setattr(
+        "taskq_api.service.auth.verify_key",
+        lambda raw, hashed: True,
+    )
+    assert inner_dep(_StubRequest(), key="x") == "x"
+
+    # 2) verify_key False → raises ForbiddenProblem
+    monkeypatch.setattr(
+        "taskq_api.service.auth.verify_key",
+        lambda raw, hashed: False,
+    )
+    from taskq_api.errors import ForbiddenProblem
+    with pytest.raises(ForbiddenProblem):
+        inner_dep(_StubRequest(), key="x")
+
+
+@pytest.mark.asyncio
+async def test_fr01_list_with_status_filter(client, read_api_key, write_api_key):
+    """Coverage: `repo.TaskRepo.list` line 143 (status filter).
+
+    Seed two tasks with distinct statuses (only `pending` is exposed by
+    the API, so we register the second row directly via the repo) and
+    call the list endpoint with `?status=pending` — must return only
+    the pending row.
+    """
+    from taskq_api.repository.task_repo import TaskRepo
+
+    create = await client.post(
+        "/v1/tasks",
+        json={"name": "filter-pending", "command": "echo p"},
+        headers={"X-API-Key": write_api_key},
+    )
+    assert create.status_code == 201, create.text
+
+    # Register a non-pending row directly so the filter has something
+    # to exclude.
+    TaskRepo().register(
+        {
+            "id": "11111111-1111-1111-1111-111111111111",
+            "name": "filter-running",
+            "command": "echo r",
+            "status": "running",
+        }
+    )
+
+    response = await client.get(
+        "/v1/tasks?status=pending",
+        headers={"X-API-Key": read_api_key},
+    )
+    assert response.status_code == 200, response.text
+    items = response.json()["items"]
+    statuses = {item["status"] for item in items}
+    assert statuses == {"pending"}
+    assert any(item["name"] == "filter-pending" for item in items)
+    assert not any(item["name"] == "filter-running" for item in items)
+
+
+@pytest.mark.asyncio
+async def test_fr01_list_pagination_next_cursor(client, read_api_key, write_api_key):
+    """Coverage: `repo.TaskRepo.list` lines 147-148 (next_cursor).
+
+    Seed more than `limit` rows and confirm the response carries a
+    non-null `next_cursor`. The cursor encodes the last seen id.
+    """
+    from taskq_api.repository.task_repo import TaskRepo
+
+    # Seed 3 rows directly so the default limit (50) is not exceeded
+    # by the seed alone — instead we ask for limit=2 so 3 > 2 triggers
+    # the next_cursor branch.
+    for i in range(3):
+        TaskRepo().register(
+            {
+                "id": f"22222222-2222-2222-2222-00000000000{i}",
+                "name": f"cursor-row-{i}",
+                "command": f"echo {i}",
+                "status": "pending",
+            }
+        )
+
+    response = await client.get(
+        "/v1/tasks?limit=2",
+        headers={"X-API-Key": read_api_key},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["limit"] == 2
+    assert len(body["items"]) == 2
+    assert body["next_cursor"] is not None
+
+
+@pytest.mark.asyncio
+async def test_fr01_repo_list_count_returns_int():
+    """Coverage: `repo.TaskRepo.list_count` line 153 (debug aid).
+
+    Direct unit test against the in-process registry; no HTTP round
+    trip needed.
+    """
+    from taskq_api.repository.task_repo import TaskRepo
+
+    TaskRepo().register(
+        {
+            "id": "33333333-3333-3333-3333-333333333333",
+            "name": "count-row",
+            "command": "echo c",
+            "status": "pending",
+        }
+    )
+    n = TaskRepo().list_count()
+    assert n >= 1
