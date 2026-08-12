@@ -181,6 +181,34 @@ def _problem_envelope(
     }
 
 
+async def _build_problem_response(
+    request: Request, problem: ProblemDetail
+) -> tuple[JSONResponse, str]:
+    """[FR-10] Render ``problem`` into a sanitised problem+json response.
+
+    Generates a fresh ``correlation_id`` (UUID4), captures the request
+    path as ``instance``, serialises the envelope, builds the
+    ``JSONResponse`` with the canonical media type, and mirrors the
+    correlation id into the ``X-Correlation-Id`` header (SPEC §3
+    FR-10). Returns the response alongside the correlation id so
+    callers that need to log / forward it can read the same value
+    the client received.
+
+    Citations: SPEC.md §3 FR-10; SPEC.md §7; SPEC.md §8 #19.
+    errors.py:179-200
+    """
+    cid = str(uuid.uuid4())
+    instance = str(request.url.path)
+    body = _problem_envelope(problem, correlation_id=cid, instance=instance)
+    response = JSONResponse(
+        content=body,
+        status_code=problem.status,
+        media_type="application/problem+json",
+    )
+    response.headers["X-Correlation-Id"] = cid
+    return response, cid
+
+
 async def _problem_exception_handler(
     request: Request, exc: Exception
 ) -> JSONResponse:
@@ -191,7 +219,7 @@ async def _problem_exception_handler(
     the ``X-Correlation-Id`` response header (SPEC §3 FR-10).
 
     Citations: SPEC.md §3 FR-10; SPEC.md §7.
-    errors.py:179-208
+    errors.py:203-218
     """
     problem_exc = cast(ProblemDetail, exc)
 
@@ -206,15 +234,7 @@ async def _problem_exception_handler(
     ):
         problem_exc = ValidationProblem(detail=problem_exc.detail)
 
-    cid = str(uuid.uuid4())
-    instance = str(request.url.path)
-    body = _problem_envelope(problem_exc, correlation_id=cid, instance=instance)
-    response = JSONResponse(
-        content=body,
-        status_code=problem_exc.status,
-        media_type="application/problem+json",
-    )
-    response.headers["X-Correlation-Id"] = cid
+    response, _cid = await _build_problem_response(request, problem_exc)
     return response
 
 
@@ -229,20 +249,11 @@ async def _validation_exception_handler(
     ``"command"``.
 
     Citations: SPEC.md §3 FR-10; SPEC.md §7.
-    errors.py:212-234
+    errors.py:222-234
     """
     validation_exc = cast(RequestValidationError, exc)
-    cid = str(uuid.uuid4())
-    instance = str(request.url.path)
-    detail = validation_exc.errors()
-    problem = ValidationProblem(status=422, detail=detail)
-    body = _problem_envelope(problem, correlation_id=cid, instance=instance)
-    response = JSONResponse(
-        content=body,
-        status_code=problem.status,
-        media_type="application/problem+json",
-    )
-    response.headers["X-Correlation-Id"] = cid
+    problem = ValidationProblem(status=422, detail=validation_exc.errors())
+    response, _cid = await _build_problem_response(request, problem)
     return response
 
 
@@ -258,18 +269,9 @@ async def _generic_exception_handler(
     carry the same UUID4.
 
     Citations: SPEC.md §8 #19; NFR-02.
-    errors.py:238-258
+    errors.py:238-247
     """
-    cid = str(uuid.uuid4())
-    instance = str(request.url.path)
-    problem = InternalProblem()
-    body = _problem_envelope(problem, correlation_id=cid, instance=instance)
-    response = JSONResponse(
-        content=body,
-        status_code=problem.status,
-        media_type="application/problem+json",
-    )
-    response.headers["X-Correlation-Id"] = cid
+    response, _cid = await _build_problem_response(request, InternalProblem())
     return response
 
 
