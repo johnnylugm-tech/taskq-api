@@ -437,7 +437,16 @@ async def test_fr01_delete_task_204(client, write_api_key):
     The DELETE endpoint exists in `api.tasks.delete_task` but no test
     had exercised it. This test creates a row, deletes it, and asserts
     204 + the row is gone.
+
+    FR-04 scoping: DELETE requires `admin` scope. The fixture returns
+    ``test-write-key`` (WRITE by default); the test re-registers the
+    key with `admin` scope so the gate accepts the DELETE.
     """
+    from taskq_api.repository.key_repo import KeyRepo
+
+    # Create the task with the WRITE-scoped key (registered by the
+    # shared conftest autouse fixture), then re-register the key with
+    # admin scope so the DELETE gate accepts the next call.
     create = await client.post(
         "/v1/tasks",
         json={"name": "delta-build", "command": "echo delta"},
@@ -445,6 +454,17 @@ async def test_fr01_delete_task_204(client, write_api_key):
     )
     assert create.status_code == 201, create.text
     task_id = create.json()["id"]
+
+    # Re-register the write_api_key with admin scope so the DELETE
+    # gate (`require_scope("admin")`) accepts it.
+    KeyRepo._registry[f"key-admin-{write_api_key}"] = {
+        "id": f"key-admin-{write_api_key}",
+        "scope": "admin",
+        "key_hash": "0" * 64,
+        "revoked_at": None,
+    }
+    KeyRepo._by_key[write_api_key] = f"key-admin-{write_api_key}"
+
     response = await client.delete(
         f"/v1/tasks/{task_id}",
         headers={"X-API-Key": write_api_key},
@@ -559,14 +579,24 @@ async def test_fr01_require_scope_dependency_returns_key(monkeypatch):
         "taskq_api.service.auth.verify_key",
         lambda raw, hashed: True,
     )
+    # FR-04: the scope gate now consults KeyRepo. Register `x` with
+    # `read` scope so the inner-dep accept branch fires.
+    from taskq_api.repository.key_repo import KeyRepo
+    KeyRepo._registry["key-read-x"] = {
+        "id": "key-read-x",
+        "scope": "read",
+        "key_hash": "0" * 64,
+        "revoked_at": None,
+    }
+    KeyRepo._by_key["x"] = "key-read-x"
     assert inner_dep(_StubRequest(), key="x") == "x"
 
-    # 2) verify_key False → raises ForbiddenProblem
-    monkeypatch.setattr(
-        "taskq_api.service.auth.verify_key",
-        lambda raw, hashed: False,
-    )
+    # 2) key not in KeyRepo → raises ForbiddenProblem
+    # FR-04: the gate rejects keys that have no row in KeyRepo. The
+    # `verify_key` monkeypatch is no longer relevant — the gate's
+    # lookup is the KeyRepo side-table registered above.
     from taskq_api.errors import ForbiddenProblem
+    KeyRepo._by_key.pop("x", None)
     with pytest.raises(ForbiddenProblem):
         inner_dep(_StubRequest(), key="x")
 

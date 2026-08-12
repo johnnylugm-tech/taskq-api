@@ -73,13 +73,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
+    # argparse with `required=True` on both subparsers guarantees one
+    # of the dispatch branches is reached; --help is handled by
+    # argparse before this function returns. The dispatch table makes
+    # the "every command is wired" invariant explicit so a missing
+    # entry fails fast instead of falling through silently.
     if args.command == "key" and args.key_command == "create":
         return _cmd_key_create(scope=args.scope)
 
-    # argparse with `required=True` on both subparsers guarantees one
-    # of the dispatch branches is reached; this fallback is unreachable.
-    parser.error("unknown command")
-    return 2  # pragma: no cover — defensive fallback
+    raise AssertionError(  # noqa: TRY003 — defensive unreachable guard
+        f"unreachable dispatch: command={args.command!r}, "
+        f"key_command={getattr(args, 'key_command', None)!r}"
+    )
 
 
 if __name__ == "__main__":

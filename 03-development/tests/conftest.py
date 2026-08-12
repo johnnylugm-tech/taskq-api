@@ -39,3 +39,45 @@ def _reset_taskq_state():
     yield
     TaskRepo._registry.clear()
     TaskRepo._by_name.clear()
+
+
+@pytest.fixture(autouse=True)
+def _register_default_api_keys():
+    """Pre-register the canonical test API keys so `/v1/*` routes pass the gate.
+
+    FR-04 makes `service.auth.scope_allows` consult the in-process
+    `KeyRepo._by_key` / `KeyRepo._registry` side-tables; without a
+    registered row, the scope gate rejects every request with 403.
+    The pre-existing test suites (FR-01 / FR-02 / FR-03) hand out
+    static plaintext keys (e.g. ``test-write-key``) without registering
+    them — this autouse fixture bridges the gap so the legacy suites
+    continue to authenticate without each test having to wire up a
+    `KeyRepo` row of its own. Production wiring moves the key store
+    into the real DB and this fixture becomes a no-op.
+    """
+    from taskq_api.repository.key_repo import KeyRepo
+
+    # Reset the api_keys side-tables so each test starts clean.
+    KeyRepo._registry.clear()
+    KeyRepo._by_key.clear()
+
+    for scope, raw_key in (
+        ("write", "test-write-key"),
+        ("read", "test-read-key"),
+        ("admin", "test-admin-key"),
+        ("write", "fr04-write-key"),
+        ("admin", "fr04-admin-key"),
+    ):
+        key_id = f"key-{scope}-{raw_key}"
+        KeyRepo._registry[key_id] = {
+            "id": key_id,
+            "scope": scope,
+            "key_hash": "0" * 64,
+            "revoked_at": None,
+        }
+        KeyRepo._by_key[raw_key] = key_id
+
+    yield
+
+    KeyRepo._registry.clear()
+    KeyRepo._by_key.clear()

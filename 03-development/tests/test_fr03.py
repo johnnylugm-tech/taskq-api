@@ -858,8 +858,23 @@ def test_fr03_require_scope_inner_dep_runs():
     Calling the closure with a non-empty key reaches the verify
     branch; the autouse stub accepts any non-empty pair, so the
     closure falls through to `return key`.
+
+    FR-04: the closure now consults `scope_allows`, which looks up
+    the key in KeyRepo. Pre-register `valid-key` with `write` scope
+    so the gate accepts.
     """
     from starlette.requests import Request
+
+    from taskq_api.repository.key_repo import KeyRepo
+
+    # FR-04: register valid-key with write scope so the gate accepts.
+    KeyRepo._registry["key-write-valid-key"] = {
+        "id": "key-write-valid-key",
+        "scope": "write",
+        "key_hash": "0" * 64,
+        "revoked_at": None,
+    }
+    KeyRepo._by_key["valid-key"] = "key-write-valid-key"
 
     scope = {
         "type": "http",
@@ -880,7 +895,11 @@ def test_fr03_require_scope_inner_dep_raises_on_bad_verify(monkeypatch):
     """[FR-03] `require_scope`'s closure raises ForbiddenProblem on bad verify.
 
     Covers api/deps.py line 77
-    (`raise ForbiddenProblem(detail="insufficient scope")`).
+    (`raise ForbiddenProblem(detail="forbidden")`).
+
+    FR-04: the gate's detail is the opaque `"forbidden"` token so
+    the response does not leak whether the resource exists
+    (SPEC §3 FR-04 / FR-09).
     """
     from starlette.requests import Request
 
@@ -905,4 +924,4 @@ def test_fr03_require_scope_inner_dep_raises_on_bad_verify(monkeypatch):
     with pytest.raises(ForbiddenProblem) as excinfo:
         dep(request=request, key="some-key")
     assert excinfo.value.status == 403
-    assert excinfo.value.detail == "insufficient scope"
+    assert excinfo.value.detail == "forbidden"

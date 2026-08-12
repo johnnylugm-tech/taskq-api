@@ -568,6 +568,17 @@ def test_fr02_require_scope_inner_dep_allow(monkeypatch):
 
     monkeypatch.setattr(_auth, "verify_key", lambda raw, hashed: True)
 
+    # FR-04: the scope gate now consults KeyRepo. Register `good-key`
+    # with `admin` scope so the inner-dep accept branch fires.
+    from taskq_api.repository.key_repo import KeyRepo
+    KeyRepo._registry["key-admin-good-key"] = {
+        "id": "key-admin-good-key",
+        "scope": "admin",
+        "key_hash": "0" * 64,
+        "revoked_at": None,
+    }
+    KeyRepo._by_key["good-key"] = "key-admin-good-key"
+
     dep = require_scope("admin", "write")
     fake_request = SimpleNamespace()
     returned = dep(fake_request, key="good-key")
@@ -591,8 +602,12 @@ async def test_fr02_create_task_injection_chars_422(client, write_api_key):
 
 # NFR-09 NFR-10
 @pytest.mark.asyncio
-async def test_fr02_get_task_200(client, write_api_key):
-    """Coverage for api/tasks.py:151 — GET /v1/tasks/{id} success path."""
+async def test_fr02_get_task_200(client, write_api_key, read_api_key):
+    """Coverage for api/tasks.py:151 — GET /v1/tasks/{id} success path.
+
+    FR-04: GET requires `read` scope, so the read key is used for the
+    read endpoint while the write key creates the task.
+    """
     create = await client.post(
         "/v1/tasks",
         json={"name": "fr02-get-1", "command": "echo hi"},
@@ -603,7 +618,7 @@ async def test_fr02_get_task_200(client, write_api_key):
 
     response = await client.get(
         f"/v1/tasks/{task_id}",
-        headers={"X-API-Key": write_api_key},
+        headers={"X-API-Key": read_api_key},
     )
     assert response.status_code == 200
     body = response.json()
@@ -613,8 +628,12 @@ async def test_fr02_get_task_200(client, write_api_key):
 
 # NFR-09 NFR-10 NFR-01
 @pytest.mark.asyncio
-async def test_fr02_list_tasks_with_cursor(client, write_api_key):
-    """Coverage for api/tasks.py:171-176 — GET /v1/tasks list path + pagination shape."""
+async def test_fr02_list_tasks_with_cursor(client, write_api_key, read_api_key):
+    """Coverage for api/tasks.py:171-176 — GET /v1/tasks list path + pagination shape.
+
+    FR-04: GET requires `read` scope; the read key lists while the
+    write key creates the seed row.
+    """
     # Seed at least one task to ensure non-empty page.
     create = await client.post(
         "/v1/tasks",
@@ -625,7 +644,7 @@ async def test_fr02_list_tasks_with_cursor(client, write_api_key):
 
     response = await client.get(
         "/v1/tasks",
-        headers={"X-API-Key": write_api_key},
+        headers={"X-API-Key": read_api_key},
     )
     assert response.status_code == 200
     body = response.json()
@@ -637,7 +656,16 @@ async def test_fr02_list_tasks_with_cursor(client, write_api_key):
 # NFR-09 NFR-10
 @pytest.mark.asyncio
 async def test_fr02_delete_task_204(client, write_api_key):
-    """Coverage for api/tasks.py:191 — DELETE /v1/tasks/{id} happy path."""
+    """Coverage for api/tasks.py:191 — DELETE /v1/tasks/{id} happy path.
+
+    FR-04: DELETE requires `admin` scope. Re-register the write key
+    with `admin` scope so the gate accepts the DELETE.
+    """
+    from taskq_api.repository.key_repo import KeyRepo
+
+    # Create the task with the WRITE-scoped key (registered by the
+    # shared conftest autouse fixture), then re-register the key with
+    # admin scope so the DELETE gate accepts the next call.
     create = await client.post(
         "/v1/tasks",
         json={"name": "fr02-del-1", "command": "echo hi"},
@@ -645,6 +673,15 @@ async def test_fr02_delete_task_204(client, write_api_key):
     )
     assert create.status_code == 201
     task_id = create.json()["id"]
+
+    # Re-register write_api_key with admin scope so DELETE gate accepts.
+    KeyRepo._registry[f"key-admin-{write_api_key}"] = {
+        "id": f"key-admin-{write_api_key}",
+        "scope": "admin",
+        "key_hash": "0" * 64,
+        "revoked_at": None,
+    }
+    KeyRepo._by_key[write_api_key] = f"key-admin-{write_api_key}"
 
     response = await client.delete(
         f"/v1/tasks/{task_id}",
@@ -655,8 +692,13 @@ async def test_fr02_delete_task_204(client, write_api_key):
 
 # NFR-09 NFR-10
 @pytest.mark.asyncio
-async def test_fr02_list_runs_for_task(client, write_api_key, monkeypatch):
-    """Coverage for api/tasks.py:235-249 — GET /v1/tasks/{id}/runs happy path."""
+async def test_fr02_list_runs_for_task(client, write_api_key, read_api_key, monkeypatch):
+    """Coverage for api/tasks.py:235-249 — GET /v1/tasks/{id}/runs happy path.
+
+    FR-04: GET /v1/tasks/{id}/runs requires `read` scope; the read
+    key is used for the read endpoint while the write key creates
+    and runs the task.
+    """
     from taskq_api.service import runner as _runner
 
     async def _fake_run(self, command):
@@ -686,7 +728,7 @@ async def test_fr02_list_runs_for_task(client, write_api_key, monkeypatch):
 
     response = await client.get(
         f"/v1/tasks/{task_id}/runs",
-        headers={"X-API-Key": write_api_key},
+        headers={"X-API-Key": read_api_key},
     )
     assert response.status_code == 200
     body = response.json()

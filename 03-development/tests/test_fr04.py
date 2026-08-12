@@ -445,3 +445,71 @@ async def test_fr04_admin_delete_succeeds_204(client, write_api_key, admin_api_k
         f"expected 204; the require_scope('admin') gate must let "
         f"admin-scoped keys reach the DELETE handler"
     )
+
+
+# ---------------------------------------------------------------------------
+# Coverage backfill — exercise lines the spec tests do not hit so the
+# GATE1 coverage threshold is met for the modules FR-04 touches.
+# ---------------------------------------------------------------------------
+
+
+# NFR-09 NFR-10
+def test_main_dispatch_unreachable_guard(monkeypatch):
+    """[FR-03] The defensive dispatch guard in `__main__.main` is reachable
+    when the parser is fed an unrecognised `(command, key_command)`
+    pair that bypasses argparse's `required=True` validation. The guard
+    raises `AssertionError` so a missing dispatch table entry fails fast
+    instead of silently falling through with exit code 0.
+    """
+    import argparse
+
+    from taskq_api import __main__
+
+    fake_args = argparse.Namespace(command="key", key_command="delete", scope=None)
+
+    class _FakeParser:
+        def parse_args(self, _argv):
+            return fake_args
+
+    monkeypatch.setattr(__main__, "_build_parser", lambda: _FakeParser())
+
+    with pytest.raises(AssertionError) as excinfo:
+        __main__.main([])
+    assert "unreachable dispatch" in str(excinfo.value)
+    assert "command=" in str(excinfo.value)
+
+
+# NFR-09 NFR-10
+def test_main_key_create_dispatch(monkeypatch, capsys):
+    """[FR-03] `key create --scope <scope>` end-to-end via `__main__.main`.
+
+    Exercises the happy-path dispatch branch (`command="key"`,
+    `key_command="create"`) that the unreachable-guard test does not
+    hit, plus the `_gen_plaintext` → `print(KEY=…)` plumbing so
+    coverage of `__main__.py` is complete.
+    """
+    import argparse
+
+    from taskq_api import __main__
+    from taskq_api.repository.key_repo import KeyRepo
+
+    KeyRepo._registry.clear()
+    KeyRepo._by_key.clear()
+
+    fake_args = argparse.Namespace(command="key", key_command="create", scope="write")
+
+    class _FakeParser:
+        def parse_args(self, _argv):
+            return fake_args
+
+    monkeypatch.setattr(__main__, "_build_parser", lambda: _FakeParser())
+
+    rc = __main__.main([])
+    assert rc == 0
+
+    out = capsys.readouterr().out
+    assert out.startswith("KEY=")
+    assert len(out.splitlines()) == 1
+
+    KeyRepo._registry.clear()
+    KeyRepo._by_key.clear()
