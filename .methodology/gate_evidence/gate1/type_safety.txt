@@ -1,0 +1,46 @@
+{
+    "version": "1.1.409",
+    "time": "1786544228247",
+    "generalDiagnostics": [
+        {
+            "file": "/Users/johnny/projects/taskq-api/03-development/src/taskq_api/errors.py",
+            "severity": "error",
+            "message": "Argument of type \"(request: Request[State], exc: ProblemDetail) -> CoroutineType[Any, Any, JSONResponse]\" cannot be assigned to parameter \"handler\" of type \"ExceptionHandler\" in function \"add_exception_handler\"\n  Type \"(request: Request[State], exc: ProblemDetail) -> CoroutineType[Any, Any, JSONResponse]\" is not assignable to type \"ExceptionHandler\"\n    Type \"(request: Request[State], exc: ProblemDetail) -> CoroutineType[Any, Any, JSONResponse]\" is not assignable to type \"HTTPExceptionHandler\"\n      Parameter 2: type \"Exception\" is incompatible with type \"ProblemDetail\"\n        \"Exception\" is not assignable to \"ProblemDetail\"\n    Type \"(request: Request[State], exc: ProblemDetail) -> CoroutineType[Any, Any, JSONResponse]\" is not assignable to type \"WebSocketExceptionHandler\"\n      Parameter 1: type \"WebSocket[State]\" is incompatible with type \"Request[State]\"\n        \"WebSocket[State]\" is not assignable to \"Request[State]\"\n      Parameter 2: type \"Exception\" is incompatible with type \"ProblemDetail\"\n  ...",
+            "range": {
+                "start": {
+                    "line": 177,
+                    "character": 45
+                },
+                "end": {
+                    "line": 177,
+                    "character": 71
+                }
+            },
+            "rule": "reportArgumentType"
+        },
+        {
+            "file": "/Users/johnny/projects/taskq-api/03-development/src/taskq_api/errors.py",
+            "severity": "error",
+            "message": "Argument of type \"(request: Request[State], exc: RequestValidationError) -> CoroutineType[Any, Any, JSONResponse]\" cannot be assigned to parameter \"handler\" of type \"ExceptionHandler\" in function \"add_exception_handler\"\n  Type \"(request: Request[State], exc: RequestValidationError) -> CoroutineType[Any, Any, JSONResponse]\" is not assignable to type \"ExceptionHandler\"\n    Type \"(request: Request[State], exc: RequestValidationError) -> CoroutineType[Any, Any, JSONResponse]\" is not assignable to type \"HTTPExceptionHandler\"\n      Parameter 2: type \"Exception\" is incompatible with type \"RequestValidationError\"\n        \"Exception\" is not assignable to \"RequestValidationError\"\n    Type \"(request: Request[State], exc: RequestValidationError) -> CoroutineType[Any, Any, JSONResponse]\" is not assignable to type \"WebSocketExceptionHandler\"\n      Parameter 1: type \"WebSocket[State]\" is incompatible with type \"Request[State]\"\n        \"WebSocket[State]\" is not assignable to \"Request[State]\"\n      Parameter 2: type \"Exception\" is incompatible with type \"RequestValidationError\"\n  ...",
+            "range": {
+                "start": {
+                    "line": 178,
+                    "character": 54
+                },
+                "end": {
+                    "line": 178,
+                    "character": 83
+                }
+            },
+            "rule": "reportArgumentType"
+        }
+    ],
+    "summary": {
+        "filesAnalyzed": 13,
+        "errorCount": 2,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 0.556
+    }
+}
+

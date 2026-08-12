@@ -11,7 +11,7 @@ Citations:
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -141,25 +141,27 @@ def _problem_envelope(
 
 
 async def _problem_exception_handler(
-    request: Request, exc: ProblemDetail
+    request: Request, exc: Exception
 ) -> JSONResponse:
+    problem_exc = cast(ProblemDetail, exc)
     cid = str(uuid.uuid4())
-    body = _problem_envelope(exc, correlation_id=cid)
+    body = _problem_envelope(problem_exc, correlation_id=cid)
     response = JSONResponse(
-        content=body, status_code=exc.status, media_type="application/problem+json"
+        content=body, status_code=problem_exc.status, media_type="application/problem+json"
     )
     response.headers["X-Correlation-Id"] = cid
     return response
 
 
 async def _validation_exception_handler(
-    request: Request, exc: RequestValidationError
+    request: Request, exc: Exception
 ) -> JSONResponse:
+    validation_exc = cast(RequestValidationError, exc)
     cid = str(uuid.uuid4())
     # The pydantic / FastAPI error envelope includes `loc` for each
     # offending field (e.g. `["body","name"]`); test helpers search
     # the JSON-serialised form for substrings like "name" / "command".
-    detail = exc.errors()
+    detail = validation_exc.errors()
     problem = ValidationProblem(status=422, detail=detail)
     body = _problem_envelope(problem, correlation_id=cid)
     response = JSONResponse(

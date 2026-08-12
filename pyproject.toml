@@ -16,6 +16,14 @@ dependencies = []
 [project.optional-dependencies]
 dev = []
 
+[tool.pytest.ini_options]
+# `auto` makes `@pytest.mark.asyncio`-decorated async tests AND their
+# async `@pytest.fixture` deps run without a per-fixture decorator,
+# which the FR-01 test contract relies on (`async def client`).
+asyncio_mode = "auto"
+testpaths = ["03-development/tests"]
+pythonpath = ["03-development/src"]
+
 # Phase 3 Agent A owns the `src/taskq_api/` package layout; until then, the
 # manifest only needs to exist and parse for `run-env-check` to install
 # dependencies into the project venv.
