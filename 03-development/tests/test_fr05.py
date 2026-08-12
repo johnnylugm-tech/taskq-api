@@ -426,9 +426,386 @@ async def test_fr05_retry_after_header_present(monkeypatch, client, write_api_ke
     )
 
 
+# ---------------------------------------------------------------------------
+# Coverage tests — exercise every reachable line in deps.py / orm.py /
+# ratelimit.py / rate_repo.py that the spec tests above do not visit.
+#
+# These are NOT new SPEC tests (the four above are the spec contract);
+# they are unit tests that drive the production code paths that Gate 1's
+# coverage dimension expects to be exercised. Each one targets one or
+# more specific lines listed in the Gate 1 coverage report as Miss.
+# ---------------------------------------------------------------------------
+
+
+# NFR-09
+def test_fr05_apikey_init_with_id_uses_provided_id():
+    """[coverage] Exercise ``ApiKey.__init__`` lines 72-75.
+
+    With a non-None ``id`` argument the constructor must use it instead
+    of generating a UUID; the four attribute assignments on lines
+    73-75 must all run. The default-uuid branch is exercised by the
+    no-arg-id call in ``test_fr05_apikey_init_without_id_generates_uuid``
+    below.
+    """
+    row = ApiKey(
+        id="key-fixed-id-1",
+        scope="write",
+        key_hash="a" * 64,
+        revoked_at=None,
+    )
+    assert row.id == "key-fixed-id-1"
+    assert row.scope == "write"
+    assert row.key_hash == "a" * 64
+    assert row.revoked_at is None
+
+
+# NFR-09
+def test_fr05_apikey_init_without_id_generates_uuid():
+    """[coverage] Exercise the ``id or str(uuid.uuid4())`` branch (line 72)."""
+    import uuid as _uuid
+
+    row = ApiKey(scope="read", key_hash="b" * 64)
+    # uuid.uuid4() returns a string UUID; the constructor must produce one
+    # when id is omitted.
+    _uuid.UUID(row.id)  # raises if not a valid UUID
+
+
+# NFR-09
+def test_fr05_apikey_as_row_returns_field_dict():
+    """[coverage] Exercise ``ApiKey.as_row`` line 89.
+
+    as_row must materialise exactly the four FR-03 columns and the dict
+    comprehension on line 89 must iterate all four. Revoked_at None is
+    the normal state for an active key.
+    """
+    row = ApiKey(
+        id="k1",
+        scope="admin",
+        key_hash="c" * 64,
+        revoked_at=None,
+    )
+    as_dict = row.as_row()
+    assert as_dict == {
+        "id": "k1",
+        "scope": "admin",
+        "key_hash": "c" * 64,
+        "revoked_at": None,
+    }
+
+
+# NFR-09
+def test_fr05_apikey_repr_includes_all_fields():
+    """[coverage] Exercise ``ApiKey.__repr__`` line 92.
+
+    The f-string on line 92 must format all four attributes. A simple
+    containment check is sufficient — we only need to confirm every
+    field name appears in the rendered string.
+    """
+    row = ApiKey(
+        id="rid",
+        scope="write",
+        key_hash="d" * 64,
+        revoked_at=None,
+    )
+    rendered = repr(row)
+    assert "rid" in rendered
+    assert "write" in rendered
+    assert ("d" * 64) in rendered
+    assert "revoked_at" in rendered
+
+
+# NFR-09
+def test_fr05_taskresult_init_with_id_uses_provided_id():
+    """[coverage] Exercise ``TaskResult.__init__`` lines 124-132.
+
+    Provide every field including a non-None ``id`` so all nine
+    attribute assignments on lines 125-132 run.
+    """
+    from taskq_api.models.orm import TaskResult
+
+    row = TaskResult(
+        id="res-fixed-1",
+        task_id="task-1",
+        run_id="run-1",
+        exit_code=0,
+        stdout_tail="out",
+        stderr_tail="err",
+        duration_ms=123,
+        finished_at="2026-08-13T00:00:00Z",
+        status="done",
+    )
+    assert row.id == "res-fixed-1"
+    assert row.task_id == "task-1"
+    assert row.run_id == "run-1"
+    assert row.exit_code == 0
+    assert row.stdout_tail == "out"
+    assert row.stderr_tail == "err"
+    assert row.duration_ms == 123
+    assert row.finished_at == "2026-08-13T00:00:00Z"
+    assert row.status == "done"
+
+
+# NFR-09
+def test_fr05_taskresult_init_without_id_generates_uuid():
+    """[coverage] Exercise the ``id or str(uuid.uuid4())`` branch (line 124)."""
+    import uuid
+
+    from taskq_api.models.orm import TaskResult
+
+    row = TaskResult(task_id="t", run_id="r")
+    uuid.UUID(row.id)
+
+
+# NFR-09
+def test_fr05_taskresult_add_and_list_for_task_round_trip():
+    """[coverage] Exercise ``TaskResult.add`` (line 145) and
+    ``TaskResult.list_for_task`` (lines 154-158).
+
+    add appends to the in-process registry; list_for_task filters by
+    task_id and reverses so the most recent insertion comes first
+    (Python dict preserves insertion order, 3.7+).
+    """
+    from taskq_api.models.orm import TaskResult
+
+    # Snapshot and restore the module-level registry so the test does
+    # not interfere with other suites that also share this attribute.
+    snapshot = list(TaskResult._registry)
+    TaskResult._registry.clear()
+    try:
+        first = TaskResult(task_id="tA", run_id="r1")
+        TaskResult.add(first)
+        # Insert a row for a different task — it MUST be filtered out
+        # by list_for_task, exercising the comprehension on line 154.
+        other = TaskResult(task_id="tB", run_id="rX")
+        TaskResult.add(other)
+        # Append a second row for tA — newest-first means this one
+        # must appear before `first`, exercising the .reverse() on 157.
+        second = TaskResult(task_id="tA", run_id="r2")
+        TaskResult.add(second)
+
+        rows = TaskResult.list_for_task("tA")
+        assert len(rows) == 2
+        # Newest-first by insertion order — second was appended last.
+        assert rows[0].run_id == "r2"
+        assert rows[1].run_id == "r1"
+    finally:
+        TaskResult._registry.clear()
+        TaskResult._registry.extend(snapshot)
+
+
+# NFR-09
+def test_fr05_taskresult_from_dict_via_list_for_task():
+    """[coverage] Exercise ``TaskResult._from_dict`` line 140.
+
+    list_for_task rehydrates rows via _from_dict; if the comprehension
+    on line 140 skipped any field, the returned object would have a
+    missing attribute. Asserting attribute presence after a round-trip
+    confirms the comprehension ran.
+    """
+    from taskq_api.models.orm import TaskResult
+
+    snapshot = list(TaskResult._registry)
+    TaskResult._registry.clear()
+    try:
+        # Manually append a dict-shaped row (bypassing TaskResult.add)
+        # to mirror the on-disk row layout — list_for_task filters by
+        # task_id and rehydrates via _from_dict which uses
+        # cls(**{field: row[field] for field in _ROW_FIELDS}).
+        TaskResult._registry.append(
+            {
+                "id": "row-d-1",
+                "task_id": "tC",
+                "run_id": "r9",
+                "exit_code": 1,
+                "stdout_tail": "o",
+                "stderr_tail": "e",
+                "duration_ms": 7,
+                "finished_at": "2026-08-13T00:00:00Z",
+                "status": "failed",
+            }
+        )
+        rows = TaskResult.list_for_task("tC")
+        assert len(rows) == 1
+        round_tripped = rows[0]
+        assert round_tripped.id == "row-d-1"
+        assert round_tripped.task_id == "tC"
+        assert round_tripped.run_id == "r9"
+        assert round_tripped.exit_code == 1
+        assert round_tripped.stdout_tail == "o"
+        assert round_tripped.stderr_tail == "e"
+        assert round_tripped.duration_ms == 7
+        assert round_tripped.finished_at == "2026-08-13T00:00:00Z"
+        assert round_tripped.status == "failed"
+    finally:
+        TaskResult._registry.clear()
+        TaskResult._registry.extend(snapshot)
+
+
+# NFR-09
+def test_fr05_read_rate_config_returns_none_when_unset(monkeypatch):
+    """[coverage] Exercise ``_read_rate_config`` early-return on line 74.
+
+    When ``TASKQ_RATE_BURST`` is unset, ``_read_rate_config`` must
+    return ``None`` so rate limiting is opt-in. This branch is the
+    one the FR-01/FR-02/FR-03/FR-04 suites rely on.
+    """
+    monkeypatch.delenv("TASKQ_RATE_BURST", raising=False)
+
+    from taskq_api.api import deps as _deps
+
+    assert _deps._read_rate_config() is None
+
+
+# NFR-09
+def test_fr05_enforce_rate_limit_skips_when_config_none(monkeypatch):
+    """[coverage] Exercise ``_enforce_rate_limit`` early-return on line 97.
+
+    With no rate config, the function must return ``None`` (i.e. NOT
+    raise HTTPException(429)) — this is the gate that lets prior
+    suites run without throttling.
+    """
+    monkeypatch.delenv("TASKQ_RATE_BURST", raising=False)
+
+    from taskq_api.api import deps as _deps
+
+    # Must return None and NOT raise.
+    assert _deps._enforce_rate_limit("any-token") is None
+
+
+# NFR-09
+@pytest.mark.asyncio
+async def test_fr05_missing_api_key_header_returns_401(client):
+    """[coverage] Exercise the missing-header branch on line 139 of deps.py.
+
+    Without ``X-API-Key`` and with no rate env set (so the rate-limit
+    branch in ``get_current_key`` is skipped), the dep must raise
+    ``AuthProblem`` → 401 ``application/problem+json``.
+    """
+    # Ensure rate limit is NOT active so the auth check is reached.
+    os.environ.pop("TASKQ_RATE_BURST", None)
+    os.environ.pop("TASKQ_RATE_PER_SEC", None)
+
+    resp = await client.get("/v1/tasks")
+    assert resp.status_code == 401, resp.text
+    # Problem+json content type per SPEC §3 FR-03.
+    assert resp.headers["content-type"].startswith("application/problem+json")
+
+
+# NFR-09
+@pytest.mark.asyncio
+async def test_fr05_invalid_api_key_returns_401(client):
+    """[coverage] Exercise the invalid-key branch on line 144 of deps.py.
+
+    Sending an unregistered key (with no rate env active) must reach
+    ``_auth.verify_key`` which returns False, raising ``AuthProblem``
+    → 401.
+    """
+    os.environ.pop("TASKQ_RATE_BURST", None)
+    os.environ.pop("TASKQ_RATE_PER_SEC", None)
+
+    resp = await client.get("/v1/tasks", headers={"X-API-Key": "not-a-real-key"})
+    assert resp.status_code == 401, resp.text
+
+
+# NFR-09
+@pytest.mark.asyncio
+async def test_fr05_scope_gate_forbidden_when_scope_mismatch(client):
+    """[coverage] Exercise the scope-gate ForbiddenProblem on line 177
+    (the ``raise ForbiddenProblem(detail="forbidden")`` branch when
+    the requester's scope is NOT in the gate's allowed set).
+
+    The admin-only endpoint ``DELETE /v1/tasks/{id}`` requires
+    ``require_scope("admin")``. Sending a write-scoped key must trip
+    the gate and return 403 with the opaque ``"forbidden"`` body.
+    """
+    os.environ.pop("TASKQ_RATE_BURST", None)
+    os.environ.pop("TASKQ_RATE_PER_SEC", None)
+
+    # ``test-write-key`` is registered as scope=write; admin route rejects it.
+    fake_task_id = "t" * 36  # Path constraint: min_length=36, max_length=36
+    resp = await client.delete(
+        f"/v1/tasks/{fake_task_id}",
+        headers={"X-API-Key": "test-write-key"},
+    )
+    assert resp.status_code == 403, resp.text
+    # SPEC §3 FR-04 mandates the opaque ``forbidden`` token — the
+    # detail must NOT leak scope names or task ids.
+    assert resp.json().get("detail") == "forbidden"
+
+
+# NFR-09
+@pytest.mark.asyncio
+async def test_fr05_scope_gate_allows_when_scope_matches(client):
+    """[coverage] Exercise the success branch on line 178 of deps.py
+    (``return key`` after the scope gate passes).
+
+    ``test-admin-key`` is registered as scope=admin. The DELETE
+    route's ``require_scope("admin")`` gate passes and the handler
+    body runs (the unknown task id causes the handler to return 404,
+    which proves the gate returned rather than the 403 branch).
+    """
+    os.environ.pop("TASKQ_RATE_BURST", None)
+    os.environ.pop("TASKQ_RATE_PER_SEC", None)
+
+    fake_task_id = "t" * 36
+    resp = await client.delete(
+        f"/v1/tasks/{fake_task_id}",
+        headers={"X-API-Key": "test-admin-key"},
+    )
+    # The handler runs — unknown task yields 404 (not 403) which proves
+    # the scope gate's ``return key`` branch on line 178 executed.
+    assert resp.status_code == 404, resp.text
+
+
+# NFR-09
+def test_fr05_retry_after_floor_when_rate_nonpositive():
+    """[coverage] Exercise the ``rate_per_sec <= 0`` branch on line 65.
+
+    When the configured refill rate is zero or negative, the
+    delta-seconds Retry-After must degrade to the 1-second floor
+    (RFC 9110 §10.2.3 — a value of 0 would invite hot-loops).
+    """
+    from taskq_api.service.ratelimit import _retry_after_seconds
+
+    assert _retry_after_seconds(0.0) == 1
+    assert _retry_after_seconds(-1.0) == 1
+
+
+# NFR-09
+def test_fr05_check_and_consume_initialises_bucket_when_none():
+    """[coverage] Exercise the ``bucket is None`` branch in
+    ``_current_tokens`` (lines 52-53 of ratelimit.py) — a brand-new
+    token must get the full burst budget on first sight.
+    """
+    RateRepo._buckets.clear()
+    try:
+        decision = check_and_consume("brand-new-token", burst=7, rate_per_sec=1.0)
+        # First sight: consume one token out of 7 → tokens == 6.0.
+        assert decision.allowed is True
+        assert decision.tokens == 6.0
+    finally:
+        RateRepo._buckets.clear()
+
+
 __all__ = [
     "test_fr05_burst_returns_429_with_retry_after",
     "test_fr05_bucket_row_level_lock",
     "test_fr05_health_endpoints_exempt",
     "test_fr05_retry_after_header_present",
+    "test_fr05_apikey_init_with_id_uses_provided_id",
+    "test_fr05_apikey_init_without_id_generates_uuid",
+    "test_fr05_apikey_as_row_returns_field_dict",
+    "test_fr05_apikey_repr_includes_all_fields",
+    "test_fr05_taskresult_init_with_id_uses_provided_id",
+    "test_fr05_taskresult_init_without_id_generates_uuid",
+    "test_fr05_taskresult_add_and_list_for_task_round_trip",
+    "test_fr05_taskresult_from_dict_via_list_for_task",
+    "test_fr05_read_rate_config_returns_none_when_unset",
+    "test_fr05_enforce_rate_limit_skips_when_config_none",
+    "test_fr05_missing_api_key_header_returns_401",
+    "test_fr05_invalid_api_key_returns_401",
+    "test_fr05_scope_gate_forbidden_when_scope_mismatch",
+    "test_fr05_scope_gate_allows_when_scope_matches",
+    "test_fr05_retry_after_floor_when_rate_nonpositive",
+    "test_fr05_check_and_consume_initialises_bucket_when_none",
 ]
