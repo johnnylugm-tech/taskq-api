@@ -267,6 +267,47 @@ async def test_fr08_timeout_kill_and_wait(monkeypatch):
 
 # NFR-03 NP-13
 @pytest.mark.asyncio
+async def test_fr08_shutdown_kwargs_canonical_accepts_legacy(monkeypatch):
+    """Coverage — ``_translate_shutdown_kwargs`` canonical-accepts/legacy-given branch.
+
+    [FR-08].
+
+    Exercises the symmetric kwarg translation branch in
+    ``runner._translate_shutdown_kwargs`` where the wrapped shutdown
+    accepts only the canonical ``drain_timeout_seconds`` parameter
+    but the caller invokes ``runner.shutdown(drain_timeout=...)``
+    (legacy). The wrapper must translate ``drain_timeout`` ->
+    ``drain_timeout_seconds`` so the body receives the canonical
+    name and accepts the call without TypeError. Without this test
+    line 156 of ``runner.py`` is uncovered and ``test_coverage``
+    falls below 100.
+    """
+    from taskq_api.service import runner as _runner
+
+    received_kwargs_holder: dict[str, object] = {}
+
+    def _canonical_only_shutdown(self, drain_timeout_seconds):
+        # Accepts ONLY the canonical name — any other kwarg would
+        # TypeError, which is exactly what we use to detect whether
+        # the wrapper translated the caller's legacy kwarg.
+        received_kwargs_holder["name"] = "drain_timeout_seconds"
+        received_kwargs_holder["value"] = drain_timeout_seconds
+        return ["in-flight-legacy-kwarg"]
+
+    monkeypatch.setattr(_runner.TaskRunner, "shutdown", _canonical_only_shutdown)
+
+    runner = _runner.TaskRunner()
+
+    # Caller passes the LEGACY name; the wrapper must translate it
+    # to canonical before invoking the body.
+    drained = runner.shutdown(drain_timeout=0.07)
+
+    assert received_kwargs_holder["name"] == "drain_timeout_seconds"
+    assert received_kwargs_holder["value"] == 0.07
+    assert drained == ["in-flight-legacy-kwarg"]
+
+
+@pytest.mark.asyncio
 async def test_fr08_taskgroup_max_concurrent_cap(monkeypatch):
     """AC4-max-observed / AC4-total-completed. [FR-08][NFR-03][NP-13]
 
