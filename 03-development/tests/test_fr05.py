@@ -233,6 +233,7 @@ def _parse_int_seconds(value: str | None) -> int:
 # ---------------------------------------------------------------------------
 
 
+# NFR-03 NFR-09 NFR-10 SEC T-06
 @pytest.mark.asyncio
 async def test_fr05_burst_returns_429_with_retry_after(
     monkeypatch, client, write_api_key
@@ -284,6 +285,7 @@ async def test_fr05_burst_returns_429_with_retry_after(
 # ---------------------------------------------------------------------------
 
 
+# NFR-03 NFR-09 NFR-10
 @pytest.mark.asyncio
 async def test_fr05_bucket_row_level_lock(monkeypatch, client, write_api_key):
     """4 workers × 10 requests; exactly 20 allowed, 20 rejected.
@@ -348,6 +350,7 @@ async def test_fr05_bucket_row_level_lock(monkeypatch, client, write_api_key):
 # ---------------------------------------------------------------------------
 
 
+# NFR-03 NFR-09 NFR-10
 @pytest.mark.asyncio
 async def test_fr05_health_endpoints_exempt(monkeypatch, client):
     """1000 /healthz hits must all return 200; rate limit is NOT applied.
@@ -387,6 +390,7 @@ async def test_fr05_health_endpoints_exempt(monkeypatch, client):
 # ---------------------------------------------------------------------------
 
 
+# NFR-03 NFR-09 NFR-10 SEC T-06
 @pytest.mark.asyncio
 async def test_fr05_retry_after_header_present(monkeypatch, client, write_api_key):
     """First request that goes over the limit must carry Retry-After >= 1s.
