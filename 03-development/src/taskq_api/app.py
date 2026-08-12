@@ -25,6 +25,7 @@ from __future__ import annotations
 import asyncio
 import os
 from contextlib import asynccontextmanager
+from typing import AsyncContextManager
 
 from fastapi import FastAPI, Response
 from fastapi.routing import APIRouter, _IncludedRouter
