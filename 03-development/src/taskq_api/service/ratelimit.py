@@ -17,11 +17,12 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass
+from typing import Optional
 
 from taskq_api.repository.rate_repo import RateRepo
 
 
-@dataclass
+@dataclass(frozen=True)
 class RateDecision:
     """[FR-05] Outcome of a single bucket check-and-consume call.
 
@@ -42,6 +43,29 @@ class RateDecision:
     tokens: float
 
 
+def _current_tokens(bucket: Optional[dict], *, burst: int) -> float:
+    """Return the bucket's current token count, or ``burst`` if absent.
+
+    A never-seen bucket starts full so a brand-new key gets the full
+    budget on its first request (SPEC §3 FR-05).
+    """
+    if bucket is None:
+        return float(burst)
+    return float(bucket.get("tokens", float(burst)))
+
+
+def _retry_after_seconds(rate_per_sec: float) -> int:
+    """[FR-05] Integer seconds the caller must wait for one full token.
+
+    The math guarantees ``retry_after_seconds >= 1`` whenever
+    ``rate_per_sec > 0`` (RFC 9110 §10.2.3 delta-seconds form). A
+    non-positive refill rate degrades to the 1-second floor.
+    """
+    if rate_per_sec <= 0:
+        return 1
+    return max(1, math.ceil(1.0 / rate_per_sec))
+
+
 def check_and_consume(
     token: str, *, burst: int, rate_per_sec: float
 ) -> RateDecision:
@@ -60,7 +84,7 @@ def check_and_consume(
     - SPEC.md §3 FR-05 — bucket mutation occurs inside a single
       transaction with a row-level lock so concurrent workers
       observe a consistent count (the serialisation is provided by
-      ``api.deps`` via an asyncio.Lock — equivalent to
+      ``api.deps`` via a threading.Lock — equivalent to
       ``SELECT ... FOR UPDATE`` for the GREEN in-process storage).
     - SPEC.md §3 FR-05 — ``Retry-After`` is the integer seconds
       until the next token is available; the value is always
@@ -69,10 +93,7 @@ def check_and_consume(
     repo = RateRepo()
     now = time.monotonic()
     bucket = repo.get_bucket(token)
-    if bucket is None:
-        tokens = float(burst)
-    else:
-        tokens = float(bucket.get("tokens", float(burst)))
+    tokens = _current_tokens(bucket, burst=burst)
 
     if tokens >= 1.0:
         tokens -= 1.0
@@ -85,17 +106,10 @@ def check_and_consume(
             tokens=tokens,
         )
 
-    # Bucket empty — compute the integer seconds the caller must
-    # wait before one full token is available again. The math
-    # guarantees ``retry_after_seconds >= 1`` whenever
-    # ``rate_per_sec > 0`` (RFC 9110 §10.2.3 delta-seconds form).
-    if rate_per_sec > 0:
-        retry_after = max(1, math.ceil(1.0 / rate_per_sec))
-    else:
-        retry_after = 1
+    # Bucket empty — caller must wait before another token is available.
     return RateDecision(
         allowed=False,
-        retry_after_seconds=retry_after,
+        retry_after_seconds=_retry_after_seconds(rate_per_sec),
         tokens=tokens,
     )
 

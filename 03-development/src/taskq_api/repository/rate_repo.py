@@ -45,17 +45,11 @@ class RateRepo:
     # unchanged.
     _buckets: dict[str, dict[str, Any]] = {}
 
-    def __init__(self, session: Optional["object"] = None) -> None:
-        # ``None`` is the sentinel for "fetch lazily": tests pass no
-        # session and patch ``_session_module.get_session`` first, so
-        # the repo only resolves on the first command.
-        self._session = session
-
     # ------------------------------------------------------------------
     # Commands
     # ------------------------------------------------------------------
+    @staticmethod
     def upsert_bucket(
-        self,
         session: "object",
         token: str,
         *,
@@ -73,9 +67,15 @@ class RateRepo:
         the ``rate_buckets`` row keyed by ``token``, mutates the
         column, and commits. The GREEN step writes to the in-process
         ``_buckets`` registry — the lock serialisation is provided by
-        ``api.deps`` (asyncio.Lock) so the same observable invariant
+        ``api.deps`` (threading.Lock) so the same observable invariant
         holds for concurrent workers.
+
+        ``session`` is the SQLAlchemy session in production; the
+        GREEN in-process storage ignores it. The parameter is kept
+        on the signature so the call site does not change when the
+        production wiring lands.
         """
+        del session  # unused by the in-process GREEN storage
         RateRepo._buckets[token] = {
             "tokens": float(tokens),
             "last_refill_at": float(last_refill_at),
@@ -84,7 +84,8 @@ class RateRepo:
     # ------------------------------------------------------------------
     # Queries
     # ------------------------------------------------------------------
-    def get_bucket(self, token: str) -> Optional[dict[str, Any]]:
+    @staticmethod
+    def get_bucket(token: str) -> Optional[dict[str, Any]]:
         """[FR-05] Read the bucket row for ``token`` (or ``None``).
 
         Citations: SPEC.md §3 FR-05 — the bucket row carries the
