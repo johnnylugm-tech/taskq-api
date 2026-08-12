@@ -43,6 +43,22 @@ from taskq_api.api.deps import require_scope  # noqa: F401
 from taskq_api.app import create_app
 from taskq_api.repository.key_repo import KeyRepo
 from taskq_api.repository.task_repo import TaskRepo
+from taskq_api.service import auth as _auth_module
+
+# Captured BEFORE the autouse fixture monkey-patches `verify_key` to
+# its scope-aware stub. The coverage backfill tests below exercise the
+# REAL `service.auth` primitives (verify_key / _resolve_active_key_row /
+# scope_allows / redact_db_url / _scrub / _redacting_record_factory /
+# install_log_redaction) — they reach them through these saved
+# references because `_auth_module.verify_key` is the stub once the
+# autouse fixture has run.
+_REAL_VERIFY_KEY = _auth_module.verify_key
+_REAL_RESOLVE_ACTIVE_KEY_ROW = _auth_module._resolve_active_key_row
+_REAL_SCOPE_ALLOWS = _auth_module.scope_allows
+_REAL_REDACT_DB_URL = _auth_module.redact_db_url
+_REAL_SCRUB = _auth_module._scrub
+_REAL_REDACTING_RECORD_FACTORY = _auth_module._redacting_record_factory
+_REAL_INSTALL_LOG_REDACTION = _auth_module.install_log_redaction
 
 
 # ---------------------------------------------------------------------------
@@ -513,3 +529,308 @@ def test_main_key_create_dispatch(monkeypatch, capsys):
 
     KeyRepo._registry.clear()
     KeyRepo._by_key.clear()
+
+
+# ---------------------------------------------------------------------------
+# Coverage backfill — exercise lines the FR-04 spec tests do not hit.
+#
+# Each test below targets one (or a tight cluster of) uncovered line(s)
+# reported by `coverage report -m` on
+# `taskq_api/api/deps.py` and `taskq_api/service/auth.py`. The autouse
+# `_stub_external_side_effects` fixture swaps `verify_key` for a
+# scope-aware stub that drives the `/v1/*` routes, so we reach the REAL
+# `service.auth` primitives through the module-level saved references
+# captured above the autouse fixture.
+# ---------------------------------------------------------------------------
+
+
+# NFR-09 NFR-10
+@pytest.mark.asyncio
+async def test_fr04_missing_api_key_header_returns_401(client):
+    """[FR-04][NFR-09] Cover deps.py line 47 — missing X-API-Key header.
+
+    The `get_current_key` dep raises `AuthProblem("X-API-Key header is
+    required")` (HTTP 401) when the header is absent. The four FR-04
+    spec tests all SEND a key, so this branch is otherwise unreachable.
+    """
+    task_id = "11111111-1111-1111-1111-111111111111"
+    _register_task(task_id=task_id, name="missing-header-target")
+
+    response = await client.delete(f"/v1/tasks/{task_id}")  # no X-API-Key
+
+    result_status_code = response.status_code
+    assert response.headers.get("content-type", "").startswith(
+        "application/problem+json"
+    )
+    assert result_status_code == 401, (
+        f"FR-04 deps.py line 47 not covered: DELETE without "
+        f"X-API-Key returned {result_status_code}; expected 401"
+    )
+
+
+# NFR-09 NFR-10
+@pytest.mark.asyncio
+async def test_fr04_invalid_api_key_returns_401(client):
+    """[FR-04][NFR-09] Cover deps.py line 53 — verify_key returns False.
+
+    The autouse stub rejects any raw key absent from `KeyRepo._by_key`,
+    so a DELETE with an UNREGISTERED key exercises the
+    `raise AuthProblem("API key is not valid")` branch.
+    """
+    task_id = "22222222-2222-2222-2222-222222222222"
+    _register_task(task_id=task_id, name="invalid-key-target")
+
+    response = await client.delete(
+        f"/v1/tasks/{task_id}",
+        headers={"X-API-Key": "definitely-not-registered-key"},
+    )
+
+    result_status_code = response.status_code
+    assert response.headers.get("content-type", "").startswith(
+        "application/problem+json"
+    )
+    assert result_status_code == 401, (
+        f"FR-04 deps.py line 53 not covered: DELETE with unregistered "
+        f"key returned {result_status_code}; expected 401"
+    )
+
+
+# NFR-09 NFR-10
+def test_auth_verify_key_empty_inputs_return_false():
+    """[FR-04][NFR-09] Cover auth.py lines 61-62 — empty raw/hashed → False.
+
+    The real `verify_key` short-circuits on empty inputs without
+    computing a digest; the autouse stub never reaches this branch
+    because the route flow always passes non-empty raw keys through.
+    """
+    assert _REAL_VERIFY_KEY("", "any-hash") is False
+    assert _REAL_VERIFY_KEY("any-raw", "") is False
+    assert _REAL_VERIFY_KEY("", "") is False
+
+
+# NFR-09 NFR-10
+def test_auth_verify_key_constant_time_compare_digest():
+    """[FR-04][NFR-09] Cover auth.py line 63 — `hmac.compare_digest` return.
+
+    SPEC §3 FR-03: `verify_key` MUST use `hmac.compare_digest` so a
+    plain `==` cannot leak the digest through response timing. The
+    autouse stub bypasses the real implementation, so we exercise the
+    compare-digest return directly with a known matching digest.
+    """
+    from taskq_api.service.auth import hash_key
+
+    raw = "compare-digest-raw"
+    assert _REAL_VERIFY_KEY(raw, hash_key(raw)) is True
+    # And a mismatched digest is rejected through the same return path.
+    assert _REAL_VERIFY_KEY(raw, "0" * 64) is False
+
+
+# NFR-09 NFR-10
+def test_auth_resolve_active_key_row_empty_raw_returns_none():
+    """[FR-04][NFR-09] Cover auth.py line 83 — empty raw → None.
+
+    `_resolve_active_key_row` short-circuits before the side-table
+    lookup when `raw` is falsy, so a None result cannot be confused
+    with a real "no row registered" miss.
+    """
+    assert _REAL_RESOLVE_ACTIVE_KEY_ROW("") is None
+
+
+# NFR-09 NFR-10
+def test_auth_resolve_active_key_row_unknown_raw_returns_none():
+    """[FR-04][NFR-09] Cover auth.py line 86 — _by_key miss → None.
+
+    The `_by_key` side-table is the first lookup step; a miss here
+    means the key was never registered.
+    """
+    assert _REAL_RESOLVE_ACTIVE_KEY_ROW("never-registered-key") is None
+
+
+# NFR-09 NFR-10
+def test_auth_resolve_active_key_row_missing_registry_row_returns_none():
+    """[FR-04][NFR-09] Cover auth.py line 89 — registry miss → None.
+
+    `_by_key` points at an id that is NOT in `_registry` (e.g. a row
+    deleted between the two writes). The function MUST NOT return a
+    half-formed row.
+    """
+    KeyRepo._by_key["phantom-raw"] = "phantom-id-not-in-registry"
+    try:
+        assert _REAL_RESOLVE_ACTIVE_KEY_ROW("phantom-raw") is None
+    finally:
+        KeyRepo._by_key.pop("phantom-raw", None)
+
+
+# NFR-09 NFR-10
+def test_auth_resolve_active_key_row_revoked_returns_none():
+    """[FR-04][NFR-09] Cover auth.py line 91 — revoked row → None.
+
+    SPEC §3 FR-03 AC6-revoked-status: a key with a non-null
+    `revoked_at` is rejected even though `get_current_key` already
+    returned the raw plaintext.
+    """
+    KeyRepo._registry["revoked-id"] = {
+        "id": "revoked-id",
+        "scope": "write",
+        "key_hash": "0" * 64,
+        "revoked_at": "2026-01-01T00:00:00Z",
+    }
+    KeyRepo._by_key["revoked-raw"] = "revoked-id"
+    try:
+        assert _REAL_RESOLVE_ACTIVE_KEY_ROW("revoked-raw") is None
+    finally:
+        KeyRepo._registry.pop("revoked-id", None)
+        KeyRepo._by_key.pop("revoked-raw", None)
+
+
+# NFR-09 NFR-10
+def test_auth_scope_allows_missing_row_returns_false():
+    """[FR-04][NFR-09] Cover auth.py line 113 — row None → False.
+
+    `scope_allows` flattens `_resolve_active_key_row`'s four-step
+    lookup into a single None check; this test exercises the early
+    `return False` for an unregistered raw.
+    """
+    assert _REAL_SCOPE_ALLOWS("unregistered-scope-key", {"write", "admin"}) is False
+
+
+# NFR-09 NFR-10
+def test_auth_redact_db_url_with_password():
+    """[FR-04][NFR-09] Cover auth.py line 144 — password fragment redacted.
+
+    SPEC §4 NFR-04: the `postgres://user:password@host` password
+    fragment must be scrubbed to `***` everywhere it could escape
+    (logs + `/v1/metrics`).
+    """
+    redacted = _REAL_REDACT_DB_URL("postgres://user:p@host:5432/db")
+    assert "p@host" not in redacted, (
+        f"FR-04 / NFR-04 redaction failed: password fragment survived "
+        f"in {redacted!r}"
+    )
+    assert "***" in redacted
+    assert redacted.startswith("postgres://user:")
+    assert "@host:5432/db" in redacted
+
+
+# NFR-09 NFR-10
+def test_auth_redact_db_url_without_password_unchanged():
+    """[FR-04][NFR-09] Cover auth.py line 144 — no-password URL passthrough.
+
+    URL with no `user:password@` segment (no colon before the `@`)
+    is left untouched, so logs and `/v1/metrics` stay diagnosable.
+    """
+    assert (
+        _REAL_REDACT_DB_URL("postgres://user@host:5432/db")
+        == "postgres://user@host:5432/db"
+    )
+
+
+# NFR-09 NFR-10
+def test_auth_scrub_non_string_passthrough():
+    """[FR-04][NFR-09] Cover auth.py line 154 — non-string args pass through.
+
+    `_scrub` only redacts strings; ints / Nones / lists / dicts are
+    returned unchanged so structured log records still carry their
+    data.
+    """
+    assert _REAL_SCRUB(42) == 42
+    assert _REAL_SCRUB(None) is None
+    assert _REAL_SCRUB([1, 2, 3]) == [1, 2, 3]
+    assert _REAL_SCRUB({"url": "postgres://u:p@host/db"}) == {
+        "url": "postgres://u:p@host/db"
+    }
+    # String inputs ARE scrubbed (covers the other branch of the
+    # conditional on the same line).
+    assert "p@host" not in _REAL_SCRUB("postgres://u:p@host/db")
+
+
+# NFR-09 NFR-10
+def test_auth_redacting_record_factory_string_msg():
+    """[FR-04][NFR-09] Cover auth.py lines 183-185 — string `msg` redacted.
+
+    The record factory's `isinstance(record.msg, str)` branch runs
+    `redact_db_url` on the format string before `%`-formatting
+    happens.
+    """
+    record = _REAL_REDACTING_RECORD_FACTORY(
+        name="taskq.test",
+        level=20,
+        pathname="x.py",
+        lineno=1,
+        msg="connecting to postgres://u:p@host/db",
+        args=None,
+        exc_info=None,
+    )
+    assert "p@host" not in record.msg, (
+        f"FR-04 / NFR-04 record-factory string-msg branch failed: "
+        f"{record.msg!r} still carries the password fragment"
+    )
+    assert "***" in record.msg
+
+
+# NFR-09 NFR-10
+def test_auth_redacting_record_factory_dict_args():
+    """[FR-04][NFR-09] Cover auth.py lines 186-187 — dict `args` redacted.
+
+    Covers `logger.info("connect %(url)s", {"url": url})` style calls.
+    Python's `LogRecord.__init__` only unwraps a single-mapping tuple
+    (`({"k": v},)`); passing the dict bare raises `KeyError: 0`. The
+    unwrap leaves `record.args` as a plain dict, which is what our
+    factory's `isinstance(record.args, dict)` branch then scrubs.
+    """
+    record = _REAL_REDACTING_RECORD_FACTORY(
+        name="taskq.test",
+        level=20,
+        pathname="x.py",
+        lineno=1,
+        msg="connect %(url)s",
+        args=({"url": "postgres://u:p@host/db"},),  # tuple-wrapped mapping
+        exc_info=None,
+    )
+    assert isinstance(record.args, dict)
+    assert "p@host" not in record.args["url"], (
+        f"FR-04 / NFR-04 record-factory dict-args branch failed: "
+        f"{record.args['url']!r} still carries the password fragment"
+    )
+
+
+# NFR-09 NFR-10
+def test_auth_redacting_record_factory_tuple_args():
+    """[FR-04][NFR-09] Cover auth.py lines 188-189 — tuple `args` redacted.
+
+    Covers `logger.info("connect %s", url)` style calls (the most
+    common form).
+    """
+    record = _REAL_REDACTING_RECORD_FACTORY(
+        name="taskq.test",
+        level=20,
+        pathname="x.py",
+        lineno=1,
+        msg="connect %s",
+        args=("postgres://u:p@host/db",),
+        exc_info=None,
+    )
+    assert isinstance(record.args, tuple)
+    assert "p@host" not in record.args[0], (
+        f"FR-04 / NFR-04 record-factory tuple-args branch failed: "
+        f"{record.args[0]!r} still carries the password fragment"
+    )
+
+
+# NFR-09 NFR-10
+def test_auth_install_log_redaction_idempotent():
+    """[FR-04][NFR-09] Cover auth.py line 203 — idempotent install.
+
+    Re-installing would otherwise chain the factory onto itself and
+    redact each record twice. The early-return branch (line 203) is
+    hit by calling `install_log_redaction` while the redacting factory
+    is already the active one.
+    """
+    import logging
+
+    # The autouse import of `service.auth` has already installed the
+    # redacting factory at module-import time. Confirm and re-install.
+    assert logging.getLogRecordFactory() is _REAL_REDACTING_RECORD_FACTORY
+    # Idempotent call — MUST NOT raise and MUST NOT replace the factory.
+    _REAL_INSTALL_LOG_REDACTION()
+    assert logging.getLogRecordFactory() is _REAL_REDACTING_RECORD_FACTORY
