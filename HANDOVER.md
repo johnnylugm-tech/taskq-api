@@ -2,7 +2,7 @@
 
 **Checkpoint**: `P3-mid-20260812`  
 **Phase**: P3 — Implementation  
-**Generated**: 2026-08-12T16:39:04Z
+**Generated**: 2026-08-12T16:43:46Z
 
 > ⚠️  **開始下一個工作階段前，請先執行 `/compact` 壓縮上下文**，再從「接下來的工作」繼續。
 
@@ -99,6 +99,9 @@ P3 Implementation in progress (≥50% milestone). 5/10 FRs done.
   - ? / gate1-verify-FR-05: **complete**
 
 **Recently Committed Files:**
+  - `.methodology/state.json`
+  - `.methodology/trace/attestation.json`
+  - `HANDOVER.md`
   - `.methodology/.gate1_scores.json`
   - `.methodology/decision_logs/2026-08-12/GATE_3_ad5d3e91.yaml`
   - `.methodology/decision_logs/2026-08-12/GATE_3_fea94a5f.yaml`
@@ -108,7 +111,6 @@ P3 Implementation in progress (≥50% milestone). 5/10 FRs done.
   - `.methodology/gate_results/gate1/FR-05.json`
   - `.methodology/gate_timestamps.jsonl`
   - `.methodology/quality_manifest.json`
-  - `.methodology/state.json`
   - `00-summary/Phase3_STAGE_PASS.md`
   - `CLAUDE.md`
   - `03-development/tests/test_fr05.py`
@@ -117,8 +119,6 @@ P3 Implementation in progress (≥50% milestone). 5/10 FRs done.
   - `03-development/src/taskq_api/service/ratelimit.py`
   - `03-development/src/taskq_api/app.py`
   - `.methodology/decision_logs/2026-08-12/GATE_3_22969ffc.yaml`
-  - `.methodology/decision_logs/2026-08-12/GATE_3_84bb8feb.yaml`
-  - `.methodology/decision_logs/2026-08-12/GATE_3_a0b3fd3a.yaml`
 
 ## 接下來的工作
 
