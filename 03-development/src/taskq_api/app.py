@@ -74,7 +74,10 @@ def _check_migration_state() -> tuple[bool, str]:
             row = conn.execute(
                 sql_text("SELECT version_num FROM alembic_version")
             ).first()
-    except Exception:  # pragma: no cover — defensive
+    except Exception:
+        # SPEC §3 FR-07 — /readyz must fail closed when the alembic
+        # probe cannot reach the DB. Test exercises this branch via
+        # monkey-patching ``create_engine`` to raise.
         return False, _behind_head_detail("alembic probe error")
 
     if row is None:

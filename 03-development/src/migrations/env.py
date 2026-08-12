@@ -27,14 +27,12 @@ from alembic.config import Config as AlembicConfig
 
 # ``alembic.ini`` lives at the project root. ``env.py`` is loaded
 # relative to its ``script_location`` so the file path resolves
-# across all alembic invocations.
+# across all alembic invocations. The repo always ships
+# ``alembic.ini`` so the path resolves unconditionally.
 _CONFIG_INI_NAME = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..", "alembic.ini")
 )
-if os.path.exists(_CONFIG_INI_NAME):
-    config = AlembicConfig(_CONFIG_INI_NAME)
-else:  # pragma: no cover — defensive fallback
-    config = context.config
+config = AlembicConfig(_CONFIG_INI_NAME)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

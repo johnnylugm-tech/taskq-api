@@ -113,10 +113,16 @@ def _timeout_record(*, start: float) -> dict[str, Any]:
 
 
 def _kwarg_signature(raw: Callable[..., Any]) -> set[str]:
-    """Return the set of keyword parameter names ``raw`` accepts."""
+    """Return the set of keyword parameter names ``raw`` accepts.
+
+    Some built-ins (e.g. ``max``) lack ``__text_signature__`` so
+    ``inspect.signature`` raises ``ValueError``. The fallback here
+    keeps the kwarg-translation wrapper usable when a shutdown mock
+    is a builtin — exercised by ``test_fr08_kwarg_signature_handles_callables``.
+    """
     try:
         return set(inspect.signature(raw).parameters)
-    except (TypeError, ValueError):  # pragma: no cover — builtins / C
+    except (TypeError, ValueError):
         return set()
 
 
