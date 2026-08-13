@@ -1,7 +1,7 @@
 {
   "gate": 1,
-  "phase": 3,
-  "fr_id": "FR-10",
+  "phase": 4,
+  "fr_id": "FR-01",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786566160439\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 27, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.032}}"
+      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786589580641\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.065\n    }\n}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 140,
+      "tests_passed": 99,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= 140 passed in 1.27s ==============================; coverage totals: percent_covered=100.0, covered_lines=199, num_statements=199, missing_lines=0; spec_cov_pct=100 (4/4 required tests present: test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_correlation_id_header, test_fr10_content_type_problem_json)"
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 99 items\n03-development/tests/test_fr01.py ................. [ 17%]\n03-development/tests/test_fr02.py ....................... [ 40%]\n03-development/tests/test_fr06.py ........................ [ 64%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================== 99 passed in 0.93s ==============================\nCoverage: tasks.py 100%, tasks(service) 100%, task_repo.py 100%, schemas.py 100% (151/151 stmts)\nSpec coverage: 9/9 required tests present"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 45 files, 90 dependencies. Contracts: layered-architecture KEPT, sqlalchemy-isolation KEPT. 2 kept, 0 broken. EXIT: 0"
+      "tool_evidence": "Analyzed 47 files, 92 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -37,12 +37,33 @@
     "harness/gate_configs": "92d5728b783841baed6e1beeb57d5e7fbe56c71e"
   },
   "evidence_digest": {
+    "secrets_scanning::.gitleaksignore": {
+      "source": ".gitleaksignore (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "ff301ea16ffe441f79bd0a1218781cac74407f50e87fc23c9f5c5a2bc874d8bf",
+      "bytes": 758,
+      "head": "# .gitleaksignore — allowlist for false-positive gitleaks findings in this repo.\n#\n# Format: one fingerprint per line. A line starting with `#` is a comment.\n# Use `gitleaks detect --source .` to regenerate after rule updates.\n#\n# 2026-08-13 — Phase 3 exit (advance-phase): gitleaks `generic-api-key`\n# rule flagged the YAML `key:` field of a Phase 3 lesson file at\n# `.methodology/lessons/01db5fa7e924.md:2`. The value is the lesson's own\n# 12-hex-char identifier (the same as the filename stem), not a credential\n# — but gitleaks' generic entropy-based rule can't tell the difference.\n# Allowlist the file (line 2 is the only secret-shaped token in it).\nbfa25ee7a421060b132b4bfd5917298fc340f17e:.methodology/lessons/01db5fa7e924.md:generic-api-key:2"
+    },
+    "mutation_testing::setup.cfg": {
+      "source": "setup.cfg (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "f9a51c0d305e81b9e953965ae6570e599c1c737fb6c5876e2be7a2d4d7e7a92f",
+      "bytes": 1103,
+      "head": "[mutmut]\n# Mutation test scope — must match the SAB's nfr_traceability[NFR-08]\n# scope_layers (service, repository). The framework checks setup.cfg\n# against the SAB at finalize time and BLOCKS on disagreement.\npaths_to_mutate = 03-development/src/taskq_api/repository, 03-development/src/taskq_api/service\n# Drop async tests from the mutmut baseline — mutmut 2.x does not natively\n# run ``async def`` tests, and the framework's workdir isolation strips\n# the project's pyproject.toml [tool.pytest.ini_options] asyncio_mode,\n# so async tests cannot be exercised as a baseline. Filter them out of\n# the runner so the baseline is not crashed by collected-async-tests\n# that all \"fail\" with \"async def functions are not natively supported\".\nrunner = /Users/johnny/projects/taskq-api/.venv/bin/python -m pytest -k \"not asyncio\" --tb=no -q -p no:cacheprovider\n\n[tool:pytest]\n# Mirror pyproject.toml so the framework's workdir pytest picks up\n# asyncio_mode (the workdir has no pyproject.toml; only setup.cfg survives).\nasyncio_mode = auto\ntestpaths = 03-development/tests\npythonpath = 03-development/src"
+    },
     "test_coverage::pyproject.toml": {
       "source": "pyproject.toml (score-altering exclusions)",
       "kind": "file",
-      "sha256": "cdc4e1a3b3777a58783b12fce4e0cf8296789b6e136075de5784c36ade1f8622",
-      "bytes": 1094,
-      "head": "[build-system]\nrequires = [\"setuptools>=68\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"taskq-api\"\nversion = \"0.1.0\"\ndescription = \"HTTP task-queue service (taskq-api round 2/3 test-bed)\"\nrequires-python = \">=3.11\"\n# Phase 3 will flesh this out — only the manifest's PRESENCE unlocks\n# `run-env-check` so P3's per-FR TDD can install deps. Agent A in P3 owns\n# the dep list (Pydantic models, SQLAlchemy 2.x, Alembic, FastAPI,\n# uvicorn, httpx, import-linter for NFR-06, ... per SAD.md / SPEC.md).\ndependencies = []\n\n[project.optional-dependencies]\ndev = []\n\n[tool.pytest.ini_options]\n# `auto` makes `@pytest.mark.asyncio`-decorated async tests AND their"
+      "sha256": "a1f85dec469b821a7599632b1415d3838c64a365bd0dd868dda02e50cade90ed",
+      "bytes": 1120,
+      "head": "[build-system]\nrequires = [\"setuptools>=68\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"taskq-api\"\nversion = \"0.1.0\"\ndescription = \"HTTP task-queue service (taskq-api round 2/3 test-bed)\"\nrequires-python = \">=3.11\"\n# Phase 3 will flesh this out — only the manifest's PRESENCE unlocks\n# `run-env-check` so P3's per-FR TDD can install deps. Agent A in P3 owns\n# the dep list (Pydantic models, SQLAlchemy 2.x, Alembic, FastAPI,\n# uvicorn, httpx, import-linter for NFR-06, ... per SAD.md / SPEC.md).\ndependencies = [\n    \"hypothesis>=6.165\",\n]\n\n[project.optional-dependencies]\ndev = []\n"
+    },
+    "test_coverage::setup.cfg": {
+      "source": "setup.cfg (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "f9a51c0d305e81b9e953965ae6570e599c1c737fb6c5876e2be7a2d4d7e7a92f",
+      "bytes": 1103,
+      "head": "[mutmut]\n# Mutation test scope — must match the SAB's nfr_traceability[NFR-08]\n# scope_layers (service, repository). The framework checks setup.cfg\n# against the SAB at finalize time and BLOCKS on disagreement.\npaths_to_mutate = 03-development/src/taskq_api/repository, 03-development/src/taskq_api/service\n# Drop async tests from the mutmut baseline — mutmut 2.x does not natively\n# run ``async def`` tests, and the framework's workdir isolation strips\n# the project's pyproject.toml [tool.pytest.ini_options] asyncio_mode,\n# so async tests cannot be exercised as a baseline. Filter them out of\n# the runner so the baseline is not crashed by collected-async-tests\n# that all \"fail\" with \"async def functions are not natively supported\".\nrunner = /Users/johnny/projects/taskq-api/.venv/bin/python -m pytest -k \"not asyncio\" --tb=no -q -p no:cacheprovider\n\n[tool:pytest]\n# Mirror pyproject.toml so the framework's workdir pytest picks up\n# asyncio_mode (the workdir has no pyproject.toml; only setup.cfg survives).\nasyncio_mode = auto\ntestpaths = 03-development/tests\npythonpath = 03-development/src"
     },
     "linting": {
       "source": "tool_evidence (inline)",
@@ -54,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "b3ee2bd6e1422169b52fd25f0ba090151fbd0686548f167eab7c10231da34bb3",
-      "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786566160439\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 27, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.032}}"
+      "sha256": "a365ea6328df36cdf4357ea9e464a24b7d22e197e9868191a78227a229b22df0",
+      "bytes": 250,
+      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786589580641\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.065\n    }\n}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "fd595ae4760d1d53a1e36877bbbabe33482290557753fac7bb3ed129647d9f91",
-      "bytes": 354,
-      "head": "============================= 140 passed in 1.27s ==============================; coverage totals: percent_covered=100.0, covered_lines=199, num_statements=199, missing_lines=0; spec_cov_pct=100 (4/4 required tests present: test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_correlation_id_header, test_fr10_content_type_problem_json)"
+      "sha256": "e892f4802a74b1ffa66b3ccbc2c8f7f1cf406f762469c8637d7df71f2f1d7b79",
+      "bytes": 634,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 99 items\n03-development/tests/test_fr01.py ................. [ 17%]\n03-development/tests/test_fr02.py ....................... [ 40%]\n03-development/tests/test_fr06.py ........................ [ 64%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================== 99 passed in 0.93s ==============================\nCoverage: tasks.py 100%, tasks(service) 100%, task_repo.py 100%, schemas.py 100% (151/151 stmts)\nSpec coverage: 9/9 required tests present"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "1d1ac21b2c1358a1c76ebd9976fc86d52b9050a472af7c7e4eaf4d87430ed548",
-      "bytes": 126,
-      "head": "Analyzed 45 files, 90 dependencies. Contracts: layered-architecture KEPT, sqlalchemy-isolation KEPT. 2 kept, 0 broken. EXIT: 0"
+      "sha256": "46692f16f4d899203a6c4a90dfb37a5dc8d85f952daf53afed5e865d1df84dbf",
+      "bytes": 116,
+      "head": "Analyzed 47 files, 92 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
