@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 8,
-  "fr_id": "FR-10",
+  "fr_id": "FR-03",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,25 +9,25 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "All checks passed!\n"
+      "tool_evidence": "All checks passed!"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786611912365\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.079\n    }\n}\n\n"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786612077605\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.074}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 160,
+      "tests_passed": 161,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": " 70%]\n03-development/tests/test_fr04.py ......................                 [ 84%]\n03-development/tests/test_fr05.py .........................              [100%]\n\n================================ tests coverage ================================\n______________ coverage: platform darwin, python 3.11.15-final-0 _______________\n\nName                                                         Stmts   Miss  Cover   Missing\n-------------------------------------------------------------------------------"
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 161 items\n\n03-development/tests/test_fr03.py ................................       [ 19%]\n03-development/tests/test_fr02.py .......................                [ 34%]\n03-development/tests/test_fr04.py ......................                 [ 47%]\n03-development/tests/test_fr05.py .........................              [ 63%]\n03-development/tests/test_fr06.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 161 passed in 1.38s =============================="
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "\n╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐\n╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │\n ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗\n ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝\n╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║\n╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝\n  └──▶║║                    ▲ \n      ╚╝────────────────────┘\n\n\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken.\n"
+      "tool_evidence": "Analyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "f429aa5429928c157f3720535c7dd86bd7b604923b435515fcc4cdd5521ecd2f",
-      "bytes": 250,
-      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786611912365\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.079\n    }\n}"
+      "sha256": "13e6a7737b05e293a9ba6891e640bcbae9b85de189121f8c6bbbb6f3145f3909",
+      "bytes": 186,
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786612077605\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.074}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "af0e9409bb20792a862f6c3a46502039df5de0b5d3c6920461eb3bfdd77bc310",
-      "bytes": 499,
-      "head": "70%]\n03-development/tests/test_fr04.py ......................                 [ 84%]\n03-development/tests/test_fr05.py .........................              [100%]\n\n================================ tests coverage ================================\n______________ coverage: platform darwin, python 3.11.15-final-0 _______________\n\nName                                                         Stmts   Miss  Cover   Missing\n-------------------------------------------------------------------------------"
+      "sha256": "2f35b6f653cc5d62c1bc9e4c8084975eb4bf13e319e18fc91fcd6373d92531ed",
+      "bytes": 711,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 161 items\n\n03-development/tests/test_fr03.py ................................       [ 19%]\n03-development/tests/test_fr02.py .......................                [ 34%]\n03-development/tests/test_fr04.py ......................                 [ 47%]\n03-development/tests/test_fr05.py .........................              [ 63%]\n03-development/tests/test_fr06.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 161 passed in 1.38s =============================="
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "fff823bb4002a1677f23180697f4ca968072284c8ba8fbd37010d461a611c92e",
-      "bytes": 858,
-      "head": "╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐\n╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │\n ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗\n ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝\n╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║\n╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝\n  └──▶║║                    ▲ \n      ╚╝────────────────────┘\n\n\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n"
+      "sha256": "d1c883c3ade440433852e41807ad7a5d821d4e510130b3c7feb0d0f1e5174d40",
+      "bytes": 154,
+      "head": "Analyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
