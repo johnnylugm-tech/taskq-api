@@ -755,17 +755,16 @@ def test_fr07_v3_split_results_downgrade_in_process(tmp_path) -> None:
 
 
 # NFR-03 NFR-09 NFR-12
-def test_fr07_v3_split_results_upgrade_swallows_backfill_error(tmp_path) -> None:
-    """[FR-07 v3] In-process ``upgrade()`` swallows backfill ``SQLAlchemyError``.
+def test_fr07_v3_split_results_upgrade_aborts_on_backfill_error(tmp_path) -> None:
+    """[FR-07 v3] In-process ``upgrade()`` aborts the migration when the
+    backfill ``SQLAlchemyError`` fires, preserving ``tasks.result_json``.
 
-    Lines covered: 166-174 — the ``except SQLAlchemyError: pass`` branch.
-    The defensive backfill INSERT-SELECT guards against malformed legacy
-    ``tasks.result_json`` rows (or any pre-existing schema quirk) that
-    would otherwise abort the migration before the column-drop runs.
-    The handler swallows the failure so the column-drop proceeds and the
-    schema converges on the v3 layout. We trigger the branch with a
-    targeted mock of ``op.get_bind().execute`` so the assertion is
-    deterministic.
+    Lines covered: 178-187 (reraise branch). Bug-hunt HIGH-4 / SPEC §3
+    FR-07 round-trip invariant: a backfill failure MUST NOT silently
+    drop ``result_json`` before its contents are moved into
+    ``task_results``. The fix replaces the silent ``pass`` with a
+    reraise so alembic aborts the upgrade transaction and the operator
+    sees the underlying cause.
     """
     from unittest.mock import patch  # noqa: PLC0415
 
@@ -796,6 +795,7 @@ def test_fr07_v3_split_results_upgrade_swallows_backfill_error(tmp_path) -> None
             return getattr(self._real, name)
 
     engine = create_engine(f"sqlite:///{db_path}")
+    raised = False
     with engine.begin() as conn:
         failing_bind = _FailingBind(conn)
         with patch(
@@ -804,17 +804,24 @@ def test_fr07_v3_split_results_upgrade_swallows_backfill_error(tmp_path) -> None
         ):
             ctx = MigrationContext.configure(conn)
             with Operations.context(ctx):
-                v3_split_results.upgrade()
+                try:
+                    v3_split_results.upgrade()
+                except RuntimeError as exc:
+                    raised = True
+                    assert "backfill" in str(exc).lower()
+                    assert isinstance(exc.__cause__, SQLAlchemyError)
 
+    assert raised, "v3.upgrade() must reraise when the backfill fails"
     inspector = inspect(engine)
     # task_results created BEFORE the failing backfill (lines 131-147).
     assert "task_results" in inspector.get_table_names(), (
         "v3.upgrade() must still create task_results even when the backfill fails"
     )
-    # tasks.result_json dropped AFTER the swallowed error (lines 178-179).
+    # tasks.result_json must SURVIVE so the operator can diagnose +
+    # retry the migration (bug-hunt HIGH-4).
     tasks_col_names = {c["name"] for c in inspector.get_columns("tasks")}
-    assert "result_json" not in tasks_col_names, (
-        f"v3.upgrade() must drop tasks.result_json after swallowed backfill; "
+    assert "result_json" in tasks_col_names, (
+        f"v3.upgrade() must preserve tasks.result_json on backfill failure; "
         f"residual cols: {tasks_col_names!r}"
     )
     # The except branch was actually entered (not just skipped over).
@@ -835,5 +842,5 @@ __all__ = [
     "test_fr07_v2_tags_downgrade_in_process",
     "test_fr07_v3_split_results_upgrade_in_process",
     "test_fr07_v3_split_results_downgrade_in_process",
-    "test_fr07_v3_split_results_upgrade_swallows_backfill_error",
+    "test_fr07_v3_split_results_upgrade_aborts_on_backfill_error",
 ]

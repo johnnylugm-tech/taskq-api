@@ -176,6 +176,12 @@ def upgrade() -> None:
     # We attempt a best-effort backfill via INSERT ... SELECT so the
     # downgrade can reverse the move exactly. SQLite lacks a JSON
     # type so ``result_json`` is plain TEXT.
+    #
+    # Bug-hunt HIGH-4: a backfill failure MUST abort the migration so
+    # the original ``result_json`` column is never silently dropped
+    # before its contents have been moved. The previous implementation
+    # caught ``SQLAlchemyError`` and proceeded to ``drop_column``,
+    # which lost data unrecoverably on any backfill failure.
     try:
         # ``tasks.result_json`` exists at v3-up time — backfill each
         # row into ``task_results`` with one column per FR-07 schema
@@ -184,15 +190,15 @@ def upgrade() -> None:
             sa.text(_BACKFILL_FROM_RESULT_JSON),
             {"default_status": _DEFAULT_RESULT_STATUS},
         )
-    except SQLAlchemyError:
-        # Pre-existing data may use a schema that does not expose the
-        # columns above; the downgrade path still restores them by
-        # reading what ``task_results`` actually carries. We narrow
-        # the catch to ``SQLAlchemyError`` so genuine programming
-        # errors (e.g. a typo in ``_BACKFILL_FROM_RESULT_JSON``)
-        # surface immediately during development rather than being
-        # silently swallowed.
-        pass
+    except SQLAlchemyError as exc:
+        # Reraise so alembic aborts the upgrade transaction; the
+        # operator sees the cause and ``tasks.result_json`` survives
+        # intact for diagnosis and a retry.
+        raise RuntimeError(
+            "v3 backfill from tasks.result_json failed; aborting upgrade "
+            "to preserve source column. Underlying error: "
+            f"{type(exc).__name__}: {exc}"
+        ) from exc
 
     # Drop the original column — the data has been moved into
     # ``task_results``.
