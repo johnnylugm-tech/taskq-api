@@ -9,8 +9,6 @@ subprocess can hang forever.
 """
 from __future__ import annotations
 
-import asyncio
-import os
 
 import pytest
 from httpx import ASGITransport, AsyncClient

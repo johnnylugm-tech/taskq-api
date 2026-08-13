@@ -160,7 +160,6 @@ def test_health_readyz_renders_failure_body(monkeypatch) -> None:
 
 def test_tasks_run_task_handles_invalid_timeout(monkeypatch) -> None:
     """[NFR-09] api.tasks.run_task must fall back to 30s on bad timeout."""
-    from unittest.mock import AsyncMock, MagicMock
 
     import os
 
@@ -176,7 +175,6 @@ def test_tasks_run_task_handles_invalid_timeout(monkeypatch) -> None:
 
 def test_tasks_run_task_invalid_timeout_in_process(monkeypatch) -> None:
     """[NFR-09] api.tasks.run_task timeout parsing must hit the except branch."""
-    from unittest.mock import AsyncMock, MagicMock
 
     import os
 
@@ -348,7 +346,7 @@ def test_session_unit_of_work_normal_exit_commits(monkeypatch) -> None:
     fake = _FakeSession()
     monkeypatch.setattr(session, "get_session", lambda: fake)
 
-    with session.unit_of_work() as s:
+    with session.unit_of_work():
         pass
     assert fake.committed is True
     assert fake.rolled_back is False
@@ -362,6 +360,6 @@ def test_session_unit_of_work_commit_failure_rolls_back(monkeypatch) -> None:
     monkeypatch.setattr(session, "get_session", lambda: fake)
 
     with pytest.raises(RuntimeError):
-        with session.unit_of_work() as s:
+        with session.unit_of_work():
             pass
     assert fake.rolled_back is True

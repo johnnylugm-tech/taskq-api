@@ -8,7 +8,6 @@ across N calls — must be 1 (cached), not N.
 """
 from __future__ import annotations
 
-import os
 
 
 def test_readyz_caches_engine(monkeypatch, tmp_path):

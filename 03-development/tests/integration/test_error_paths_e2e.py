@@ -6,7 +6,6 @@ path that previously had no coverage.
 """
 from __future__ import annotations
 
-import os
 
 import pytest
 
@@ -57,7 +56,6 @@ async def test_readyz_probe_raises_oserror(monkeypatch):
     """[NFR-09, NFR-10] /readyz must render 503 when probe raises OSError."""
     from httpx import AsyncClient, ASGITransport
 
-    from taskq_api.api import health
     from taskq_api.app import create_app
 
     monkeypatch.setattr(
@@ -132,7 +130,6 @@ async def test_service_tasks_create_integrity_violation(monkeypatch):
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         # Monkeypatch the service inside the app via monkeypatch so it is restored.
-        from taskq_api.api import tasks as api_tasks
         from taskq_api.service.tasks import TaskService
 
         monkeypatch.setattr(
@@ -275,7 +272,7 @@ async def test_session_unit_of_work_normal_exit_commits(monkeypatch):
     fake = _Fake()
     monkeypatch.setattr(session, "get_session", lambda: fake)
 
-    with session.unit_of_work() as s:
+    with session.unit_of_work():
         pass
 
     assert fake.committed is True
@@ -305,7 +302,7 @@ async def test_session_unit_of_work_inner_exception_rolls_back(monkeypatch):
     monkeypatch.setattr(session, "get_session", lambda: fake)
 
     with pytest.raises(RuntimeError):
-        with session.unit_of_work() as s:
+        with session.unit_of_work():
             raise RuntimeError("simulated")
 
     assert fake.rolled_back is True
@@ -334,7 +331,7 @@ async def test_session_unit_of_work_commit_failure_rolls_back(monkeypatch):
     monkeypatch.setattr(session, "get_session", lambda: fake)
 
     with pytest.raises(RuntimeError):
-        with session.unit_of_work() as s:
+        with session.unit_of_work():
             pass
 
     assert fake.rolled_back is True
