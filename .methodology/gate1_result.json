@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 4,
-  "fr_id": "FR-07",
+  "fr_id": "FR-08",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,15 +14,15 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786590520804\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.079}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786590705764\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.041}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 11,
+      "tests_passed": 61,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\ncollected 11 items\n03-development/tests/test_fr07.py ...........                            [100%]\n\n============================== 11 passed in 2.20s ==============================\nCoverage totals: covered_lines=78, num_statements=78, percent_covered=100.0. Spec coverage 4/4 required tests present (test_fr07_alembic_round_trip_byte_identical, test_fr07_alembic_downgrade_base_clean, test_fr07_readyz_503_when_migration_behind, test_fr07_make_verify_system_exit_zero)."
+      "tool_evidence": "============================= test session starts ==============================\ncollected 61 items\n03-development/tests/test_fr08.py ........................               [ 39%]\n03-development/tests/test_fr02.py .......................                [ 77%]\n03-development/tests/test_fr09.py ..............                         [100%]\n\n============================== 61 passed in 0.98s ==============================\nCoverage totals: covered_lines=168, num_statements=168, percent_covered=100.0. Spec coverage 4/4 required tests present (test_fr08_graceful_drain_interrupted_no_orphan, test_fr08_cancelled_error_propagates, test_fr08_timeout_kill_and_wait, test_fr08_taskgroup_max_concurrent_cap)."
     },
     "architecture_constraints": {
       "score": 100.0,
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "5218f828fe96b54df1d55c906c740528658362c6a6e088f08fcbad8550114e5c",
+      "sha256": "e10b1b57f29299d3c683b3ac9164828485dedf8fb2ea30f0f289de0905af8f91",
       "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786590520804\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.079}}"
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786590705764\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.041}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "b55e0d3e9092b062f8bf11eb23b9272692c9bb3a7d7ced8ae3c80247d6a32df2",
-      "bytes": 550,
-      "head": "============================= test session starts ==============================\ncollected 11 items\n03-development/tests/test_fr07.py ...........                            [100%]\n\n============================== 11 passed in 2.20s ==============================\nCoverage totals: covered_lines=78, num_statements=78, percent_covered=100.0. Spec coverage 4/4 required tests present (test_fr07_alembic_round_trip_byte_identical, test_fr07_alembic_downgrade_base_clean, test_fr07_readyz_503_when_migration_behind, test_fr07_make_verify_system_exit_zero)."
+      "sha256": "0bdac8f508ec3536b5fe0da16ce85b995a34ea47bcfb3759f4760d8b6b250506",
+      "bytes": 702,
+      "head": "============================= test session starts ==============================\ncollected 61 items\n03-development/tests/test_fr08.py ........................               [ 39%]\n03-development/tests/test_fr02.py .......................                [ 77%]\n03-development/tests/test_fr09.py ..............                         [100%]\n\n============================== 61 passed in 0.98s ==============================\nCoverage totals: covered_lines=168, num_statements=168, percent_covered=100.0. Spec coverage 4/4 required tests present (test_fr08_graceful_drain_interrupted_no_orphan, test_fr08_cancelled_error_propagates, test_fr08_timeout_kill_and_wait, test_fr08_taskgroup_max_concurrent_cap)."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
