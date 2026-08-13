@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 4,
-  "fr_id": "FR-04",
+  "fr_id": "FR-05",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786590039243\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.051}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786590180661\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.065}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 100,
+      "tests_passed": 147,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 100 items\n\n03-development/tests/test_fr04.py ......................                 [ 22%]\n03-development/tests/test_fr03.py .......................                [ 45%]\n03-development/tests/test_fr05.py ....................                   [ 65%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 100 passed in 0.99s =============================="
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_time=0.000005 max_time=1.0 calibration_precision=3 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 147 items\n\n03-development/tests/test_fr05.py ....................                   [ 13%]\n03-development/tests/test_fr02.py .......................                [ 29%]\n03-development/tests/test_fr03.py .......................                [ 44%]\n03-development/tests/test_fr04.py ......................                 [ 59%]\n03-development/tests/test_fr06.py ........................               [ 76%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 147 passed in 1.30s =============================="
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 92 dependencies. layered-architecture KEPT sqlalchemy-isolation KEPT Contracts: 2 kept, 0 broken."
+      "tool_evidence": "Analyzed 47 files, 92 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "a66304f4c06649bb311f01eaff33a67aa63bdae03389ff37d730e71145194154",
-      "bytes": 170,
-      "head": "{\"version\":\"1.1.409\",\"time\":\"1786590039243\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.051}}"
+      "sha256": "447b53624334f7df6a9c8ca8ba9cf1bb2ae6e3acebd698c83b13bba4d3ba3f94",
+      "bytes": 186,
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786590180661\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.065}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "70b761d56ac4057659a5082dd765ea4584362cd0a7ad9078a017c4267b717604",
-      "bytes": 999,
-      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 100 items\n\n03-development/tests/test_fr04.py ......................                 [ 22%]\n03-development/tests/test_fr03.py .......................                [ 45%]\n03-development/tests/test_fr05.py ....................                   [ 65%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 100 passed in 0.99s =============================="
+      "sha256": "b9f5a3dcce07bcd8c829ac83e58243520c5d9627eea01972d5231af2e99378b3",
+      "bytes": 1162,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_time=0.000005 max_time=1.0 calibration_precision=3 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 147 items\n\n03-development/tests/test_fr05.py ....................                   [ 13%]\n03-development/tests/test_fr02.py .......................                [ 29%]\n03-development/tests/test_fr03.py .......................                [ 44%]\n03-development/tests/test_fr04.py ......................                 [ 59%]\n03-development/tests/test_fr06.py ........................               [ 76%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 147 passed in 1.30s =============================="
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "88727eb9f184cb139b30bb0b2519491dfae8310de11de0cbe5ec64f1aa98289e",
-      "bytes": 116,
-      "head": "Analyzed 47 files, 92 dependencies. layered-architecture KEPT sqlalchemy-isolation KEPT Contracts: 2 kept, 0 broken."
+      "sha256": "d1387999b6e0161b9aee99086bcedc0834e7146f0222c6bd8652aaf2702ce5a5",
+      "bytes": 154,
+      "head": "Analyzed 47 files, 92 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
