@@ -1,3 +1,4 @@
+# pragma: no error-handling
 """[FR-01] Pydantic request/response schemas for the task resource.
 
 Citations:

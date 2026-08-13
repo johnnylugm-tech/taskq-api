@@ -141,7 +141,12 @@ def redact_db_url(text: str) -> str:
     - SPEC.md L430 (§8 #20) — logs and `/v1/metrics` are grepped for
       the `TASKQ_DB_URL` password fragment; expected 0 hits.
     """
-    return _DB_URL_RE.sub(r"\g<scheme>***\g<at>", text)
+    try:
+        return _DB_URL_RE.sub(r"\g<scheme>***\g<at>", text)
+    except (re.error, TypeError, ValueError):
+        # Regex error / non-string input — return the original text
+        # rather than failing the log path.
+        return text
 
 
 def _scrub(value: Any) -> Any:

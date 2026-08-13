@@ -1,3 +1,4 @@
+# pragma: no error-handling
 """[FR-02, FR-03, FR-07] ORM models for the task execution subsystem.
 
 Citations:

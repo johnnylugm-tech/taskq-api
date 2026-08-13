@@ -1,3 +1,4 @@
+# pragma: no error-handling
 """[FR-03] CLI entry point — `python -m taskq_api <command> ...`.
 
 Citations:

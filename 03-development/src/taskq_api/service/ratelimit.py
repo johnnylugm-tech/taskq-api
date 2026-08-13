@@ -92,14 +92,26 @@ def check_and_consume(
     """
     repo = RateRepo()
     now = time.monotonic()
-    bucket = repo.get_bucket(token)
+    try:
+        bucket = repo.get_bucket(token)
+    except (KeyError, RuntimeError, OSError):
+        # Repository miss or transient error — treat as a fresh bucket
+        # so the request can proceed (fail-open for rate-limit only,
+        # keeps the API reachable even if the bucket store is wedged).
+        bucket = None
     tokens = _current_tokens(bucket, burst=burst)
 
     if tokens >= 1.0:
         tokens -= 1.0
-        repo.upsert_bucket(
-            None, token, tokens=tokens, last_refill_at=now
-        )
+        try:
+            repo.upsert_bucket(
+                None, token, tokens=tokens, last_refill_at=now
+            )
+        except (KeyError, RuntimeError, OSError):
+            # Persist failure — return the decision anyway so the
+            # caller can process the request; the next consume will
+            # re-read the bucket from the registry.
+            pass
         return RateDecision(
             allowed=True,
             retry_after_seconds=0,

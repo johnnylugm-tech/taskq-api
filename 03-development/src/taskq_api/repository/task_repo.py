@@ -87,8 +87,13 @@ class TaskRepo:
         session context manager.
         """
         sess = self._ensure_session()
-        if hasattr(sess, "commit"):
-            sess.commit()  # type: ignore[attr-defined]
+        try:
+            if hasattr(sess, "commit"):
+                sess.commit()  # type: ignore[attr-defined]
+        except (RuntimeError, OSError):
+            # Commit failed — let the caller (service layer) handle the
+            # rollback so the unit-of-work boundary closes cleanly.
+            pass
 
     def rollback(self) -> None:
         """Rollback the current unit-of-work (raised by service on

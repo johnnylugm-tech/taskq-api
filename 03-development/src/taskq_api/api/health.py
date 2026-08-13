@@ -53,8 +53,26 @@ def _readyz_response(
     ``application/problem+json`` whose ``detail`` names which check
     failed so the operator can grep ``db`` or ``migration``
     (SPEC §8 #10, #11).
+
+    Any exception raised by the probe (DB connection failure, alembic
+    subprocess error, etc.) is materialised as a 503 with the
+    exception's name in the detail so the operator can distinguish
+    a down DB from a behind-head migration.
     """
-    is_at_head, detail_str = probe()
+    try:
+        is_at_head, detail_str = probe()
+    except (OSError, RuntimeError, ConnectionError) as exc:
+        return Response(
+            content=json.dumps({
+                "type": "/errors/readyz-failed",
+                "title": "Readiness Check Failed",
+                "status": 503,
+                "detail": f"probe raised {type(exc).__name__}: {exc}",
+                "instance": "/readyz",
+            }),
+            status_code=503,
+            media_type="application/problem+json",
+        )
     if is_at_head:
         return {"status": "ready", "migration": detail_str}
     return Response(

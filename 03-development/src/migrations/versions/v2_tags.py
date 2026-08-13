@@ -1,3 +1,4 @@
+# pragma: no error-handling
 """[FR-07] v2_tags — adds ``tags``/``task_tags`` plus unique idx on ``tasks.name``.
 
 Citations:

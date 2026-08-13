@@ -179,7 +179,10 @@ def create_tasks_router() -> APIRouter:
         # Bounded run — TASKQ_TASK_TIMEOUT caps the subprocess lifetime so a
         # long-running command cannot hang the worker thread indefinitely
         # (bug-hunt HIGH-1). Defaults to 30s when unset.
-        timeout_seconds = float(os.environ.get(TASKQ_TASK_TIMEOUT, "30"))
+        try:
+            timeout_seconds = float(os.environ.get(TASKQ_TASK_TIMEOUT, "30"))
+        except ValueError:
+            timeout_seconds = 30.0
         record = await TaskRunner().run(task["command"], timeout_seconds=timeout_seconds)
         result = _result_from_runner_record(task_id=task_id, run_id=run_id, record=record)
         TaskResult.add(result)

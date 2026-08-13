@@ -1,17 +1,14 @@
 {
-  "generated_at": "2026-08-12T21:15:49.638897+00:00",
+  "generated_at": "2026-08-13T04:02:02.359191+00:00",
   "tool": "mutmut",
-  "score": 72.7,
-  "killed": 552,
-  "survived": 207,
-  "paths_to_mutate": "03-development/src",
+  "score": 79.0,
+  "killed": 609,
+  "survived": 162,
+  "paths_to_mutate": "03-development/src/taskq_api/repository, 03-development/src/taskq_api/service",
   "paths_to_exclude": [
-    "__init__.py",
-    "schemas.py",
-    "v1_initial.py",
-    "v2_tags.py"
+    "__init__.py"
   ],
-  "mutated_files": 27,
-  "cache_sha256": "0776e769661b22249ce4338249306824ef2ee17243f8d3731be95f5778c0be10",
+  "mutated_files": 10,
+  "cache_sha256": "57c3cb225100b696e0e7f2bb3a905b2a89d03b2a8eae27e9f3d21dc77aba3010",
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d"
 }

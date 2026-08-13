@@ -48,11 +48,19 @@ class TaskService:
             "command": command,
             "status": "pending",
         }
-        self._repo.create(name=name, command=command)
-        # Materialise the row into the in-process registry so the rest
-        # of the test (duplicate POST, GET, etc.) observes the row.
-        self._repo.register(row)
-        self._repo.commit()
+        try:
+            self._repo.create(name=name, command=command)
+            # Materialise the row into the in-process registry so the rest
+            # of the test (duplicate POST, GET, etc.) observes the row.
+            self._repo.register(row)
+            self._repo.commit()
+        except (KeyError, ValueError, RuntimeError) as exc:
+            # Repository layer surfaced an application-level error
+            # (duplicate key, integrity violation, etc.) — roll back
+            # the unit-of-work and re-raise so the API layer can map
+            # it to the appropriate 4xx response.
+            self._repo.rollback()
+            raise ConflictProblem(detail=str(exc)) from exc
         return row
 
     def delete(self, task_id: str) -> None:

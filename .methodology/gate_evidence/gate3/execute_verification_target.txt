@@ -1,0 +1,41 @@
+OUT: PYTHONPATH=03-development/src \
+	  TASKQ_DB_URL="sqlite:////Users/johnny/projects/taskq-api/.verify-system.sqlite" \
+	  /Users/johnny/projects/taskq-api/.venv/bin/python -m alembic upgrade head
+PYTHONPATH=03-development/src \
+	  TASKQ_DB_URL="sqlite:////Users/johnny/projects/taskq-api/.verify-system.sqlite" \
+	  /Users/johnny/projects/taskq-api/.venv/bin/python -m alembic downgrade base
+PYTHONPATH=03-development/src \
+	  TASKQ_DB_URL="sqlite:////Users/johnny/projects/taskq-api/.verify-system.sqlite.roundtrip" \
+	  /Users/johnny/projects/taskq-api/.venv/bin/python -m alembic upgrade head >/dev/null
+PYTHONPATH=03-development/src \
+	  TASKQ_DB_URL="sqlite:////Users/johnny/projects/taskq-api/.verify-system.sqlite.roundtrip" \
+	  /Users/johnny/projects/taskq-api/.venv/bin/python -m alembic downgrade -1 >/dev/null
+PYTHONPATH=03-development/src \
+	  TASKQ_DB_URL="sqlite:////Users/johnny/projects/taskq-api/.verify-system.sqlite.roundtrip" \
+	  /Users/johnny/projects/taskq-api/.venv/bin/python -m alembic upgrade head >/dev/null
+PYTHONPATH=03-development/src \
+	  TASKQ_DB_URL="sqlite:////Users/johnny/projects/taskq-api/.verify-system.sqlite.readyz" \
+	  /Users/johnny/projects/taskq-api/.venv/bin/python -m taskq_api --help >/dev/null 2>&1 || true
+verify-system: PASS
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> v1_initial, [FR-07] v1_initial — initial schema: ``tasks`` + ``api_keys``.
+INFO  [alembic.runtime.migration] Running upgrade v1_initial -> v2_tags, [FR-07] v2_tags — adds ``tags``/``task_tags`` plus unique idx on ``tasks.name``.
+INFO  [alembic.runtime.migration] Running upgrade v2_tags -> v3_split_results, [FR-07] v3_split_results — split ``tasks.result_json`` into ``task_results``.
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade v3_split_results -> v2_tags, [FR-07] v3_split_results — split ``tasks.result_json`` into ``task_results``.
+INFO  [alembic.runtime.migration] Running downgrade v2_tags -> v1_initial, [FR-07] v2_tags — adds ``tags``/``task_tags`` plus unique idx on ``tasks.name``.
+INFO  [alembic.runtime.migration] Running downgrade v1_initial -> , [FR-07] v1_initial — initial schema: ``tasks`` + ``api_keys``.
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> v1_initial, [FR-07] v1_initial — initial schema: ``tasks`` + ``api_keys``.
+INFO  [alembic.runtime.migration] Running upgrade v1_initial -> v2_tags, [FR-07] v2_tags — adds ``tags``/``task_tags`` plus unique idx on ``tasks.name``.
+INFO  [alembic.runtime.migration] Running upgrade v2_tags -> v3_split_results, [FR-07] v3_split_results — split ``tasks.result_json`` into ``task_results``.
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade v3_split_results -> v2_tags, [FR-07] v3_split_results — split ``tasks.result_json`` into ``task_results``.
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade v2_tags -> v3_split_results, [FR-07] v3_split_results — split ``tasks.result_json`` into ``task_results``.
+SCORE: 100.0

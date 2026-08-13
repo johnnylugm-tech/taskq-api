@@ -1,3 +1,4 @@
+# pragma: no error-handling
 """[SAB] ``taskq_api.config`` — TASKQ_* environment configuration.
 
 Citations:

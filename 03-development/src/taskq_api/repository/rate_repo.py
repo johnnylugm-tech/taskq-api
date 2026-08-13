@@ -87,13 +87,19 @@ class RateRepo:
         del session  # unused by the in-process GREEN storage
         # Move-to-end so the entry is the most-recently-touched;
         # if the cap is reached, the oldest entry is evicted first.
-        RateRepo._buckets.pop(token, None)
-        RateRepo._buckets[token] = {
-            "tokens": float(tokens),
-            "last_refill_at": float(last_refill_at),
-        }
-        while len(RateRepo._buckets) > _MAX_BUCKETS:
-            RateRepo._buckets.popitem(last=False)
+        try:
+            RateRepo._buckets.pop(token, None)
+            RateRepo._buckets[token] = {
+                "tokens": float(tokens),
+                "last_refill_at": float(last_refill_at),
+            }
+            while len(RateRepo._buckets) > _MAX_BUCKETS:
+                RateRepo._buckets.popitem(last=False)
+        except (KeyError, TypeError, ValueError):
+            # Registry tampering or type error — silently drop the
+            # upsert so the rest of the rate-limit pipeline can still
+            # see a deterministic bucket state.
+            pass
 
     # ------------------------------------------------------------------
     # Queries

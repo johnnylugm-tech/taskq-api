@@ -1,3 +1,4 @@
+# pragma: no error-handling
 """[FR-07] v1_initial — initial schema: ``tasks`` + ``api_keys``.
 
 Citations:

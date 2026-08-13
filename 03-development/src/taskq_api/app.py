@@ -166,7 +166,10 @@ def dispose_probe_engines() -> None:
     for engine in list(_PROBE_ENGINES.values()):
         try:
             engine.dispose()  # type: ignore[attr-defined]
-        except Exception:
+        except (OSError, ConnectionError, RuntimeError):
+            # Engine disposal during shutdown may fail if the underlying
+            # connection pool is already torn down. Best-effort cleanup
+            # — NFR-03 requires the next process to start fresh.
             pass
     _PROBE_ENGINES.clear()
 

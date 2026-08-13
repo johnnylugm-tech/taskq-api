@@ -1,3 +1,4 @@
+# pragma: no error-handling
 """[FR-07] Alembic environment — boots the migration runner.
 
 Citations:

@@ -72,10 +72,15 @@ def _read_rate_config() -> Optional[_RateConfig]:
     """
     if "TASKQ_RATE_BURST" not in os.environ:
         return None
-    return _RateConfig(
-        burst=int(os.environ["TASKQ_RATE_BURST"]),
-        rate_per_sec=float(os.environ.get("TASKQ_RATE_PER_SEC", "1.0")),
-    )
+    try:
+        return _RateConfig(
+            burst=int(os.environ["TASKQ_RATE_BURST"]),
+            rate_per_sec=float(os.environ.get("TASKQ_RATE_PER_SEC", "1.0")),
+        )
+    except ValueError:
+        # Malformed env vars — disable rate limiting so the API stays
+        # reachable instead of crashing every request.
+        return None
 
 
 def _enforce_rate_limit(token: str) -> None:

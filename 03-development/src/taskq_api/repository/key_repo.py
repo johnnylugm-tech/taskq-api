@@ -120,10 +120,19 @@ class KeyRepo:
 
     def revoke(self, key_id: str, *, revoked_at: str) -> bool:
         """Mark a key as revoked. Returns True if a row was updated."""
-        row = KeyRepo._registry.get(key_id)
+        try:
+            row = KeyRepo._registry.get(key_id)
+        except (KeyError, AttributeError):
+            return False
         if row is None:
             return False
-        row["revoked_at"] = revoked_at
+        try:
+            row["revoked_at"] = revoked_at
+        except (KeyError, TypeError):
+            # Row is read-only or immutable — revocation cannot be
+            # persisted; report failure to the caller so the API can
+            # surface 409.
+            return False
         return True
 
 

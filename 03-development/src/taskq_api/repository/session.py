@@ -54,24 +54,29 @@ def unit_of_work() -> Iterator[Any]:
     - SAD.md §2.5 — ``unit_of_work()`` is the canonical boundary.
     """
     session = get_session()
+    committed = False
     try:
-        yield session
-    except BaseException:
-        # Any exception (including ``BaseException`` subclasses such as
-        # ``asyncio.CancelledError`` per NFR-03) triggers a rollback so
-        # no partial state escapes the unit-of-work. ``rollback()`` is
-        # best-effort: if it raises we still re-raise the original
-        # exception so the caller's error handling is not masked.
-        _safe_rollback(session)
-        raise
-    else:
-        # Normal exit — commit. If commit itself raises, roll back so
-        # we never leave the session in an inconsistent state.
         try:
-            session.commit()
+            yield session
         except Exception:
+            # Application-level exception — roll back and re-raise.
             _safe_rollback(session)
             raise
+        else:
+            # Normal exit — commit. If commit itself raises, roll back so
+            # we never leave the session in an inconsistent state.
+            try:
+                session.commit()
+            except Exception:
+                _safe_rollback(session)
+                raise
+            committed = True
+    finally:
+        # Cancellation/BaseException path: roll back unless the inner
+        # block already committed. ``_safe_rollback`` is best-effort
+        # and never raises, so this can run inside the ``finally``.
+        if not committed:
+            _safe_rollback(session)
 
 
 __all__ = ["get_session", "unit_of_work"]
