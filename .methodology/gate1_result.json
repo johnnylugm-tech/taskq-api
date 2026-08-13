@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 8,
-  "fr_id": "FR-06",
+  "fr_id": "FR-07",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,15 +14,15 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786611084605\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.082}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786611284111\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.082}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 127,
+      "tests_passed": 11,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "127 passed in 1.38s. Coverage 100% on all 4 FR-06 source files (session.py 30/30, task_repo.py 66/66, tasks.py 35/35, orm.py 39/39). All 4 required spec tests present: test_fr06_list_sql_count_constant, test_fr06_no_sql_string_concat, test_fr06_lint_imports_sqlalchemy_isolation, test_fr06_transaction_context_manager_rollback."
+      "tool_evidence": "11 passed in 2.38s. Coverage 100% on all 3 FR-07 source files (v1_initial.py 23/23, v2_tags.py 23/23, v3_split_results.py 32/32). All 4 required spec tests present: test_fr07_alembic_round_trip_byte_identical, test_fr07_alembic_downgrade_base_clean, test_fr07_readyz_503_when_migration_behind, test_fr07_make_verify_system_exit_zero."
     },
     "architecture_constraints": {
       "score": 100.0,
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "386987855c37099414964aa842373e97cd7476b0efcedef06d837c050a673a0f",
+      "sha256": "5dda1d2e197692f9ce6953851ce0d107903940492a2c763cfe71e5011e4bd520",
       "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786611084605\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.082}}"
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786611284111\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.082}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "efe43dfe5951b033e08f81f30aa1e79a7e58638abbac2e4ba5b7005f04c6c9bc",
-      "bytes": 327,
-      "head": "127 passed in 1.38s. Coverage 100% on all 4 FR-06 source files (session.py 30/30, task_repo.py 66/66, tasks.py 35/35, orm.py 39/39). All 4 required spec tests present: test_fr06_list_sql_count_constant, test_fr06_no_sql_string_concat, test_fr06_lint_imports_sqlalchemy_isolation, test_fr06_transaction_context_manager_rollback."
+      "sha256": "5f5ed054cb97a28e19d7114240b4231d305717971f31efcb11021941fe317b07",
+      "bytes": 333,
+      "head": "11 passed in 2.38s. Coverage 100% on all 3 FR-07 source files (v1_initial.py 23/23, v2_tags.py 23/23, v3_split_results.py 32/32). All 4 required spec tests present: test_fr07_alembic_round_trip_byte_identical, test_fr07_alembic_downgrade_base_clean, test_fr07_readyz_503_when_migration_behind, test_fr07_make_verify_system_exit_zero."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
