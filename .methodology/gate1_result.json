@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-07",
+  "fr_id": "FR-09",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,25 +9,25 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ python3 -m ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003\nAll checks passed!\n(exit 0, 0 violations -> score 100)"
+      "tool_evidence": "All checks passed! (exit 0, 0 violations -> score 100)"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\": \"1.1.409\", \"time\": \"1786598674050\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.052}}\n(errorCount=0 -> score 100)"
+      "tool_evidence": "{\"version\":\"1.1.409\",\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.035},\"generalDiagnostics\":[]} (errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 11,
+      "tests_passed": 45,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr07.py && python3 -m coverage json --include=<FR-07 migration versions> -o -\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 11 items\n03-development/tests/test_fr07.py ...........                            [100%]\n============================== 11 passed in 2.21s ==============================\nPer-file coverage (FR-07):\n  migrations/versions/v1_initial.py:      100.0% (23/23)\n  migrations/versions/v2_tags.py:         100.0% (23/23)\n  migrations/versions/v3_split_results.py:100.0% (32/32)\ntotals: 78/78 statements covered (100.0%), missing_lines=0\nSPEC COVERAGE: 4/4 required FR-07 tests present and PASSED -> spec_cov_pct=100\n  test_fr07_alembic_round_trip_byte_identical (L107) PASS\n  test_fr07_alembic_downgrade_base_clean (L263) PASS\n  test_fr07_readyz_503_when_migration_behind (L328) PASS\n  test_fr07_make_verify_system_exit_zero (L404) PASS\ncoverage_pct=100, spec_cov_pct=100 -> score = min(100,100) = 100"
+      "tool_evidence": "collected 45 items\n03-development/tests/test_fr09.py .....................                  [ 46%]\n03-development/tests/test_fr08.py ........................               [100%]\n============================== 45 passed in 0.74s ==============================\nCoverage: 03-development/src/taskq_api/api/health.py 100.0% (26/26 statements); 03-development/src/taskq_api/app.py 100.0% (85/85 statements); TOTAL 100.0% (111/111)\nSPEC COVERAGE: 4/4 required FR-09 test functions present in 03-development/tests/test_fr09.py (test_fr09_healthz_no_auth, test_fr09_readyz_200_when_ok, test_fr09_readyz_503_when_db_down, test_fr09_readyz_503_when_alembic_not_head) -> spec_cov_pct = 100\nscore = min(coverage_pct 100.0, spec_cov_pct 100) = 100.0"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: the documented `PYTHONPATH=src lint-imports` form failed to execute with \"Could not find package 'taskq_api' in your Python path\" -- a harness path-config bug, not a contract verdict (the src layout lives at 03-development/src; no contracts were evaluated on that invocation). Re-invoked once with the correct root, matching the documented FR-06 Gate 1 precedent."
+      "tool_evidence": "PYTHONPATH=03-development/src /Users/johnny/projects/taskq-api/.venv/bin/lint-imports (exit 0)\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -68,30 +68,30 @@
     "linting": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "f530c6950b5e8443a72fbe926be28ebecc310007de041b1c4059f16b00885c68",
-      "bytes": 135,
-      "head": "$ python3 -m ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003\nAll checks passed!\n(exit 0, 0 violations -> score 100)"
+      "sha256": "19502a7863389a38773c990a5b7ed8058f006682302bf0bb562e509b556a6886",
+      "bytes": 54,
+      "head": "All checks passed! (exit 0, 0 violations -> score 100)"
     },
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "35dc72e988aff56fb975175a02ca2c2192e192bfea1396ed331e4452c7ecbb77",
-      "bytes": 268,
-      "head": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\": \"1.1.409\", \"time\": \"1786598674050\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.052}}\n(errorCount=0 -> score 100)"
+      "sha256": "1c283297b7a9ff71ea4e042b4d3bc2dd3990b2c3f031129ef9d80fd8cbf79453",
+      "bytes": 175,
+      "head": "{\"version\":\"1.1.409\",\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.035},\"generalDiagnostics\":[]} (errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "41b880a3ce2f0ad4bdcdafd6ec533d5c940246d2745b915b84769b78f6d0ffd7",
-      "bytes": 1003,
-      "head": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr07.py && python3 -m coverage json --include=<FR-07 migration versions> -o -\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 11 items\n03-development/tests/test_fr07.py ...........                            [100%]\n============================== 11 passed in 2.21s ==============================\nPer-file coverage (FR-07):\n  migrations/versions/v1_initial.py:      100.0% (23/23)\n  migrations/versions/v2_tags.py:         100.0% (23/23)\n  migrations/versions/v3_split_results.py:100.0% (32/32)\ntotals: 78/78 statements covered (100.0%), missing_lines=0\nSPEC COVERAGE: 4/4 required FR-07 tests present and PASSED -> spec_cov_pct=100\n  test_fr07_alembic_round_trip_byte_identical (L107) PASS\n  test_fr07_alembic_downgrade_base_clean (L263) PASS\n  test_fr07_readyz_503_when_migration_behind (L328) PASS\n  test_fr07_make_verify_system_exit_zero (L404) PASS\ncoverage_pct=100, spec_cov_pct=100 -> score = min(100,100) = 100"
+      "sha256": "e2515003790b6713ab6d1074fcc8bd92b54d19321ff12d4689bde2f982bbe1d9",
+      "bytes": 736,
+      "head": "collected 45 items\n03-development/tests/test_fr09.py .....................                  [ 46%]\n03-development/tests/test_fr08.py ........................               [100%]\n============================== 45 passed in 0.74s ==============================\nCoverage: 03-development/src/taskq_api/api/health.py 100.0% (26/26 statements); 03-development/src/taskq_api/app.py 100.0% (85/85 statements); TOTAL 100.0% (111/111)\nSPEC COVERAGE: 4/4 required FR-09 test functions present in 03-development/tests/test_fr09.py (test_fr09_healthz_no_auth, test_fr09_readyz_200_when_ok, test_fr09_readyz_503_when_db_down, test_fr09_readyz_503_when_alembic_not_head) -> spec_cov_pct = 100\nscore = min(coverage_pct 100.0, spec_cov_pct 100) = 100.0"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "addb6ad037ec91ec308731968ba32163f50618ba47be3d67c18d0429a7e3aa3d",
-      "bytes": 553,
-      "head": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: the documented `PYTHONPATH=src lint-imports` form failed to execute with \"Could not find package 'taskq_api' in your Python path\" -- a harness path-config bug, not a contract verdict (the src layout lives at 03-development/src; no contracts were evaluated on that invocation). Re-invoked once with the correct root, matching the documented FR-06 Gate 1 precedent."
+      "sha256": "7dcd14c1b6b5aa18df6a0cdf1f2932fd83dff360722e3cd8d76a584a2ba55290",
+      "bytes": 211,
+      "head": "PYTHONPATH=03-development/src /Users/johnny/projects/taskq-api/.venv/bin/lint-imports (exit 0)\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
