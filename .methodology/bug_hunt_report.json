@@ -1,0 +1,190 @@
+{
+  "generated_at": "2026-08-13T07:00:00+00:00",
+  "git_sha": "6078cbaaba6bb98c1d1b53de17ed3f76eb5ee0fe",
+  "targets_manifest": ".methodology/bug_hunt_targets.json",
+  "lenses": [
+    "correctness",
+    "concurrency",
+    "resilience",
+    "general"
+  ],
+  "raw_count": 6,
+  "confirmed_count": 6,
+  "refuted_count": 0,
+  "findings": [
+    {
+      "id": "taskq_api.api.tasks#1",
+      "module": "taskq_api.api.tasks",
+      "lens": "resilience",
+      "severity": "high",
+      "title": "POST /v1/tasks/{id}/run executes subprocess with no timeout",
+      "description": "api/tasks.py:177 calls `await TaskRunner().run(task[\"command\"])` without passing `timeout_seconds`. The runner's timeout machinery (`_communicate_with_timeout` + `proc.kill()` + `await proc.wait()`) is only activated when `timeout_seconds` is supplied; in the HTTP path it never is. A long-running command holds the request open indefinitely, exhausting worker threads (FastAPI runs sync deps in a threadpool). FR-08 §3 specifies TASKQ_TASK_TIMEOUT as the bounded ceiling; api/tasks.py never reads it. SEC T-07 is unaffected (shell=False still blocks injection), but the DoS surface is wide open. Threat-model T-09 mitigation is structurally present but unreachable from the HTTP handler.",
+      "file": "03-development/src/taskq_api/api/tasks.py",
+      "line_start": 177,
+      "line_end": 177,
+      "code_snippet": "        record = await TaskRunner().run(task[\"command\"])",
+      "reasoning": "TaskRunner.run accepts `timeout_seconds`; api/tasks.py:177 calls it without the kwarg. The runner's `run` body at runner.py:298 only invokes `asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)` when timeout_seconds is not None (line 75-77). Without it, the inner `proc.communicate()` awaits indefinitely. Failure scenario: POST /v1/tasks/{id}/run with `command='sleep 99999'` blocks the worker forever; under concurrent load, the FastAPI threadpool is exhausted and subsequent requests hang.",
+      "suggested_fix": "Read TASKQ_TASK_TIMEOUT at request time and pass it: `timeout = float(os.environ.get('TASKQ_TASK_TIMEOUT', '30')); record = await TaskRunner().run(task['command'], timeout_seconds=timeout)`. Place the lookup in run_task so the test fixture's env override still works.",
+      "confidence": "high",
+      "confirmed": true,
+      "verify_evidence": "runner.py:75-77 — `if timeout_seconds is None: return await proc.communicate()` — the unbounded path is the only one reachable from api/tasks.py:177. test_fr02_timeout_kills_subprocess exercises timeout via direct `runner.run('sleep 60', timeout_seconds=0.1)`; no HTTP-path test asserts a timeout is enforced.",
+      "resolution": {
+        "status": "resolved",
+        "fix_commit": "3b43920",
+        "repro_test": "03-development/tests/test_bug_hunt_run_timeout.py"
+      }
+    },
+    {
+      "id": "taskq_api.service.ratelimit#1",
+      "module": "taskq_api.service.ratelimit",
+      "lens": "resilience",
+      "severity": "high",
+      "title": "Rate-limit bucket grows unbounded per unique token (memory-exhaustion DoS)",
+      "description": "RateRepo._buckets is a module-level dict keyed by raw X-API-Key. check_and_consume upserts a bucket for every consumed token — including unknown / garbage keys, because the rate-limit gate fires before verify_key (deps.py:141). An attacker can submit millions of requests with distinct garbage tokens; each one creates a new entry in RateRepo._buckets with no eviction, no TTL, no cap. The in-memory dict grows linearly with attacker-controlled request volume until the process OOMs. Threat-model T-06 mitigation is structurally present for known keys (per-token bucket) but absent for unknown keys (each one consumes a fresh bucket).",
+      "file": "03-development/src/taskq_api/repository/rate_repo.py",
+      "line_start": 46,
+      "line_end": 82,
+      "code_snippet": "    _buckets: dict[str, dict[str, Any]] = {}\n    @staticmethod\n    def upsert_bucket(session, token, *, tokens, last_refill_at):\n        del session\n        RateRepo._buckets[token] = {\"tokens\": float(tokens), \"last_refill_at\": float(last_refill_at)}",
+      "reasoning": "Failure scenario: attacker sends N requests with distinct X-API-Key headers (X-API-Key: garbage1, garbage2, ..., garbageN). Each request hits _enforce_rate_limit → check_and_consume → upsert_bucket → RateRepo._buckets[garbageK] = {...}. After N requests the dict has N entries and no mechanism reclaims them. For an attacker with 1M unique tokens the process holds 1M dict entries for the lifetime of the worker. Failure to evict means sustained attack permanently inflates memory.",
+      "suggested_fix": "Bound the in-process dict: when len(_buckets) >= MAX_BUCKETS, evict the least-recently-touched entry (LRU) or fall through with allowed=True but tokens=0. The DB-backed production wiring naturally bounds via row-level constraints; the GREEN storage needs an explicit cap or TTL.",
+      "confidence": "high",
+      "confirmed": true,
+      "verify_evidence": "rate_repo.py:79 — `RateRepo._buckets[token] = {...}` unconditionally overwrites. No `pop`, no `del`, no max-size guard in upsert_bucket or get_bucket. deps.py:141 calls _enforce_rate_limit BEFORE verify_key so unknown keys still consume buckets.",
+      "resolution": {
+        "status": "resolved",
+        "fix_commit": "745a23e",
+        "repro_test": "03-development/tests/test_bug_hunt_rate_bounded.py"
+      }
+    },
+    {
+      "id": "migrations.versions.v3_split_results#1",
+      "module": "migrations.versions.v3_split_results",
+      "lens": "correctness",
+      "severity": "high",
+      "title": "v3 downgrade LIMIT 1 loses all but the newest task_results row per task",
+      "description": "_REPOPULATE_RESULT_JSON rebuilds tasks.result_json via a correlated scalar subquery with `ORDER BY tr.rowid DESC LIMIT 1`. For each task, only the single newest task_results row is preserved; the column is JSON-shaped, so a task with N>1 runs cannot round-trip without losing N-1 runs. Then `op.drop_table(_TASK_RESULTS_TABLE)` drops the source. Threat-model T-10 (Alembic v3 downgrade loses task result data) is confirmed: any task with multiple runs loses all but the latest run on downgrade.",
+      "file": "03-development/src/migrations/versions/v3_split_results.py",
+      "line_start": 98,
+      "line_end": 114,
+      "code_snippet": "_REPOPULATE_RESULT_JSON: str = (\n    \"UPDATE tasks SET result_json = (\"\n    \"  SELECT json_object(...) FROM task_results tr \"\n    \"  WHERE tr.task_id = tasks.id \"\n    \"  ORDER BY tr.rowid DESC LIMIT 1\"\n    \") WHERE EXISTS (...)\"",
+      "reasoning": "Failure scenario: A task has 5 task_results rows (5 runs over time). Upgrade v2→v3 splits the v2 single result_json into 5 rows. Downgrade v3→v2 collapses the 5 rows back to a single result_json with the LIMIT 1 newest row only; 4 runs are silently dropped. SPEC §3 FR-07 round-trip preservation invariant is broken. The migration is reachable by any operator running `alembic downgrade -1` after multiple runs.",
+      "suggested_fix": "Aggregate runs into a JSON array: `json_group_array(json_object(...))` grouped by task_id, or persist each run as a separate JSON column on tasks during downgrade. The minimal correct fix is to merge all runs into a `runs: [...]` JSON array within the single result_json column, so round-trip preserves every run.",
+      "confidence": "high",
+      "confirmed": true,
+      "verify_evidence": "v3_split_results.py:111 — `ORDER BY tr.rowid DESC LIMIT 1` in the correlated subquery restricts to one row per outer task. v3_split_results.py:205 — `op.drop_table(_TASK_RESULTS_TABLE)` then drops the source, making the loss permanent.",
+      "resolution": {
+        "status": "resolved",
+        "fix_commit": "a76c50f",
+        "repro_test": "03-development/tests/test_bug_hunt_v3_downgrade.py"
+      }
+    },
+    {
+      "id": "migrations.versions.v3_split_results#2",
+      "module": "migrations.versions.v3_split_results",
+      "lens": "resilience",
+      "severity": "high",
+      "title": "v3 upgrade swallows SQLAlchemyError then drops result_json anyway",
+      "description": "upgrade() wraps the backfill INSERT ... SELECT in `try/except SQLAlchemyError: pass`. The fallback `pass` then proceeds to `drop_column(_RESULT_JSON_COLUMN)`. If the backfill fails for any reason (malformed legacy payload, missing column referenced by json_extract, dialect mismatch on non-SQLite), the original `tasks.result_json` is dropped without the data having been moved into `task_results` first. Data loss is guaranteed on any backfill failure — silent, unrecoverable, and untraceable (the except clause deliberately suppresses the cause).",
+      "file": "03-development/src/migrations/versions/v3_split_results.py",
+      "line_start": 158,
+      "line_end": 179,
+      "code_snippet": "    try:\n        bind.execute(sa.text(_BACKFILL_FROM_RESULT_JSON), {...})\n    except SQLAlchemyError:\n        pass\n    with op.batch_alter_table(_TASKS_TABLE) as batch_op:\n        batch_op.drop_column(_RESULT_JSON_COLUMN)",
+      "reasoning": "Failure scenario: A v2→v3 upgrade against a database whose tasks.result_json contains payloads that don't match the assumed json_extract schema (e.g. a payload with no $.id, no $.run_id, no $.exit_code — the COALESCE chain degrades to defaults, but a non-string value at $.status trips the VARCHAR(32) type-coercion). The INSERT raises SQLAlchemyError, the except swallows it, drop_column fires, and the original result_json is gone. No record of the failure survives the migration. SPEC §3 FR-07 mandates lossless round-trip; this path violates it.",
+      "suggested_fix": "On backfill failure, surface the error so the operator sees it; do NOT drop the column until the backfill completes successfully. Minimum fix: log + raise (or reraise) so alembic aborts the upgrade and the operator can intervene. Alternative: gate drop_column behind a SQL rowcount check (`if rows_migrated > 0: drop_column`).",
+      "confidence": "high",
+      "confirmed": true,
+      "verify_evidence": "v3_split_results.py:166-174 — bare `except SQLAlchemyError: pass` followed by unconditional `drop_column` at line 179. No rowcount assertion, no reraise, no transaction boundary to rollback the drop.",
+      "resolution": {
+        "status": "resolved",
+        "fix_commit": "78c3cbb",
+        "repro_test": "03-development/tests/test_bug_hunt_v3_upgrade_safety.py"
+      }
+    },
+    {
+      "id": "taskq_api.app#1",
+      "module": "taskq_api.app",
+      "lens": "resilience",
+      "severity": "high",
+      "title": "_check_migration_state creates a new SQLAlchemy engine on every /readyz request",
+      "description": "_check_migration_state calls `create_engine(db_url)` and `engine.connect()` on every invocation. The engine is not cached, not disposed, and not bound to a process-wide pool. A repeated /readyz poll (k8s readiness probe, ALB target health checks) creates a fresh engine per request; each engine holds a connection pool and retains references to the URL (with redacted password — OK) and to DBAPI bindings. Over time the process accumulates engines and pool resources; under sustained probe traffic the leak becomes a real memory / fd-exhaustion DoS.",
+      "file": "03-development/src/taskq_api/app.py",
+      "line_start": 110,
+      "line_end": 124,
+      "code_snippet": "    try:\n        engine = create_engine(db_url)\n        with engine.connect() as conn:\n            row = conn.execute(sql_text(\"SELECT version_num FROM alembic_version\")).first()\n    except Exception as exc:\n        return False, _readyz_detail(_UNKNOWN_PREFIX, f\"db probe failed: {type(exc).__name__}\")",
+      "reasoning": "Failure scenario: k8s probes /readyz every 2 seconds; in 1 hour = 1800 engines, each with a pool. The pool size default is 5 connections × 1800 = 9000 idle connections held. Even after the `with` block exits, the engine object survives because nothing disposes it. The url binding keeps a reference to TASKQ_DB_URL (redacted post-redaction — OK for confidentiality but still leaking structure).",
+      "suggested_fix": "Cache the engine at module scope (lazy-initialised on first call). Dispose on app shutdown via lifespan. The minimal patch: replace per-call create_engine with `_engine = None` global, populated on first use, with `.dispose()` registered in lifespan teardown.",
+      "confidence": "high",
+      "confirmed": true,
+      "verify_evidence": "app.py:111 — `engine = create_engine(db_url)` is unconditional; no `@cache` / `functools.lru_cache` / module-level lazy. No `engine.dispose()` in lifespan (verified app.py:190-225). test_fr08_check_migration_state_* uses tmp_path engines directly so does not exercise the leak path.",
+      "resolution": {
+        "status": "resolved",
+        "fix_commit": "c9de95b",
+        "repro_test": "03-development/tests/test_bug_hunt_readyz_engine_cache.py"
+      }
+    },
+    {
+      "id": "taskq_api.repository.task_repo#1",
+      "module": "taskq_api.repository.task_repo",
+      "lens": "correctness",
+      "severity": "high",
+      "title": "TaskRepo.list accepts cursor but never applies it — FR-01 cursor pagination is broken",
+      "description": "TaskRepo.list signature accepts `cursor: Optional[str] = None`, and api/tasks.py:list_tasks passes the query parameter through, but the SELECT statement is built without any cursor filter. Pagination is cursor-based per SPEC §3 FR-01 ('cursor-based (not offset) per SPEC §3 FR-01'); the parameter is silently ignored. next_cursor is emitted correctly when rows overflow, but the returned cursor is meaningless because the next request with that cursor would receive the same first page.",
+      "file": "03-development/src/taskq_api/repository/task_repo.py",
+      "line_start": 137,
+      "line_end": 188,
+      "code_snippet": "        stmt = (\n            select(_task_table)\n            .options(selectinload(\"*\"))\n            .limit(limit)\n        )\n        if status is not None:\n            stmt = stmt.where(_task_table.c.status == status)",
+      "reasoning": "Failure scenario: Client requests /v1/tasks?cursor=<id-50>. The list_tasks handler forwards to service.list → repo.list. repo.list ignores cursor and runs the same SELECT every time, returning the same first page. Client receives next_cursor=<id-X> but cannot make forward progress through the dataset — a 1000-row dataset with limit=50 returns only rows 1-50 forever. The test_fr02_task_repo_list_with_status_and_cursor only asserts the overflow path emits next_cursor; no test verifies cursor-based filtering.",
+      "suggested_fix": "Apply cursor as a keyset filter: `if cursor is not None: stmt = stmt.where(_task_table.c.id > cursor)` and ORDER BY id ASC so the next page starts strictly after the cursor. The schema's id column is the natural key for stable ordering.",
+      "confidence": "high",
+      "confirmed": true,
+      "verify_evidence": "task_repo.py:166-170 — the SELECT statement is built with `limit(limit)` and an optional `where(status)`, but `cursor` does not appear in the predicate. Cursor is in the signature (line 142) and consumed by service.list (line 89) but never propagated into the WHERE clause.",
+      "resolution": {
+        "status": "resolved",
+        "fix_commit": "6078cba",
+        "repro_test": "03-development/tests/test_bug_hunt_cursor_pagination.py"
+      }
+    },
+    {
+      "id": "taskq_api.service.ratelimit#2",
+      "module": "taskq_api.service.ratelimit",
+      "lens": "correctness",
+      "severity": "medium",
+      "title": "check_and_consume decrements tokens but never refills them — bucket permanently exhausts",
+      "description": "check_and_consume initialises a brand-new bucket to `burst` and decrements by 1 on every consume. The stored `last_refill_at` is written but never read back — no time-based replenishment. Once a token's bucket drops below 1.0, the bucket stays empty until process restart, even if rate_per_sec would replenish it. SPEC §3 FR-05 requires 'token bucket: capacity = burst, refill rate = rate_per_sec tokens/sec'. The current code is a leaky bucket, not a token bucket.",
+      "file": "03-development/src/taskq_api/service/ratelimit.py",
+      "line_start": 69,
+      "line_end": 114,
+      "code_snippet": "    tokens = _current_tokens(bucket, burst=burst)\n    if tokens >= 1.0:\n        tokens -= 1.0\n        repo.upsert_bucket(None, token, tokens=tokens, last_refill_at=now)",
+      "reasoning": "Failure scenario: TASKQ_RATE_BURST=20, TASKQ_RATE_PER_SEC=10. First 20 requests succeed (bucket 20→0). At t+5s, the bucket SHOULD have refilled by 50 tokens (capped at burst=20), but the code only sees tokens=0 and returns 429 forever. The Retry-After is computed from rate_per_sec alone, never from observed replenishment. Medium severity: the rate limit DOES still throttle (over-protective), but legitimate clients see perpetual 429s instead of the expected refill behaviour. test_fr05 only exercises burst+1, never verifies refill after waiting.",
+      "suggested_fix": "Compute tokens on read using time delta: `tokens = min(burst, current_tokens + (now - last_refill_at) * rate_per_sec)`. Persist the post-decrement tokens and the current `now` so the next call starts from the correct base.",
+      "confidence": "high",
+      "confirmed": true,
+      "verify_evidence": "ratelimit.py:96-114 — `tokens = _current_tokens(bucket, ...)` reads the stored value but never adjusts by elapsed time × rate_per_sec. `last_refill_at` is written at line 101 but the only read is `bucket.get('tokens', ...)` (line 54).",
+      "resolution": {
+        "status": "open",
+        "refute_evidence": "Recorded only (medium severity, not Gate-3 blocking)."
+      }
+    },
+    {
+      "id": "taskq_api.service.auth#1",
+      "module": "taskq_api.service.auth",
+      "lens": "correctness",
+      "severity": "medium",
+      "title": "redact_db_url misses passwords containing unescaped @",
+      "description": "_DB_URL_RE's password group is `[^@\\s]+` — any @ in the password terminates the match prematurely. URL `postgres://user:p@ssword@host/db` matches the scheme+user prefix `postgres://user:` then expects the password to be `p`, fails to find `@` (next char is `s`), and the regex misses entirely — the URL is returned unredacted. RFC 3986 mandates percent-encoding `@` in userinfo, but legacy / hand-crafted URLs and certain SQLAlchemy URL serializers can emit unescaped forms.",
+      "file": "03-development/src/taskq_api/service/auth.py",
+      "line_start": 124,
+      "line_end": 144,
+      "code_snippet": "_DB_URL_RE = re.compile(\n    r\"(?P<scheme>[a-zA-Z][a-zA-Z0-9+.\\-]*://[^:@\\s]+:)(?P<pwd>[^@\\s]+)(?P<at>@)\"\n)",
+      "reasoning": "Failure scenario: A developer sets TASKQ_DB_URL=postgres://app:p@ssw0rd@db.internal:5432/app (intentional or accidental). The redaction leaves the URL untouched, and the password `p@ssw0rd` appears verbatim in /v1/metrics output and any log line. Threat-model T-05 mitigation is partially effective (no leak for RFC-compliant URLs) but not robust.",
+      "suggested_fix": "Either (a) percent-decode the password segment before redaction, or (b) use SQLAlchemy's `make_url(url).password` to extract the structured password and substitute `***` at that point, or (c) anchor the regex to the LAST `@` before the path. Option (c) is the minimal patch: `r'\\:([^@\\s]*)@'` capturing everything from the last `:` to the last `@` before the path.",
+      "confidence": "medium",
+      "confirmed": true,
+      "verify_evidence": "auth.py:125 — `[^@\\s]+` for the pwd group matches up to the first `@`. A second `@` in the password terminates the regex early.",
+      "resolution": {
+        "status": "open",
+        "refute_evidence": "Recorded only (medium severity, not Gate-3 blocking)."
+      }
+    }
+  ]
+}
