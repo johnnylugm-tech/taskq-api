@@ -1,0 +1,12 @@
+ctx:
+  agent_id: GATE
+  phase: 8
+  fr_id: FR-09
+  trace_id: cebf4b8c
+  timestamp: '2026-08-13T09:03:05.850974+00:00'
+decision: GATE_VARIANCE_LOW
+reasoning: Per-dimension scores cluster tightly (n=4, stddev=0.000, scores=[100.0,
+  100.0, 100.0, 100.0]). Forensic flag — manually verify evidence trail.
+scores:
+  dim_stddev: 0.0
+metadata: {}

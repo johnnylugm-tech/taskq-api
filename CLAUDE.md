@@ -8,7 +8,7 @@
 <!-- harness:auto-start -->
 ## Harness Status _(auto-generated — do not edit this block)_
 
-> Phase: **8 — Config Management** | Last Gate: **Gate 1** | Last FR: FR-08 | Updated: 2026-08-13
+> Phase: **8 — Config Management** | Last Gate: **Gate 1** | Last FR: FR-09 | Updated: 2026-08-13
 
 ### Gate Progress
 | Gate | Score / FRs | Status |
