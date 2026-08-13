@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 4,
-  "fr_id": "FR-05",
+  "fr_id": "FR-06",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786590180661\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.065}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.071}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 147,
+      "tests_passed": 107,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_time=0.000005 max_time=1.0 calibration_precision=3 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 147 items\n\n03-development/tests/test_fr05.py ....................                   [ 13%]\n03-development/tests/test_fr02.py .......................                [ 29%]\n03-development/tests/test_fr03.py .......................                [ 44%]\n03-development/tests/test_fr04.py ......................                 [ 59%]\n03-development/tests/test_fr06.py ........................               [ 76%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 147 passed in 1.30s =============================="
+      "tool_evidence": "============================= 107 passed in 1.30s ==============================\n03-development/tests/test_fr06.py ........................               [ 22%]\n03-development/tests/test_fr01.py .................                      [ 38%]\n03-development/tests/test_fr02.py .......................                [ 59%]\n03-development/tests/test_fr03.py .......................                [ 81%]\n03-development/tests/test_fr05.py ....................                   [100%]\nCoverage totals: 100.0% (156/156 statements covered). Spec coverage 4/4 required tests present (test_fr06_list_sql_count_constant, test_fr06_no_sql_string_concat, test_fr06_lint_imports_sqlalchemy_isolation, test_fr06_transaction_context_manager_rollback)."
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 92 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+      "tool_evidence": "Analyzed 47 files, 92 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT. EXIT=0"
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "447b53624334f7df6a9c8ca8ba9cf1bb2ae6e3acebd698c83b13bba4d3ba3f94",
-      "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786590180661\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.065}}"
+      "sha256": "f3290ed7db07dc9a0ab26f3d3cbf752e3a164a791f645e1f56c636f4b51c60bb",
+      "bytes": 161,
+      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.071}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "b9f5a3dcce07bcd8c829ac83e58243520c5d9627eea01972d5231af2e99378b3",
-      "bytes": 1162,
-      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_time=0.000005 max_time=1.0 calibration_precision=3 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 147 items\n\n03-development/tests/test_fr05.py ....................                   [ 13%]\n03-development/tests/test_fr02.py .......................                [ 29%]\n03-development/tests/test_fr03.py .......................                [ 44%]\n03-development/tests/test_fr04.py ......................                 [ 59%]\n03-development/tests/test_fr06.py ........................               [ 76%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 147 passed in 1.30s =============================="
+      "sha256": "42d29d3f77941aa9d8b13bd4917dd9417f10541c3c5b99410846fa5b838bec80",
+      "bytes": 737,
+      "head": "============================= 107 passed in 1.30s ==============================\n03-development/tests/test_fr06.py ........................               [ 22%]\n03-development/tests/test_fr01.py .................                      [ 38%]\n03-development/tests/test_fr02.py .......................                [ 59%]\n03-development/tests/test_fr03.py .......................                [ 81%]\n03-development/tests/test_fr05.py ....................                   [100%]\nCoverage totals: 100.0% (156/156 statements covered). Spec coverage 4/4 required tests present (test_fr06_list_sql_count_constant, test_fr06_no_sql_string_concat, test_fr06_lint_imports_sqlalchemy_isolation, test_fr06_transaction_context_manager_rollback)."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "d1387999b6e0161b9aee99086bcedc0834e7146f0222c6bd8652aaf2702ce5a5",
-      "bytes": 154,
-      "head": "Analyzed 47 files, 92 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+      "sha256": "076d263f9f443fadf2f53148299caf78db7567e2cccfc4fc57a80f67dff24d79",
+      "bytes": 125,
+      "head": "Analyzed 47 files, 92 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT. EXIT=0"
     }
   },
   "composite_score": 100.0,
