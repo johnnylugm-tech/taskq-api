@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 7,
-  "fr_id": "FR-06",
+  "fr_id": "FR-07",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786607688934\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.045}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786607862346\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.059}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 127,
+      "tests_passed": 11,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "collected 127 items\n03-development/tests/test_fr06.py ........................               [ 18%]\n03-development/tests/test_fr01.py .......................                [ 37%]\n03-development/tests/test_fr02.py .......................                [ 55%]\n03-development/tests/test_fr03.py ................................       [ 80%]\n03-development/tests/test_fr05.py .........................              [100%]\nFR-06 source files: repository/session.py 100%, repository/task_repo.py 100%, service/tasks.py 100%, models/orm.py 100%\n============================= 127 passed in 1.35s =============================="
+      "tool_evidence": "============================= test session starts ==============================\ncollected 11 items\n\n03-development/tests/test_fr07.py ...........                            [100%]\n\n============================== 11 passed in 2.23s ==============================\nFR-07 source files: v1_initial.py 100%, v2_tags.py 100%, v3_split_results.py 100% (78/78 lines)"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
+      "tool_evidence": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "fdcb9fca9c1ce469ee2fa87a377990b82dc4f12c48c529eff44f513ec0f6dbcf",
+      "sha256": "8ad3d1f431df6b2fb640198eeb25aefcaade64b00aed3f8f79b69471a847392f",
       "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786607688934\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.045}}"
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786607862346\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.059}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "8a8263081b99a6c1a265c6ef12bc3ff55dce671d8b3c57d74578b3db093a8cb1",
-      "bytes": 620,
-      "head": "collected 127 items\n03-development/tests/test_fr06.py ........................               [ 18%]\n03-development/tests/test_fr01.py .......................                [ 37%]\n03-development/tests/test_fr02.py .......................                [ 55%]\n03-development/tests/test_fr03.py ................................       [ 80%]\n03-development/tests/test_fr05.py .........................              [100%]\nFR-06 source files: repository/session.py 100%, repository/task_repo.py 100%, service/tasks.py 100%, models/orm.py 100%\n============================= 127 passed in 1.35s =============================="
+      "sha256": "bbf429e1fc14157389a12aa1b04e513d26bdcfe30a3715e8c644316c9a4209d2",
+      "bytes": 358,
+      "head": "============================= test session starts ==============================\ncollected 11 items\n\n03-development/tests/test_fr07.py ...........                            [100%]\n\n============================== 11 passed in 2.23s ==============================\nFR-07 source files: v1_initial.py 100%, v2_tags.py 100%, v3_split_results.py 100% (78/78 lines)"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "1b78c26ad338744ae255aa6cac551937f897e05c4a9ea6b80fe2d77b6f7f3834",
-      "bytes": 116,
-      "head": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
+      "sha256": "b679a4c334a0f2f625a26f026a588c535e780569e217134dd7948b89d9aa635e",
+      "bytes": 117,
+      "head": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
