@@ -1,0 +1,10 @@
+PYTHONPATH=03-development/src \
+	  TASKQ_DB_URL="sqlite:////Users/johnny/projects/taskq-api/.verify-system.sqlite.roundtrip" \
+	  /Users/johnny/projects/taskq-api/.venv/bin/python -m alembic upgrade head >/dev/null
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade v2_tags -> v3_split_results, [FR-07] v3_split_results — split ``tasks.result_json`` into ``task_results``.
+PYTHONPATH=03-development/src \
+	  TASKQ_DB_URL="sqlite:////Users/johnny/projects/taskq-api/.verify-system.sqlite.readyz" \
+	  /Users/johnny/projects/taskq-api/.venv/bin/python -m taskq_api --help >/dev/null 2>&1 || true
+verify-system: PASS

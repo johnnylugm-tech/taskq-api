@@ -1,0 +1,33 @@
+{
+  "community_cohesion": {
+    "score": 90.0,
+    "healthy": 9,
+    "total": 10,
+    "total_all": 70,
+    "excluded_test_communities": 60,
+    "unhealthy": [
+      {
+        "name": "taskq-api-problem",
+        "cohesion": 0.3234,
+        "size": 55,
+        "issues": [
+          "oversized(55)"
+        ]
+      }
+    ],
+    "_cohesion_threshold": 0.24,
+    "_community_oversized": 50,
+    "_community_min_size": 5,
+    "_extra_excludes": []
+  },
+  "large_functions_critical": [],
+  "large_functions_penalty": 0,
+  "architecture_score": 90.0,
+  "_source": "framework-independent",
+  "_graph_files": 59,
+  "_source_files": 59,
+  "_unparsed_files": [],
+  "_build_type": "update",
+  "_baseline_sha": "226b9c96fbbd2c8aac634974b04a9cca15d07c22",
+  "_baseline_phase": 6
+}
