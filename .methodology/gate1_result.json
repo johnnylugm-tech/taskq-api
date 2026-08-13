@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 7,
-  "fr_id": "FR-02",
+  "fr_id": "FR-03",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,29 +9,25 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "All checks passed!\n",
-      "evidence_file": ".sessi-work/round_1/tools/linting.txt"
+      "tool_evidence": "All checks passed!"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786606445016\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.042\n    }\n}\n\n",
-      "evidence_file": ".sessi-work/round_1/tools/type_safety.txt"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786606743105\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.055}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 186,
+      "tests_passed": 161,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "                 53      0   100%\n03-development/src/taskq_api/models/orm.py                39      0   100%\n03-development/src/taskq_api/repository/task_repo.py      66      0   100%\n03-development/src/taskq_api/service/runner.py            99      0   100%\n------------------------------------------------------------------------------------\nTOTAL                                                    257      0   100%\n============================= 186 passed in 1.82s ==============================\n",
-      "evidence_file": ".sessi-work/round_1/tools/test_coverage_pytestcov.txt"
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=4 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 161 items\n\n03-development/tests/test_fr03.py ................................       [ 19%]\n03-development/tests/test_fr02.py .......................                [ 34%]\n03-development/tests/test_fr04.py ......................                 [ 47%]\n03-development/tests/test_fr05.py .........................              [ 63%]\n03-development/tests/test_fr06.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 161 passed in 1.33s ==============================\ncoverage totals: percent_covered=100.0, num_statements=192, covered_lines=192, missing_lines=0 (FR-03 modules: api/deps.py 100%, service/auth.py 100%, repository/key_repo.py 100%, models/orm.py 100%)"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken.\n",
-      "evidence_file": ".sessi-work/round_1/tools/architecture_constraints.txt"
+      "tool_evidence": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -79,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "120394bab404130c5e492d0d5174945ec293199ae1ceb4285bf9b6799b3b56d8",
-      "bytes": 250,
-      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786606445016\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.042\n    }\n}"
+      "sha256": "0290922627493d9b71ba48587221d3ec1152699629e8775e73094d9ab9550675",
+      "bytes": 186,
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786606743105\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.055}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "48c74fbeee6bd8ba789a950d5439892cd47a38573012b646b7ef4fdd0818ebe2",
-      "bytes": 482,
-      "head": "53      0   100%\n03-development/src/taskq_api/models/orm.py                39      0   100%\n03-development/src/taskq_api/repository/task_repo.py      66      0   100%\n03-development/src/taskq_api/service/runner.py            99      0   100%\n------------------------------------------------------------------------------------\nTOTAL                                                    257      0   100%\n============================= 186 passed in 1.82s =============================="
+      "sha256": "82bacaa0f7474ed2d35ea34ffc56d2b0a711168df5296a313d917d1ff8d2eeda",
+      "bytes": 1375,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=4 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 161 items\n\n03-development/tests/test_fr03.py ................................       [ 19%]\n03-development/tests/test_fr02.py .......................                [ 34%]\n03-development/tests/test_fr04.py ......................                 [ 47%]\n03-development/tests/test_fr05.py .........................              [ 63%]\n03-development/tests/test_fr06.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 161 passed in 1.33s ==============================\ncoverage totals: percent_covered=100.0, num_statements=192, covered_lines=192, missing_lines=0 (FR-03 modules: api/deps.py 100%, service/auth.py 100%, repository/key_repo.py 100%, models/orm.py 100%)"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "fda3ed5f76f581959b460173770397e937aa28008f5ae375cbe417598cec96cf",
-      "bytes": 185,
-      "head": "---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+      "sha256": "cd29f6046b33227a36a856297a15e26c597eda73e3e6442959507f2749f3d711",
+      "bytes": 118,
+      "head": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
     }
   },
   "composite_score": 100.0,
