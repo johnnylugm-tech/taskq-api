@@ -1,0 +1,39 @@
+......................s................s................................ [ 22%]
+........................................................................ [ 44%]
+........................................................................ [ 66%]
+........................................................................ [ 88%]
+......................s..s......s.....                                   [100%]
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.11.15-final-0 _______________
+
+Name                                                         Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------------------------
+03-development/src/migrations/__init__.py                        1      0   100%
+03-development/src/migrations/versions/__init__.py               1      0   100%
+03-development/src/migrations/versions/v1_initial.py            23      0   100%
+03-development/src/migrations/versions/v2_tags.py               23      0   100%
+03-development/src/migrations/versions/v3_split_results.py      32      0   100%
+03-development/src/taskq_api/__init__.py                         1      0   100%
+03-development/src/taskq_api/api/__init__.py                     0      0   100%
+03-development/src/taskq_api/api/deps.py                        46      0   100%
+03-development/src/taskq_api/api/health.py                      23      0   100%
+03-development/src/taskq_api/api/tasks.py                       47      0   100%
+03-development/src/taskq_api/app.py                             69      0   100%
+03-development/src/taskq_api/config.py                          26      0   100%
+03-development/src/taskq_api/errors.py                         106      0   100%
+03-development/src/taskq_api/models/__init__.py                  0      0   100%
+03-development/src/taskq_api/models/orm.py                      39      0   100%
+03-development/src/taskq_api/models/schemas.py                  12      0   100%
+03-development/src/taskq_api/repository/__init__.py              0      0   100%
+03-development/src/taskq_api/repository/key_repo.py             44      0   100%
+03-development/src/taskq_api/repository/rate_repo.py            12      0   100%
+03-development/src/taskq_api/repository/session.py              25      0   100%
+03-development/src/taskq_api/repository/task_repo.py            61      0   100%
+03-development/src/taskq_api/service/__init__.py                 0      0   100%
+03-development/src/taskq_api/service/auth.py                    51      0   100%
+03-development/src/taskq_api/service/ratelimit.py               30      0   100%
+03-development/src/taskq_api/service/runner.py                  99      0   100%
+03-development/src/taskq_api/service/tasks.py                   31      0   100%
+------------------------------------------------------------------------------------------
+TOTAL                                                          802      0   100%
+321 passed, 5 skipped in 6.70s
