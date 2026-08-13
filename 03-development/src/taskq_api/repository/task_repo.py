@@ -154,6 +154,13 @@ class TaskRepo:
           ``select()`` / ``selectinload()`` constructs; no string
           concatenation is used.
 
+        Bug-hunt HIGH-6: the previous implementation accepted a
+        ``cursor`` parameter but never applied it to the SELECT — a
+        client requesting page 2 with ``?cursor=<id>`` received the
+        same first page. The cursor is now used as a keyset filter
+        (``id > cursor``) with stable ``ORDER BY id`` so subsequent
+        pages strictly progress through the dataset.
+
         Returns ``(rows, next_cursor)``.
         """
         sess = self._ensure_session()
@@ -162,14 +169,20 @@ class TaskRepo:
         # is attached as a load option so SQLAlchemy emits a
         # follow-up query for the task's relations — eagerly, never
         # lazily. The page predicate is built via ``.where(...)`` so
-        # ``status`` is always a bound parameter, never interpolated.
+        # ``status`` / ``cursor`` are always bound parameters, never
+        # interpolated.
         stmt = (
             select(_task_table)
             .options(selectinload("*"))
+            .order_by(_task_table.c.id)
             .limit(limit)
         )
         if status is not None:
             stmt = stmt.where(_task_table.c.status == status)
+        if cursor is not None:
+            # Keyset filter — every page starts strictly after the
+            # last id the client received.
+            stmt = stmt.where(_task_table.c.id > cursor)
         # The counting session is opaque to load options, so we issue
         # the page query AND the selectinload follow-up explicitly so
         # the statement count is observable (FR-06/NFR-01 — constant 2

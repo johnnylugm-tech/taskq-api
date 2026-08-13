@@ -355,7 +355,7 @@ async def test_fr02_result_written_to_task_results(
     # `test_fr02_timeout_kills_subprocess`).
     from taskq_api.service import runner as _runner
 
-    async def _fake_run(self, command):
+    async def _fake_run(self, command, *, timeout_seconds=None, **_kw):
         return {
             "exit_code": 0,
             "stdout_tail": command + "\n",
@@ -770,7 +770,7 @@ async def test_fr02_list_runs_for_task(client, write_api_key, read_api_key, monk
     """
     from taskq_api.service import runner as _runner
 
-    async def _fake_run(self, command):
+    async def _fake_run(self, command, *, timeout_seconds=None, **_kw):
         return {
             "exit_code": 0,
             "stdout_tail": command + "\n",
