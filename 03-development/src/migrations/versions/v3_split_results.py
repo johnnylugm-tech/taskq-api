@@ -52,15 +52,31 @@ _TASK_RESULTS_COLUMNS: tuple[str, ...] = (
 # and downgrade paths are inspectable side-by-side and the column
 # lists never drift between forward and reverse.
 #
-# Forward backfill: copy each pre-existing ``tasks.result_json`` row
-# into the new ``task_results`` table with one column per FR-07
-# schema invariant. ``COALESCE``/``NULLIF`` pin stable defaults so a
-# null/empty ``result_json`` still produces a row. ``randomblob`` /
-# ``hex`` synthesise a row id when the source payload has none.
+# Forward backfill: explode every pre-existing ``tasks.result_json``
+# row into one ``task_results`` row per run. The post-v3 schema stores
+# runs as a JSON ``runs`` array (bug-hunt HIGH-3 / threat-model T-10),
+# so the upgrade uses ``json_each`` to insert one row per element. A
+# legacy v2 scalar payload (no ``runs`` key) degrades to a single-row
+# insert via ``json_extract`` so an in-place v2→v3 upgrade still works.
 _BACKFILL_FROM_RESULT_JSON: str = (
     "INSERT INTO task_results ("
     "id, task_id, run_id, exit_code, "
     "stdout_tail, stderr_tail, duration_ms, finished_at, status) "
+    "SELECT "
+    "  COALESCE(NULLIF(json_extract(r.value, '$.id'), ''), "
+    "           lower(hex(randomblob(16)))), "
+    "  tasks.id, "
+    "  COALESCE(json_extract(r.value, '$.run_id'), 'legacy-' || tasks.id), "
+    "  COALESCE(json_extract(r.value, '$.exit_code'), 0), "
+    "  COALESCE(json_extract(r.value, '$.stdout_tail'), ''), "
+    "  COALESCE(json_extract(r.value, '$.stderr_tail'), ''), "
+    "  COALESCE(json_extract(r.value, '$.duration_ms'), 0), "
+    "  COALESCE(json_extract(r.value, '$.finished_at'), ''), "
+    "  COALESCE(json_extract(r.value, '$.status'), :default_status) "
+    "FROM tasks, json_each(json_extract(tasks.result_json, '$.runs')) AS r "
+    "WHERE tasks.result_json IS NOT NULL "
+    "AND json_extract(tasks.result_json, '$.runs') IS NOT NULL "
+    "UNION ALL "
     "SELECT "
     "  COALESCE(NULLIF(json_extract(result_json, '$.id'), ''), "
     "           lower(hex(randomblob(16)))), "
@@ -72,7 +88,8 @@ _BACKFILL_FROM_RESULT_JSON: str = (
     "  COALESCE(json_extract(result_json, '$.duration_ms'), 0), "
     "  COALESCE(json_extract(result_json, '$.finished_at'), ''), "
     "  COALESCE(json_extract(result_json, '$.status'), :default_status) "
-    "FROM tasks WHERE result_json IS NOT NULL"
+    "FROM tasks WHERE result_json IS NOT NULL "
+    "AND json_extract(result_json, '$.runs') IS NULL"
 )
 
 # Downgrade: orphan-task creation. When ``task_results`` carries rows
@@ -91,24 +108,28 @@ _RESTORE_ORPHAN_TASKS: str = (
     "WHERE NOT EXISTS (SELECT 1 FROM tasks t WHERE t.id = tr.task_id)"
 )
 
-# Downgrade: rebuild ``tasks.result_json`` from the columns of the
-# newest ``task_results`` row per task_id (``ORDER BY rowid DESC``).
-# The JSON shape must match the upgrade-time backfill above so the
-# round-trip is exact.
+# Downgrade: rebuild ``tasks.result_json`` from EVERY ``task_results``
+# row per task_id, grouped into a ``runs`` JSON array so a task with
+# multiple runs round-trips losslessly (bug-hunt HIGH-3 / threat-model
+# T-10). The previous ``LIMIT 1`` form dropped all but the newest run.
 _REPOPULATE_RESULT_JSON: str = (
     "UPDATE tasks SET result_json = ("
     "  SELECT json_object("
-    "    'id', tr.id, "
-    "    'run_id', tr.run_id, "
-    "    'exit_code', tr.exit_code, "
-    "    'stdout_tail', tr.stdout_tail, "
-    "    'stderr_tail', tr.stderr_tail, "
-    "    'duration_ms', tr.duration_ms, "
-    "    'finished_at', tr.finished_at, "
-    "    'status', tr.status"
-    "  ) FROM task_results tr "
-    "  WHERE tr.task_id = tasks.id "
-    "  ORDER BY tr.rowid DESC LIMIT 1"
+    "    'runs', ("
+    "      SELECT json_group_array("
+    "        json_object("
+    "          'id', r.id, "
+    "          'run_id', r.run_id, "
+    "          'exit_code', r.exit_code, "
+    "          'stdout_tail', r.stdout_tail, "
+    "          'stderr_tail', r.stderr_tail, "
+    "          'duration_ms', r.duration_ms, "
+    "          'finished_at', r.finished_at, "
+    "          'status', r.status"
+    "        )"
+    "      ) FROM task_results r WHERE r.task_id = tasks.id"
+    "    )"
+    "  )"
     ") "
     "WHERE EXISTS (SELECT 1 FROM task_results tr WHERE tr.task_id = tasks.id)"
 )
