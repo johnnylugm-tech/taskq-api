@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 8,
-  "fr_id": "FR-04",
+  "fr_id": "FR-05",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786610714697\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.076}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786610870932\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.076}}\n"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 114,
+      "tests_passed": 161,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "collected 114 items\n\n03-development/tests/test_fr04.py ......................                 [ 19%]\n03-development/tests/test_fr03.py ................................       [ 47%]\n03-development/tests/test_fr05.py .........................              [ 69%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 114 passed in 1.08s ==============================\ncoverage: deps.py 100% (49/49), auth.py 100% (54/54). All 4 required spec tests present and passing: test_fr04_delete_forbidden_403_opaque, test_fr04_delete_forbidden_403_existence_opaque, test_fr04_single_scope_dependency, test_fr04_admin_delete_succeeds_204."
+      "tool_evidence": "collected 161 items\n\n03-development/tests/test_fr05.py .........................              [ 15%]\n03-development/tests/test_fr02.py .......................                [ 29%]\n03-development/tests/test_fr03.py ................................       [ 49%]\n03-development/tests/test_fr04.py ......................                 [ 63%]\n03-development/tests/test_fr06.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n03-development/src/taskq_api/api/deps.py                        49      0   100%\n03-development/src/taskq_api/models/orm.py                      39      0   100%\n03-development/src/taskq_api/repository/rate_repo.py            23      0   100%\n03-development/src/taskq_api/service/ratelimit.py               36      0   100%\n\n============================= 161 passed in 1.43s ==============================\nAll 4 required spec tests present: test_fr05_burst_returns_429_with_retry_after, test_fr05_bucket_row_level_lock, test_fr05_health_endpoints_exempt, test_fr05_retry_after_header_present.\n"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
+      "tool_evidence": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n"
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "db298df65a11486cf2b71e943a9235db490ac130311e53775b6fb94bb70c0cc9",
+      "sha256": "3299176c5cdec6db14c81280bd2d86bc8b5a24d7e6a4129fca1b6c9479822073",
       "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786610714697\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.076}}"
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786610870932\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.076}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "1bd448f8745a04689617cbd0003d2e82b6d2a357a1f5bfd68e85453bf84ce95f",
-      "bytes": 683,
-      "head": "collected 114 items\n\n03-development/tests/test_fr04.py ......................                 [ 19%]\n03-development/tests/test_fr03.py ................................       [ 47%]\n03-development/tests/test_fr05.py .........................              [ 69%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 114 passed in 1.08s ==============================\ncoverage: deps.py 100% (49/49), auth.py 100% (54/54). All 4 required spec tests present and passing: test_fr04_delete_forbidden_403_opaque, test_fr04_delete_forbidden_403_existence_opaque, test_fr04_single_scope_dependency, test_fr04_admin_delete_succeeds_204."
+      "sha256": "0d690ce4709e0d087e0bd636e5b9ed351cb551b84ebe81a641f88fcddd08bc83",
+      "bytes": 1094,
+      "head": "collected 161 items\n\n03-development/tests/test_fr05.py .........................              [ 15%]\n03-development/tests/test_fr02.py .......................                [ 29%]\n03-development/tests/test_fr03.py ................................       [ 49%]\n03-development/tests/test_fr04.py ......................                 [ 63%]\n03-development/tests/test_fr06.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n03-development/src/taskq_api/api/deps.py                        49      0   100%\n03-development/src/taskq_api/models/orm.py                      39      0   100%\n03-development/src/taskq_api/repository/rate_repo.py            23      0   100%\n03-development/src/taskq_api/service/ratelimit.py               36      0   100%\n\n============================= 161 passed in 1.43s ==============================\nAll 4 required spec tests present: test_fr05_burst_returns_429_with_retry_after, test_fr05_bucket_row_level_lock, test_fr05_health_endpoints_exempt, test_fr05_retry_after_header_present."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
