@@ -53,7 +53,7 @@
   },
   "test_inventory_checksum": "70a25ecb7f085c68689e05eaa5d0d324fcf679d9badde313b88525361e5172f3",
   "phase_truth_passed": true,
-  "last_milestone_command": "advance-phase --completed-phase 4",
+  "last_milestone_command": "push-milestone --type p5-baseline",
   "last_milestone_head": {
     "p3-post-gate2": "541a8dd489b2419cd17f3761f334d1159a8f49b0",
     "p4-pre-gate3": "1bc029478ab234be1ab9ab708af96a96ca3af4ba"
