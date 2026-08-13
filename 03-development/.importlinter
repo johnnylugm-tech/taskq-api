@@ -1,0 +1,22 @@
+[importlinter]
+root_package = taskq_api
+include_external_packages = True
+
+[importlinter:contract:layered-architecture]
+name = layered-architecture
+type = layers
+layers =
+    taskq_api.api
+    taskq_api.service
+    taskq_api.repository
+    taskq_api.models
+
+[importlinter:contract:sqlalchemy-isolation]
+name = sqlalchemy-isolation
+type = forbidden
+source_modules =
+    taskq_api.api
+    taskq_api.service
+forbidden_modules =
+    sqlalchemy
+allow_indirect_imports = True
