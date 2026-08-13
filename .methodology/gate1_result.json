@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-03",
+  "fr_id": "FR-04",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786597834275\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.041}}\n(errorCount=0 -> score 100)"
+      "tool_evidence": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786598049562\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.051}}\n(errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 156,
+      "tests_passed": 109,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "$ python3 -m coverage run -m pytest test_fr03,fr02,fr04,fr05,fr06,fr10 && coverage json --include=<FR-03 files>\ncollected 156 items\n============================== 156 passed in 1.29s ==============================\nCoverage totals: percent_covered=100.0, percent_covered_display=100 (192/192 statements, 0 missing) over deps.py, auth.py, key_repo.py, orm.py\nSPEC COVERAGE: 6/6 required FR-03 tests present and PASSED (verified individually) -> spec_cov_pct=100\nscore = min(coverage_pct=100, spec_cov_pct=100) = 100"
+      "tool_evidence": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr04.py 03-development/tests/test_fr03.py 03-development/tests/test_fr05.py 03-development/tests/test_fr10.py && python3 -m coverage json --include=\"03-development/src/taskq_api/api/deps.py,03-development/src/taskq_api/service/auth.py\"\ncollected 109 items\n============================== 109 passed in 1.00s ==============================\nCoverage totals: percent_covered=100.0 (103/103 statements, 0 missing) over deps.py (49 stmts, 100%) and auth.py (54 stmts, 100%)\nSPEC COVERAGE: 4/4 required FR-04 tests present and PASSED -> spec_cov_pct=100\nscore = min(coverage_pct=100, spec_cov_pct=100) = 100"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: generic 'PYTHONPATH=src' errored 'Could not find package taskq_api' -- env/path issue only; real package root is 03-development/src per run-gate FR source paths."
+      "tool_evidence": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)"
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "7508991d924fdd457b2c64efcb767a39965bf69a82d5984f4df3306686242d08",
+      "sha256": "168bc2cf471e7aaa075accdc3cdda689cb929f003161e5e493f780f33c88bd10",
       "bytes": 252,
-      "head": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786597834275\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.041}}\n(errorCount=0 -> score 100)"
+      "head": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786598049562\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.051}}\n(errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "5a05859ed9720d79c49e1754d1642c0ee526f820a515fca5f10da04669a86154",
-      "bytes": 513,
-      "head": "$ python3 -m coverage run -m pytest test_fr03,fr02,fr04,fr05,fr06,fr10 && coverage json --include=<FR-03 files>\ncollected 156 items\n============================== 156 passed in 1.29s ==============================\nCoverage totals: percent_covered=100.0, percent_covered_display=100 (192/192 statements, 0 missing) over deps.py, auth.py, key_repo.py, orm.py\nSPEC COVERAGE: 6/6 required FR-03 tests present and PASSED (verified individually) -> spec_cov_pct=100\nscore = min(coverage_pct=100, spec_cov_pct=100) = 100"
+      "sha256": "e1648f6b7ab775a1a54e2c444399275fbf47c3bbb17955949b77b55eb90f306b",
+      "bytes": 662,
+      "head": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr04.py 03-development/tests/test_fr03.py 03-development/tests/test_fr05.py 03-development/tests/test_fr10.py && python3 -m coverage json --include=\"03-development/src/taskq_api/api/deps.py,03-development/src/taskq_api/service/auth.py\"\ncollected 109 items\n============================== 109 passed in 1.00s ==============================\nCoverage totals: percent_covered=100.0 (103/103 statements, 0 missing) over deps.py (49 stmts, 100%) and auth.py (54 stmts, 100%)\nSPEC COVERAGE: 4/4 required FR-04 tests present and PASSED -> spec_cov_pct=100\nscore = min(coverage_pct=100, spec_cov_pct=100) = 100"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "6754d31d463654bbebaa46e90ea7655b7e0cf8a3f13783171fc0372c6173e094",
-      "bytes": 351,
-      "head": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: generic 'PYTHONPATH=src' errored 'Could not find package taskq_api' -- env/path issue only; real package root is 03-development/src per run-gate FR source paths."
+      "sha256": "d8c555980e3f59bdbbaa669abdd5ad7bf253312ec4a638ec93ab91f4449df59d",
+      "bytes": 183,
+      "head": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)"
     }
   },
   "composite_score": 100.0,
