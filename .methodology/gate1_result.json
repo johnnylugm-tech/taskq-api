@@ -1,7 +1,7 @@
 {
   "gate": 1,
-  "phase": 5,
-  "fr_id": "FR-08",
+  "phase": 6,
+  "fr_id": "FR-01",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,28 +9,28 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "All checks passed!\n"
+      "tool_evidence": "All checks passed!"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786599861941\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.049\n    }\n}\n"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.052}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 68,
+      "tests_passed": 105,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 68 items\n\n03-development/tests/test_fr08.py ........................               [ 35%]\n03-development/tests/test_fr02.py .......................                [ 69%]\n03-development/tests/test_fr09.py .....................                  [100%]\n\ntaskq_api/service/runner.py                  99      0   100%\ntaskq_api/app.py                             85      0   100%\n\n============================== 68 passed in 1.07s ==============================\n"
+      "tool_evidence": "........................................................................ [ 68%]\n.................................                                        [100%]\n105 passed in 0.97s\n\ncoverage: 100.0% for FR-01 source files"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken.\n"
+      "tool_evidence": "/Users/johnny/projects/taskq-api/.venv/bin/python: No module named lint-imports\n"
     }
   },
-  "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
+  "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
   "enforcer_surface": {
     "core/quality_gate": "a3055987f6ff9300815a71ced09c7dc2320b9eef",
     "harness/harness_bridge.py": "e688d20655f8f758d36a817bfab218f4996307a9",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "bfebc9bf74dd06c0a61185e631bd34dc15e0e8e246f7c9f688448f66e091cfca",
-      "bytes": 250,
-      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786599861941\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.049\n    }\n}"
+      "sha256": "a26473c21d6c32164bbd64ddc781ead2a9ab2cca96dfd37b3d6c74f7f86ee0c3",
+      "bytes": 161,
+      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.052}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "2b95703a9d2768ba1555da0b3e254355dc22ce02aec735cfd6a18cedbbdd5057",
-      "bytes": 595,
-      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 68 items\n\n03-development/tests/test_fr08.py ........................               [ 35%]\n03-development/tests/test_fr02.py .......................                [ 69%]\n03-development/tests/test_fr09.py .....................                  [100%]\n\ntaskq_api/service/runner.py                  99      0   100%\ntaskq_api/app.py                             85      0   100%\n\n============================== 68 passed in 1.07s =============================="
+      "sha256": "98fe755e622163e63f5950ec682ec7bb3e93aabbb9314f8790904866ccb778c0",
+      "bytes": 220,
+      "head": "........................................................................ [ 68%]\n.................................                                        [100%]\n105 passed in 0.97s\n\ncoverage: 100.0% for FR-01 source files"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "fda3ed5f76f581959b460173770397e937aa28008f5ae375cbe417598cec96cf",
-      "bytes": 185,
-      "head": "---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+      "sha256": "c006867fad5491ce6ab013c94a57c124c496e9609fb2cce758715233ec053e8a",
+      "bytes": 79,
+      "head": "/Users/johnny/projects/taskq-api/.venv/bin/python: No module named lint-imports"
     }
   },
   "composite_score": 100.0,
