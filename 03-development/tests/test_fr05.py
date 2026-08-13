@@ -787,6 +787,151 @@ def test_fr05_check_and_consume_initialises_bucket_when_none():
         RateRepo._buckets.clear()
 
 
+# NFR-09
+def test_fr05_read_rate_config_returns_none_when_burst_malformed(monkeypatch):
+    """[coverage] Exercise the ``except ValueError`` branch (lines 80-83).
+
+    When ``TASKQ_RATE_BURST`` is set to a non-integer string, the
+    int() conversion raises ``ValueError`` and the function returns
+    ``None`` so rate limiting is disabled instead of crashing every
+    request.
+    """
+    monkeypatch.setenv("TASKQ_RATE_BURST", "not-an-integer")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "1.0")
+
+    from taskq_api.api import deps as _deps
+
+    assert _deps._read_rate_config() is None
+
+
+# NFR-09
+def test_fr05_rate_repo_lru_eviction_pops_oldest(monkeypatch):
+    """[coverage] Exercise lines 96-97 of ``rate_repo.py`` —
+    the LRU eviction loop that pops the oldest entry once the
+    registry exceeds ``_MAX_BUCKETS`` (1024).
+    """
+    # Snapshot and restore the registry so this test does not
+    # disturb other suites sharing ``RateRepo._buckets``.
+    snapshot = list(RateRepo._buckets)
+    RateRepo._buckets.clear()
+    try:
+        # Pre-fill 1024 entries so the *next* upsert trips the cap.
+        for i in range(1024):
+            RateRepo._buckets[f"pre-{i}"] = {
+                "tokens": 1.0,
+                "last_refill_at": 0.0,
+            }
+        # The 1025th upsert must evict ``"pre-0"`` (the oldest).
+        RateRepo.upsert_bucket(
+            None, "new-token", tokens=1.0, last_refill_at=0.0
+        )
+        assert "pre-0" not in RateRepo._buckets, (
+            "LRU eviction failed: oldest entry still present"
+        )
+        assert "new-token" in RateRepo._buckets
+        # Length must be exactly _MAX_BUCKETS after eviction.
+        assert len(RateRepo._buckets) == 1024
+    finally:
+        RateRepo._buckets.clear()
+        for k, v in snapshot:
+            RateRepo._buckets[k] = v
+
+
+# NFR-09
+def test_fr05_rate_repo_upsert_swallows_typeerror(monkeypatch):
+    """[coverage] Exercise lines 98-102 of ``rate_repo.py`` —
+    the ``except (KeyError, TypeError, ValueError)`` fallback that
+    silently drops a malformed upsert.
+
+    Replace ``_buckets`` with a stub whose ``__setitem__`` raises
+    ``TypeError`` so the upsert body fails after the pop and the
+    except branch swallows the error.
+    """
+
+    class _RaisingBuckets:
+        def pop(self, *args, **kwargs):
+            return None
+
+        def __setitem__(self, key, value):
+            raise TypeError("simulated registry tamper")
+
+        def __len__(self):
+            return 0
+
+        def clear(self):
+            pass
+
+        def move_to_end(self, *args, **kwargs):
+            pass
+
+    sentinel = _RaisingBuckets()
+    monkeypatch.setattr(RateRepo, "_buckets", sentinel)
+    # Must NOT raise — the except branch swallows the TypeError.
+    RateRepo.upsert_bucket(
+        None, "t", tokens=1.0, last_refill_at=0.0
+    )
+
+
+# NFR-09
+def test_fr05_check_and_consume_swallows_get_bucket_error(monkeypatch):
+    """[coverage] Exercise lines 97-101 of ``ratelimit.py`` —
+    the ``except (KeyError, RuntimeError, OSError)`` that treats
+    a failed ``get_bucket`` as a fresh bucket (``bucket = None``).
+
+    Monkeypatch ``RateRepo.get_bucket`` to raise ``RuntimeError``
+    so the caller's consume still proceeds against a full bucket.
+    """
+
+    def _raise(token: str):
+        raise RuntimeError("simulated get_bucket failure")
+
+    monkeypatch.setattr(RateRepo, "get_bucket", staticmethod(_raise))
+
+    RateRepo._buckets.clear()
+    try:
+        decision = check_and_consume("err-token", burst=5, rate_per_sec=1.0)
+        # Fresh-bucket branch: tokens=5, after consume tokens=4.
+        assert decision.allowed is True
+        assert decision.tokens == 4.0
+    finally:
+        RateRepo._buckets.clear()
+
+
+# NFR-09
+def test_fr05_check_and_consume_swallows_upsert_error(monkeypatch):
+    """[coverage] Exercise lines 110-114 of ``ratelimit.py`` —
+    the ``except (KeyError, RuntimeError, OSError)`` after
+    ``repo.upsert_bucket`` that returns the decision anyway when
+    the persist call fails.
+    """
+    # Pre-populate a bucket with 2 tokens so consume succeeds and
+    # upsert_bucket is invoked. Then make upsert_bucket raise so
+    # the except branch swallows the failure.
+    RateRepo._buckets.clear()
+    RateRepo._buckets["upsert-err-token"] = {
+        "tokens": 2.0,
+        "last_refill_at": 0.0,
+    }
+
+    original = RateRepo.upsert_bucket
+
+    def _raise(session, token, *, tokens, last_refill_at):
+        raise RuntimeError("simulated upsert failure")
+
+    monkeypatch.setattr(RateRepo, "upsert_bucket", staticmethod(_raise))
+    try:
+        decision = check_and_consume(
+            "upsert-err-token", burst=5, rate_per_sec=1.0
+        )
+        # Despite the persist failure, the consume decision is
+        # returned to the caller so the request proceeds.
+        assert decision.allowed is True
+        assert decision.tokens == 1.0
+    finally:
+        monkeypatch.setattr(RateRepo, "upsert_bucket", staticmethod(original))
+        RateRepo._buckets.clear()
+
+
 __all__ = [
     "test_fr05_burst_returns_429_with_retry_after",
     "test_fr05_bucket_row_level_lock",
@@ -808,4 +953,9 @@ __all__ = [
     "test_fr05_scope_gate_allows_when_scope_matches",
     "test_fr05_retry_after_floor_when_rate_nonpositive",
     "test_fr05_check_and_consume_initialises_bucket_when_none",
+    "test_fr05_read_rate_config_returns_none_when_burst_malformed",
+    "test_fr05_rate_repo_lru_eviction_pops_oldest",
+    "test_fr05_rate_repo_upsert_swallows_typeerror",
+    "test_fr05_check_and_consume_swallows_get_bucket_error",
+    "test_fr05_check_and_consume_swallows_upsert_error",
 ]
