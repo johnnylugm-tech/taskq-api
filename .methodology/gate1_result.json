@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 8,
-  "fr_id": "FR-01",
+  "fr_id": "FR-02",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,15 +14,15 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.079}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.07}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 105,
+      "tests_passed": 186,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "105 passed in 0.68s. FR-scoped coverage totals: covered_lines=166, num_statements=166, percent_covered=100.0. All 9 required FR-01 tests present and passing: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant. 0 failed."
+      "tool_evidence": "186 passed in 1.23s. FR-scoped coverage totals: covered_lines=257, num_statements=257, percent_covered=100.0. All 7 required FR-02 tests present and passing: test_fr02_run_task_202, test_fr02_runner_uses_shlex_split, test_fr02_result_written_to_task_results, test_fr02_timeout_kills_subprocess, test_fr02_graceful_drain_interrupted, test_fr02_no_shell_true_in_codebase, test_fr02_run_unknown_task_404. 0 failed."
     },
     "architecture_constraints": {
       "score": 100.0,
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "d79ef49e7dc0784f310bb0c24d07f565cac7ddb05f9a067af948c7fe943d58b9",
-      "bytes": 161,
-      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.079}}"
+      "sha256": "f793ea137332214684e6db8ab5b074d60bff19137f19e82188d8f3a00084ec64",
+      "bytes": 160,
+      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.07}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "12d97262f3ce7c9741222a535d7e04ac566a2967185f8065b0e32108d1be6f53",
-      "bytes": 491,
-      "head": "105 passed in 0.68s. FR-scoped coverage totals: covered_lines=166, num_statements=166, percent_covered=100.0. All 9 required FR-01 tests present and passing: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant. 0 failed."
+      "sha256": "25cd8729504c13f1f60f6ea11a6fab17b075c92170087cfcb5453593cfe72067",
+      "bytes": 411,
+      "head": "186 passed in 1.23s. FR-scoped coverage totals: covered_lines=257, num_statements=257, percent_covered=100.0. All 7 required FR-02 tests present and passing: test_fr02_run_task_202, test_fr02_runner_uses_shlex_split, test_fr02_result_written_to_task_results, test_fr02_timeout_kills_subprocess, test_fr02_graceful_drain_interrupted, test_fr02_no_shell_true_in_codebase, test_fr02_run_unknown_task_404. 0 failed."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
