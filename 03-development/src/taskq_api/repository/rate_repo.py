@@ -15,7 +15,15 @@ Citations:
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import Any, Optional
+
+
+# Upper bound on the in-process bucket registry. The GREEN storage lives
+# in RAM; an attacker who sends unique X-API-Key values can otherwise
+# inflate the dict without limit (bug-hunt HIGH-2). When the cap is
+# reached, the least-recently-touched entry is evicted.
+_MAX_BUCKETS: int = 1024
 
 
 class RateRepo:
@@ -42,8 +50,9 @@ class RateRepo:
     # Production replaces this with a SQLAlchemy session bound to a
     # ``rate_buckets`` row keyed by token; the GREEN step preserves
     # the same upsert/get surface so the consuming service is
-    # unchanged.
-    _buckets: dict[str, dict[str, Any]] = {}
+    # unchanged. OrderedDict so we can pop the LRU entry when the
+    # cap is reached (bug-hunt HIGH-2).
+    _buckets: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
 
     # ------------------------------------------------------------------
     # Commands
@@ -76,10 +85,15 @@ class RateRepo:
         production wiring lands.
         """
         del session  # unused by the in-process GREEN storage
+        # Move-to-end so the entry is the most-recently-touched;
+        # if the cap is reached, the oldest entry is evicted first.
+        RateRepo._buckets.pop(token, None)
         RateRepo._buckets[token] = {
             "tokens": float(tokens),
             "last_refill_at": float(last_refill_at),
         }
+        while len(RateRepo._buckets) > _MAX_BUCKETS:
+            RateRepo._buckets.popitem(last=False)
 
     # ------------------------------------------------------------------
     # Queries
@@ -92,8 +106,14 @@ class RateRepo:
         current ``tokens`` count and the last ``refill_at`` instant;
         ``None`` is the signal for "first time we see this token"
         and the service initialises the bucket to full capacity.
+
+        Marks the entry as most-recently-touched so the LRU eviction
+        in ``upsert_bucket`` does not drop an actively-used token.
         """
-        return RateRepo._buckets.get(token)
+        bucket = RateRepo._buckets.get(token)
+        if bucket is not None:
+            RateRepo._buckets.move_to_end(token)
+        return bucket
 
 
 __all__ = ["RateRepo"]
