@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 6,
-  "fr_id": "FR-06",
+  "fr_id": "FR-10",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,15 +14,15 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.048}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.059}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 127,
+      "tests_passed": 105,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "........................................................................ [ 56%]\n.......................................................                  [100%]\n127 passed in 1.31s\n\ncoverage: 100.0% for FR-06 source files"
+      "tool_evidence": "........................................................................ [ 68%]\n.................................                                        [100%]\n105 passed in 0.97s\n\ncoverage: 100.0% for FR-10 source files"
     },
     "architecture_constraints": {
       "score": 100.0,
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "6c7dea1385c2d226e71f782ca3ce3862d68e02e8aa99eadb2f3e423792d72cb8",
+      "sha256": "10cdbf86ae2dcdc3ae79abadbab92e9734a2bfe32c50972b5de172f2deffe23e",
       "bytes": 161,
-      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.048}}"
+      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.059}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "b88e6bed8bdecef92804fb50ed29b6c9ec1b9821d278c54c279bce99c8400af0",
+      "sha256": "95c1549f43ca99b97da91e82408b0baf25843ea9e5e98c66bdde600bd11f118e",
       "bytes": 220,
-      "head": "........................................................................ [ 56%]\n.......................................................                  [100%]\n127 passed in 1.31s\n\ncoverage: 100.0% for FR-06 source files"
+      "head": "........................................................................ [ 68%]\n.................................                                        [100%]\n105 passed in 0.97s\n\ncoverage: 100.0% for FR-10 source files"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",

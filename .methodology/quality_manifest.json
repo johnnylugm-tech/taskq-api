@@ -241,24 +241,27 @@
       },
       "FR-07": {
         "score": 100.0,
-        "quality_complete": true,
-        "rounds_used": 2,
+        "quality_complete": false,
+        "rounds_used": 1,
         "open_critical": 0,
-        "open_high": 0
+        "open_high": 0,
+        "dimensions_disabled": []
       },
       "FR-08": {
         "score": 100.0,
-        "quality_complete": true,
-        "rounds_used": 2,
+        "quality_complete": false,
+        "rounds_used": 1,
         "open_critical": 0,
-        "open_high": 0
+        "open_high": 0,
+        "dimensions_disabled": []
       },
       "FR-09": {
         "score": 100.0,
-        "quality_complete": true,
-        "rounds_used": 2,
+        "quality_complete": false,
+        "rounds_used": 1,
         "open_critical": 0,
-        "open_high": 0
+        "open_high": 0,
+        "dimensions_disabled": []
       },
       "FR-10": {
         "score": 100.0,
