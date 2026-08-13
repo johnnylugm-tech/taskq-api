@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 4,
-  "fr_id": "FR-06",
+  "fr_id": "FR-07",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.071}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786590520804\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.079}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 107,
+      "tests_passed": 11,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= 107 passed in 1.30s ==============================\n03-development/tests/test_fr06.py ........................               [ 22%]\n03-development/tests/test_fr01.py .................                      [ 38%]\n03-development/tests/test_fr02.py .......................                [ 59%]\n03-development/tests/test_fr03.py .......................                [ 81%]\n03-development/tests/test_fr05.py ....................                   [100%]\nCoverage totals: 100.0% (156/156 statements covered). Spec coverage 4/4 required tests present (test_fr06_list_sql_count_constant, test_fr06_no_sql_string_concat, test_fr06_lint_imports_sqlalchemy_isolation, test_fr06_transaction_context_manager_rollback)."
+      "tool_evidence": "============================= test session starts ==============================\ncollected 11 items\n03-development/tests/test_fr07.py ...........                            [100%]\n\n============================== 11 passed in 2.20s ==============================\nCoverage totals: covered_lines=78, num_statements=78, percent_covered=100.0. Spec coverage 4/4 required tests present (test_fr07_alembic_round_trip_byte_identical, test_fr07_alembic_downgrade_base_clean, test_fr07_readyz_503_when_migration_behind, test_fr07_make_verify_system_exit_zero)."
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 92 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT. EXIT=0"
+      "tool_evidence": "Analyzed 47 files, 92 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "f3290ed7db07dc9a0ab26f3d3cbf752e3a164a791f645e1f56c636f4b51c60bb",
-      "bytes": 161,
-      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.071}}"
+      "sha256": "5218f828fe96b54df1d55c906c740528658362c6a6e088f08fcbad8550114e5c",
+      "bytes": 186,
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786590520804\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.079}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "42d29d3f77941aa9d8b13bd4917dd9417f10541c3c5b99410846fa5b838bec80",
-      "bytes": 737,
-      "head": "============================= 107 passed in 1.30s ==============================\n03-development/tests/test_fr06.py ........................               [ 22%]\n03-development/tests/test_fr01.py .................                      [ 38%]\n03-development/tests/test_fr02.py .......................                [ 59%]\n03-development/tests/test_fr03.py .......................                [ 81%]\n03-development/tests/test_fr05.py ....................                   [100%]\nCoverage totals: 100.0% (156/156 statements covered). Spec coverage 4/4 required tests present (test_fr06_list_sql_count_constant, test_fr06_no_sql_string_concat, test_fr06_lint_imports_sqlalchemy_isolation, test_fr06_transaction_context_manager_rollback)."
+      "sha256": "b55e0d3e9092b062f8bf11eb23b9272692c9bb3a7d7ced8ae3c80247d6a32df2",
+      "bytes": 550,
+      "head": "============================= test session starts ==============================\ncollected 11 items\n03-development/tests/test_fr07.py ...........                            [100%]\n\n============================== 11 passed in 2.20s ==============================\nCoverage totals: covered_lines=78, num_statements=78, percent_covered=100.0. Spec coverage 4/4 required tests present (test_fr07_alembic_round_trip_byte_identical, test_fr07_alembic_downgrade_base_clean, test_fr07_readyz_503_when_migration_behind, test_fr07_make_verify_system_exit_zero)."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "076d263f9f443fadf2f53148299caf78db7567e2cccfc4fc57a80f67dff24d79",
-      "bytes": 125,
-      "head": "Analyzed 47 files, 92 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT. EXIT=0"
+      "sha256": "07b3ccee3052852ef222bceb5d3ff669d6c6cdf077dea91bebdeb70bfa8da075",
+      "bytes": 117,
+      "head": "Analyzed 47 files, 92 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
