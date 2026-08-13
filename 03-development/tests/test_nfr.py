@@ -583,7 +583,7 @@ def test_nfr10_uses_asgi_transport():
 def test_nfr11_radon_mi_ge_80():
     """NFR-11: every source file has radon MI ≥ 80."""
     completed = subprocess.run(
-        [sys.executable, "-m", "radon", "mi", "03-development/src", "-j", "-q"],
+        [sys.executable, "-m", "radon", "mi", "03-development/src", "-j"],
         cwd=str(_PROJECT_ROOT),
         capture_output=True,
         text=True,
