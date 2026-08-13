@@ -1,7 +1,7 @@
 {
   "gate": 1,
-  "phase": 4,
-  "fr_id": "FR-10",
+  "phase": 5,
+  "fr_id": "FR-01",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,25 +9,25 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "All checks passed!"
+      "tool_evidence": "ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003 → All checks passed!"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786591120623\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.024}}"
+      "tool_evidence": "{\n  \"version\": \"1.1.409\",\n  \"time\": \"1786597394692\",\n  \"generalDiagnostics\": [],\n  \"summary\": {\n    \"filesAnalyzed\": 28,\n    \"errorCount\": 0,\n    \"warningCount\": 0,\n    \"informationCount\": 0,\n    \"timeInSec\": 1.049\n  }\n}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 140,
+      "tests_passed": 105,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "test_fr10.py ...................................    [ 25%]\ntest_fr01.py .................                      [ 37%]\ntest_fr02.py .......................                [ 53%]\ntest_fr03.py .......................                [ 70%]\ntest_fr04.py ......................                  [ 85%]\ntest_fr05.py ....................                   [100%]\n\n============================= 140 passed in 1.32s ==============================\ntotals: {\"covered_lines\": 199, \"num_statements\": 199, \"percent_covered\": 100.0}. Spec coverage 4/4 required tests present (test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_correlation_id_header, test_fr10_content_type_problem_json)."
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 105 items\n03-development/tests/test_fr01.py ....................... [ 21%]\n03-development/tests/test_fr02.py ....................... [ 43%]\n03-development/tests/test_fr06.py ........................ [ 66%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 105 passed in 0.97s ==============================\nFR-01 coverage totals: covered_lines=166, num_statements=166, percent_covered=100.0 (api/tasks.py 100%, service/tasks.py 100%, repository/task_repo.py 100%, models/schemas.py 100%). All 9 required tests present: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 92 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+      "tool_evidence": "lint-imports: Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -68,30 +68,30 @@
     "linting": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "f0d0b1081d9d3ebb26c4c93543053ecdc0a58998f22c071dc4ddb26021b57645",
-      "bytes": 18,
-      "head": "All checks passed!"
+      "sha256": "acfbd22288fab25b419a11ebb311b6d6a2c9904521407da739ae053c8193a843",
+      "bytes": 90,
+      "head": "ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003 → All checks passed!"
     },
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "3f973c4f552ade1b0cab5311df7f7692ee0c1f01e3c9585d10f8212162b8d932",
-      "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786591120623\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.024}}"
+      "sha256": "467c8d67ec2cafaaa073a35ec23134e971f4054d3e7d8eb5bdeeb8bc5ae43b35",
+      "bytes": 220,
+      "head": "{\n  \"version\": \"1.1.409\",\n  \"time\": \"1786597394692\",\n  \"generalDiagnostics\": [],\n  \"summary\": {\n    \"filesAnalyzed\": 28,\n    \"errorCount\": 0,\n    \"warningCount\": 0,\n    \"informationCount\": 0,\n    \"timeInSec\": 1.049\n  }\n}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "fa6d1d71eae5186dd9138e93040ff9978c774b221196fd5cc1a2dc583c95a36b",
-      "bytes": 691,
-      "head": "test_fr10.py ...................................    [ 25%]\ntest_fr01.py .................                      [ 37%]\ntest_fr02.py .......................                [ 53%]\ntest_fr03.py .......................                [ 70%]\ntest_fr04.py ......................                  [ 85%]\ntest_fr05.py ....................                   [100%]\n\n============================= 140 passed in 1.32s ==============================\ntotals: {\"covered_lines\": 199, \"num_statements\": 199, \"percent_covered\": 100.0}. Spec coverage 4/4 required tests present (test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_correlation_id_header, test_fr10_content_type_problem_json)."
+      "sha256": "88a9a035aee44e78c3f9a7b854f63309d813591742614abf77a3b227ced01959",
+      "bytes": 1037,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 105 items\n03-development/tests/test_fr01.py ....................... [ 21%]\n03-development/tests/test_fr02.py ....................... [ 43%]\n03-development/tests/test_fr06.py ........................ [ 66%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 105 passed in 0.97s ==============================\nFR-01 coverage totals: covered_lines=166, num_statements=166, percent_covered=100.0 (api/tasks.py 100%, service/tasks.py 100%, repository/task_repo.py 100%, models/schemas.py 100%). All 9 required tests present: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "07b3ccee3052852ef222bceb5d3ff669d6c6cdf077dea91bebdeb70bfa8da075",
-      "bytes": 117,
-      "head": "Analyzed 47 files, 92 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+      "sha256": "1a6842d367383758574b73f4de142ca052d6ff6dbb62be4228c3a4088c05d6ea",
+      "bytes": 132,
+      "head": "lint-imports: Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
     }
   },
   "composite_score": 100.0,
