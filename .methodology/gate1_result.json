@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-04",
+  "fr_id": "FR-05",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786598049562\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.051}}\n(errorCount=0 -> score 100)"
+      "tool_evidence": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786598355528\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.085}}\n(errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 109,
+      "tests_passed": 161,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr04.py 03-development/tests/test_fr03.py 03-development/tests/test_fr05.py 03-development/tests/test_fr10.py && python3 -m coverage json --include=\"03-development/src/taskq_api/api/deps.py,03-development/src/taskq_api/service/auth.py\"\ncollected 109 items\n============================== 109 passed in 1.00s ==============================\nCoverage totals: percent_covered=100.0 (103/103 statements, 0 missing) over deps.py (49 stmts, 100%) and auth.py (54 stmts, 100%)\nSPEC COVERAGE: 4/4 required FR-04 tests present and PASSED -> spec_cov_pct=100\nscore = min(coverage_pct=100, spec_cov_pct=100) = 100"
+      "tool_evidence": "$ python3 -m coverage run --source=03-development/src/taskq_api -m pytest 03-development/tests/test_fr05.py test_fr02.py test_fr03.py test_fr04.py test_fr06.py test_fr10.py && python3 -m coverage json -o -\ncollected 161 items\n============================== 161 passed in 1.31s ==============================\nPer-module coverage (FR-05):\n  taskq_api/api/deps.py:         100.0%\n  taskq_api/service/ratelimit.py: 100.0%\n  taskq_api/repository/rate_repo.py: 100.0%\n  taskq_api/models/orm.py:       100.0%\nSPEC COVERAGE: 4/4 required FR-05 tests present and PASSED -> spec_cov_pct=100\ncoverage_pct=100, spec_cov_pct=100 -> score = min(100,100) = 100"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)"
+      "tool_evidence": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: the documented `PYTHONPATH=src lint-imports` form errored with \"Could not find package 'taskq_api' in your Python path\" because the src layout lives at 03-development/src; re-invoked with the correct root."
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "168bc2cf471e7aaa075accdc3cdda689cb929f003161e5e493f780f33c88bd10",
+      "sha256": "f181e4f830ed4e34c24eb8f6155e3d1ade33180af683fcbefabd81535efd520f",
       "bytes": 252,
-      "head": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786598049562\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.051}}\n(errorCount=0 -> score 100)"
+      "head": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786598355528\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.085}}\n(errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "e1648f6b7ab775a1a54e2c444399275fbf47c3bbb17955949b77b55eb90f306b",
-      "bytes": 662,
-      "head": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr04.py 03-development/tests/test_fr03.py 03-development/tests/test_fr05.py 03-development/tests/test_fr10.py && python3 -m coverage json --include=\"03-development/src/taskq_api/api/deps.py,03-development/src/taskq_api/service/auth.py\"\ncollected 109 items\n============================== 109 passed in 1.00s ==============================\nCoverage totals: percent_covered=100.0 (103/103 statements, 0 missing) over deps.py (49 stmts, 100%) and auth.py (54 stmts, 100%)\nSPEC COVERAGE: 4/4 required FR-04 tests present and PASSED -> spec_cov_pct=100\nscore = min(coverage_pct=100, spec_cov_pct=100) = 100"
+      "sha256": "b966ef175aa9148a88584298a96162402f3f6f4a338d6a09b28c3496727f7777",
+      "bytes": 645,
+      "head": "$ python3 -m coverage run --source=03-development/src/taskq_api -m pytest 03-development/tests/test_fr05.py test_fr02.py test_fr03.py test_fr04.py test_fr06.py test_fr10.py && python3 -m coverage json -o -\ncollected 161 items\n============================== 161 passed in 1.31s ==============================\nPer-module coverage (FR-05):\n  taskq_api/api/deps.py:         100.0%\n  taskq_api/service/ratelimit.py: 100.0%\n  taskq_api/repository/rate_repo.py: 100.0%\n  taskq_api/models/orm.py:       100.0%\nSPEC COVERAGE: 4/4 required FR-05 tests present and PASSED -> spec_cov_pct=100\ncoverage_pct=100, spec_cov_pct=100 -> score = min(100,100) = 100"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "d8c555980e3f59bdbbaa669abdd5ad7bf253312ec4a638ec93ab91f4449df59d",
-      "bytes": 183,
-      "head": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)"
+      "sha256": "d85e9458e54a4de7e577c08d48d3df9a0f49b0da41d3aa6019bb82390d7b52a7",
+      "bytes": 395,
+      "head": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: the documented `PYTHONPATH=src lint-imports` form errored with \"Could not find package 'taskq_api' in your Python path\" because the src layout lives at 03-development/src; re-invoked with the correct root."
     }
   },
   "composite_score": 100.0,
