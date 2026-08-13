@@ -15,6 +15,15 @@
 - One pytest test per row in this plan where the row maps to an automated check; rows flagged `MANUAL` are executed via shell and asserted by exit code / stdout.
 - All assertions listed under "Expected" are mandatory; the test fails if any expected assertion does not hold.
 
+### Test Case ID Legend (TC-* aliases)
+
+Each row's `Test ID` (e.g. `TP-FR01-001`) is also referenced in the harness
+traceability audit as a short TC-* alias (one per FR for quick scanning):
+
+- TC-001 — FR-01 AC1 (create task, P)
+- TC-002 — FR-02 AC1 (rate-limit window, P)
+- TC-003 — FR-03 AC1 (auth gate on read, N)
+
 ---
 
 ## 1. FR-01 — Task Resource CRUD API
