@@ -219,10 +219,11 @@
       },
       "FR-04": {
         "score": 100.0,
-        "quality_complete": true,
-        "rounds_used": 2,
+        "quality_complete": false,
+        "rounds_used": 1,
         "open_critical": 0,
-        "open_high": 0
+        "open_high": 0,
+        "dimensions_disabled": []
       },
       "FR-05": {
         "score": 100.0,
