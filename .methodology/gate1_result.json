@@ -1,7 +1,7 @@
 {
   "gate": 1,
-  "phase": 7,
-  "fr_id": "FR-10",
+  "phase": 8,
+  "fr_id": "FR-01",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786608354799\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.06}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.079}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 160,
+      "tests_passed": 105,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "collected 160 items\n03-development/tests/test_fr10.py ...................................    [ 21%]\n03-development/tests/test_fr01.py .......................                [ 36%]\n03-development/tests/test_fr02.py .......................                [ 50%]\n03-development/tests/test_fr03.py ................................       [ 70%]\n03-development/tests/test_fr04.py ......................                 [ 84%]\n03-development/tests/test_fr05.py .........................              [100%]\n160 passed in 1.42s. Coverage: 100% (208/208 lines covered on errors.py, api/tasks.py, api/deps.py)."
+      "tool_evidence": "105 passed in 0.68s. FR-scoped coverage totals: covered_lines=166, num_statements=166, percent_covered=100.0. All 9 required FR-01 tests present and passing: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant. 0 failed."
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
+      "tool_evidence": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT. lint-imports exit=0."
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "fd18cc8f2a4ef9e876ddfb578a3c4ae11cebe42aa6ce2efdbca945ba6fc254c7",
-      "bytes": 185,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786608354799\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.06}}"
+      "sha256": "d79ef49e7dc0784f310bb0c24d07f565cac7ddb05f9a067af948c7fe943d58b9",
+      "bytes": 161,
+      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.079}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "aa1688b44dc19f9051419280b067699ef0993dd56804e787ad25ffab7d44a702",
-      "bytes": 600,
-      "head": "collected 160 items\n03-development/tests/test_fr10.py ...................................    [ 21%]\n03-development/tests/test_fr01.py .......................                [ 36%]\n03-development/tests/test_fr02.py .......................                [ 50%]\n03-development/tests/test_fr03.py ................................       [ 70%]\n03-development/tests/test_fr04.py ......................                 [ 84%]\n03-development/tests/test_fr05.py .........................              [100%]\n160 passed in 1.42s. Coverage: 100% (208/208 lines covered on errors.py, api/tasks.py, api/deps.py)."
+      "sha256": "12d97262f3ce7c9741222a535d7e04ac566a2967185f8065b0e32108d1be6f53",
+      "bytes": 491,
+      "head": "105 passed in 0.68s. FR-scoped coverage totals: covered_lines=166, num_statements=166, percent_covered=100.0. All 9 required FR-01 tests present and passing: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant. 0 failed."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "1b78c26ad338744ae255aa6cac551937f897e05c4a9ea6b80fe2d77b6f7f3834",
-      "bytes": 116,
-      "head": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
+      "sha256": "fcb642171edde230dc0e4712b3a5c4f11afa6b82524ed695f9967d9b7cf89bf8",
+      "bytes": 139,
+      "head": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT. lint-imports exit=0."
     }
   },
   "composite_score": 100.0,
