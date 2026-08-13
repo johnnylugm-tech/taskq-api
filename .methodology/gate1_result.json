@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-09",
+  "fr_id": "FR-10",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,25 +9,25 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "All checks passed! (exit 0, 0 violations -> score 100)"
+      "tool_evidence": "All checks passed!\n"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\":\"1.1.409\",\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.035},\"generalDiagnostics\":[]} (errorCount=0 -> score 100)"
+      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786599651042\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.053\n    }\n}\n\n"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 45,
+      "tests_passed": 160,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "collected 45 items\n03-development/tests/test_fr09.py .....................                  [ 46%]\n03-development/tests/test_fr08.py ........................               [100%]\n============================== 45 passed in 0.74s ==============================\nCoverage: 03-development/src/taskq_api/api/health.py 100.0% (26/26 statements); 03-development/src/taskq_api/app.py 100.0% (85/85 statements); TOTAL 100.0% (111/111)\nSPEC COVERAGE: 4/4 required FR-09 test functions present in 03-development/tests/test_fr09.py (test_fr09_healthz_no_auth, test_fr09_readyz_200_when_ok, test_fr09_readyz_503_when_db_down, test_fr09_readyz_503_when_alembic_not_head) -> spec_cov_pct = 100\nscore = min(coverage_pct 100.0, spec_cov_pct 100) = 100.0"
+      "tool_evidence": "TOTAL                                 208      0   100%\n\nName                                  Stmts   Miss  Cover\n------------------------------------------------------------------\nsrc/taskq_api/api/deps.py              49      0   100%\nsrc/taskq_api/api/tasks.py             53      0   100%\nsrc/taskq_api/errors.py               106      0   100%\n------------------------------------------------------------------\n\ntests: test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_corr"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "PYTHONPATH=03-development/src /Users/johnny/projects/taskq-api/.venv/bin/lint-imports (exit 0)\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
+      "tool_evidence": "\n╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐\n╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │\n ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗\n ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝\n╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║\n╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝\n  └──▶║║                    ▲ \n      ╚╝────────────────────┘\n\n\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken.\n"
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -68,30 +68,30 @@
     "linting": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "19502a7863389a38773c990a5b7ed8058f006682302bf0bb562e509b556a6886",
-      "bytes": 54,
-      "head": "All checks passed! (exit 0, 0 violations -> score 100)"
+      "sha256": "f0d0b1081d9d3ebb26c4c93543053ecdc0a58998f22c071dc4ddb26021b57645",
+      "bytes": 18,
+      "head": "All checks passed!"
     },
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "1c283297b7a9ff71ea4e042b4d3bc2dd3990b2c3f031129ef9d80fd8cbf79453",
-      "bytes": 175,
-      "head": "{\"version\":\"1.1.409\",\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.035},\"generalDiagnostics\":[]} (errorCount=0 -> score 100)"
+      "sha256": "0272b4114708ad4a61c4b053c56e8ba1c41f69c0ee84f412d890f819733076c3",
+      "bytes": 250,
+      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786599651042\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.053\n    }\n}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "e2515003790b6713ab6d1074fcc8bd92b54d19321ff12d4689bde2f982bbe1d9",
-      "bytes": 736,
-      "head": "collected 45 items\n03-development/tests/test_fr09.py .....................                  [ 46%]\n03-development/tests/test_fr08.py ........................               [100%]\n============================== 45 passed in 0.74s ==============================\nCoverage: 03-development/src/taskq_api/api/health.py 100.0% (26/26 statements); 03-development/src/taskq_api/app.py 100.0% (85/85 statements); TOTAL 100.0% (111/111)\nSPEC COVERAGE: 4/4 required FR-09 test functions present in 03-development/tests/test_fr09.py (test_fr09_healthz_no_auth, test_fr09_readyz_200_when_ok, test_fr09_readyz_503_when_db_down, test_fr09_readyz_503_when_alembic_not_head) -> spec_cov_pct = 100\nscore = min(coverage_pct 100.0, spec_cov_pct 100) = 100.0"
+      "sha256": "26b977f7a7a441a0cbec18d08c1fb8542d0d6ee94e8e408a25c0e26592d3fd92",
+      "bytes": 500,
+      "head": "TOTAL                                 208      0   100%\n\nName                                  Stmts   Miss  Cover\n------------------------------------------------------------------\nsrc/taskq_api/api/deps.py              49      0   100%\nsrc/taskq_api/api/tasks.py             53      0   100%\nsrc/taskq_api/errors.py               106      0   100%\n------------------------------------------------------------------\n\ntests: test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_corr"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "7dcd14c1b6b5aa18df6a0cdf1f2932fd83dff360722e3cd8d76a584a2ba55290",
-      "bytes": 211,
-      "head": "PYTHONPATH=03-development/src /Users/johnny/projects/taskq-api/.venv/bin/lint-imports (exit 0)\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
+      "sha256": "fff823bb4002a1677f23180697f4ca968072284c8ba8fbd37010d461a611c92e",
+      "bytes": 858,
+      "head": "╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐\n╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │\n ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗\n ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝\n╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║\n╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝\n  └──▶║║                    ▲ \n      ╚╝────────────────────┘\n\n\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n"
     }
   },
   "composite_score": 100.0,
