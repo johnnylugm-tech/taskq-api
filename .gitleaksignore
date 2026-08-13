@@ -10,3 +10,9 @@
 # — but gitleaks' generic entropy-based rule can't tell the difference.
 # Allowlist the file (line 2 is the only secret-shaped token in it).
 bfa25ee7a421060b132b4bfd5917298fc340f17e:.methodology/lessons/01db5fa7e924.md:generic-api-key:2
+# 2026-08-13 — Phase 8 exit (advance-phase): same lesson file was moved
+# to `.methodology-archive/lessons/01db5fa7e924.md` during P8 archival
+# (commit 3d145b4). The YAML `key:` field is still the lesson's own
+# 12-hex-char identifier, not a credential. New fingerprint because path
+# changed; allowlist the archived copy.
+3d145b40538c9dc4f7073fc5d47a9e1f33e31963:.methodology-archive/lessons/01db5fa7e924.md:generic-api-key:2
