@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 4,
-  "fr_id": "FR-09",
+  "fr_id": "FR-10",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,15 +14,15 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786590798553\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.043}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786591120623\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.024}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 38,
+      "tests_passed": 140,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\ncollected 38 items\n03-development/tests/test_fr09.py ..............                         [ 36%]\n03-development/tests/test_fr08.py ........................               [100%]\n\n============================== 38 passed in 0.76s ==============================\nCoverage totals: covered_lines=92, num_statements=92, percent_covered=100.0. Spec coverage 4/4 required tests present (test_fr09_healthz_no_auth, test_fr09_readyz_200_when_ok, test_fr09_readyz_503_when_db_down, test_fr09_readyz_503_when_alembic_not_head)."
+      "tool_evidence": "test_fr10.py ...................................    [ 25%]\ntest_fr01.py .................                      [ 37%]\ntest_fr02.py .......................                [ 53%]\ntest_fr03.py .......................                [ 70%]\ntest_fr04.py ......................                  [ 85%]\ntest_fr05.py ....................                   [100%]\n\n============================= 140 passed in 1.32s ==============================\ntotals: {\"covered_lines\": 199, \"num_statements\": 199, \"percent_covered\": 100.0}. Spec coverage 4/4 required tests present (test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_correlation_id_header, test_fr10_content_type_problem_json)."
     },
     "architecture_constraints": {
       "score": 100.0,
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "2718abb65b80d117c85f3898a9a78904aff87bfa6214987f1086f267b430884f",
+      "sha256": "3f973c4f552ade1b0cab5311df7f7692ee0c1f01e3c9585d10f8212162b8d932",
       "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786590798553\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.043}}"
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786591120623\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.024}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "6be7162a5b1f9f268843799c2d1ef530fd6d29e77897b42ef2a614b05515018a",
-      "bytes": 597,
-      "head": "============================= test session starts ==============================\ncollected 38 items\n03-development/tests/test_fr09.py ..............                         [ 36%]\n03-development/tests/test_fr08.py ........................               [100%]\n\n============================== 38 passed in 0.76s ==============================\nCoverage totals: covered_lines=92, num_statements=92, percent_covered=100.0. Spec coverage 4/4 required tests present (test_fr09_healthz_no_auth, test_fr09_readyz_200_when_ok, test_fr09_readyz_503_when_db_down, test_fr09_readyz_503_when_alembic_not_head)."
+      "sha256": "fa6d1d71eae5186dd9138e93040ff9978c774b221196fd5cc1a2dc583c95a36b",
+      "bytes": 691,
+      "head": "test_fr10.py ...................................    [ 25%]\ntest_fr01.py .................                      [ 37%]\ntest_fr02.py .......................                [ 53%]\ntest_fr03.py .......................                [ 70%]\ntest_fr04.py ......................                  [ 85%]\ntest_fr05.py ....................                   [100%]\n\n============================= 140 passed in 1.32s ==============================\ntotals: {\"covered_lines\": 199, \"num_statements\": 199, \"percent_covered\": 100.0}. Spec coverage 4/4 required tests present (test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_correlation_id_header, test_fr10_content_type_problem_json)."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
