@@ -1,8 +1,8 @@
 # Harness Methodology — Session Handover
 
-**Checkpoint**: `P7-exit-20260813`  
-**Phase**: P7 — Risk Register  
-**Generated**: 2026-08-13T08:13:53Z
+**Checkpoint**: `P8-entry-20260813`  
+**Phase**: P8 — Config & Records  
+**Generated**: 2026-08-13T08:26:38Z
 
 > ⚠️  **開始下一個工作階段前，請先執行 `/compact` 壓縮上下文**，再從「接下來的工作」繼續。
 
@@ -14,9 +14,9 @@
 # 1. Clone (if working directory cleared)
 git clone --recurse-submodules https://github.com/johnnylugm-tech/taskq-api && cd taskq-api
 
-# 2. Read plan and start Phase 8
+# 2. Read plan and continue Phase 8
 cat .methodology/phase8_plan.md
-# Follow SKILL.md §0.1 Phase 8 entry check, then execute
+# Follow the active plan and continue from where you left off
 ```
 
 ---
@@ -31,7 +31,7 @@ git clone --recurse-submodules https://github.com/johnnylugm-tech/taskq-api /tmp
 git log --oneline -3
 
 # Confirm FSM state
-cat .methodology/state.json   # expected: phase=7 state=RUNNING last_gate=1 last_fr=FR-10
+cat .methodology/state.json   # expected: phase=8 state=RUNNING last_gate=4 last_fr=FR-10
 
 # Read active plan
 cat .methodology/phase8_plan.md
@@ -41,24 +41,23 @@ cat .methodology/phase8_plan.md
 |------|----|
 | Remote | `https://github.com/johnnylugm-tech/taskq-api` |
 | Branch | `main` |
-| State | `phase=7 state=RUNNING last_gate=1 last_fr=FR-10` |
+| State | `phase=8 state=RUNNING last_gate=4 last_fr=FR-10` |
 | Plan | `.methodology/phase8_plan.md` |
 
 ---
 
 ## 任務背景
 
-P7 Risk Register: all risks documented.
+Phase 7 complete (10/10 FRs Gate 1 PASS). Gate 4 (score=95.28). Advancing to Phase 8.
 
 ## 目前執行狀況
 
-P7 Risk Register complete. Risk log committed.
+Phase 7: 10/10 FRs Gate 1 PASS. Gate 4 (score=95.28) — quality_complete. Ready to begin Phase 8.
 
 ## 接下來的工作
 
-1. Proceed to P8: Config & Records
-2. Finalize all configuration records
-3. On P8 done → call commit_and_push_p8()
+1. Follow SKILL.md §0.1 Phase 8 entry checklist
+2. Read the Phase 8 plan and execute
 
 ## 注意事項
 
