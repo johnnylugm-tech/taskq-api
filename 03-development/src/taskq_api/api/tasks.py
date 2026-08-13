@@ -15,6 +15,7 @@ Citations:
 """
 from __future__ import annotations
 
+import os
 import re
 import uuid
 from typing import Optional
@@ -22,6 +23,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Path, Query
 
 from taskq_api.api.deps import require_scope
+from taskq_api.config import TASKQ_TASK_TIMEOUT
 from taskq_api.errors import ValidationProblem
 from taskq_api.models.orm import TaskResult
 from taskq_api.models.schemas import TaskCreate, TaskOut
@@ -174,7 +176,11 @@ def create_tasks_router() -> APIRouter:
         # 404 if the target task does not exist (AC7-unknown-run).
         task = service.get(task_id)
         run_id = str(uuid.uuid4())
-        record = await TaskRunner().run(task["command"])
+        # Bounded run — TASKQ_TASK_TIMEOUT caps the subprocess lifetime so a
+        # long-running command cannot hang the worker thread indefinitely
+        # (bug-hunt HIGH-1). Defaults to 30s when unset.
+        timeout_seconds = float(os.environ.get(TASKQ_TASK_TIMEOUT, "30"))
+        record = await TaskRunner().run(task["command"], timeout_seconds=timeout_seconds)
         result = _result_from_runner_record(task_id=task_id, run_id=run_id, record=record)
         TaskResult.add(result)
         return {"run_id": run_id, "status": result.status}
