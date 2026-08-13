@@ -245,12 +245,11 @@
         "open_high": 0
       },
       "FR-08": {
-        "score": 74.59,
-        "quality_complete": false,
-        "rounds_used": 1,
+        "score": 100.0,
+        "quality_complete": true,
+        "rounds_used": 2,
         "open_critical": 0,
-        "open_high": 0,
-        "dimensions_disabled": []
+        "open_high": 0
       },
       "FR-09": {
         "score": 100.0,

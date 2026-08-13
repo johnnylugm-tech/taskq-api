@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-10",
+  "fr_id": "FR-08",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786599651042\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.053\n    }\n}\n\n"
+      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786599861941\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.049\n    }\n}\n"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 160,
+      "tests_passed": 68,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "TOTAL                                 208      0   100%\n\nName                                  Stmts   Miss  Cover\n------------------------------------------------------------------\nsrc/taskq_api/api/deps.py              49      0   100%\nsrc/taskq_api/api/tasks.py             53      0   100%\nsrc/taskq_api/errors.py               106      0   100%\n------------------------------------------------------------------\n\ntests: test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_corr"
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 68 items\n\n03-development/tests/test_fr08.py ........................               [ 35%]\n03-development/tests/test_fr02.py .......................                [ 69%]\n03-development/tests/test_fr09.py .....................                  [100%]\n\ntaskq_api/service/runner.py                  99      0   100%\ntaskq_api/app.py                             85      0   100%\n\n============================== 68 passed in 1.07s ==============================\n"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "\n╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐\n╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │\n ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗\n ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝\n╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║\n╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝\n  └──▶║║                    ▲ \n      ╚╝────────────────────┘\n\n\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken.\n"
+      "tool_evidence": "\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken.\n"
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "0272b4114708ad4a61c4b053c56e8ba1c41f69c0ee84f412d890f819733076c3",
+      "sha256": "bfebc9bf74dd06c0a61185e631bd34dc15e0e8e246f7c9f688448f66e091cfca",
       "bytes": 250,
-      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786599651042\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.053\n    }\n}"
+      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786599861941\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.049\n    }\n}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "26b977f7a7a441a0cbec18d08c1fb8542d0d6ee94e8e408a25c0e26592d3fd92",
-      "bytes": 500,
-      "head": "TOTAL                                 208      0   100%\n\nName                                  Stmts   Miss  Cover\n------------------------------------------------------------------\nsrc/taskq_api/api/deps.py              49      0   100%\nsrc/taskq_api/api/tasks.py             53      0   100%\nsrc/taskq_api/errors.py               106      0   100%\n------------------------------------------------------------------\n\ntests: test_fr10_500_body_no_leak, test_fr10_problem_json_fields, test_fr10_x_corr"
+      "sha256": "2b95703a9d2768ba1555da0b3e254355dc22ce02aec735cfd6a18cedbbdd5057",
+      "bytes": 595,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 68 items\n\n03-development/tests/test_fr08.py ........................               [ 35%]\n03-development/tests/test_fr02.py .......................                [ 69%]\n03-development/tests/test_fr09.py .....................                  [100%]\n\ntaskq_api/service/runner.py                  99      0   100%\ntaskq_api/app.py                             85      0   100%\n\n============================== 68 passed in 1.07s =============================="
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "fff823bb4002a1677f23180697f4ca968072284c8ba8fbd37010d461a611c92e",
-      "bytes": 858,
-      "head": "╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐\n╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │\n ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗\n ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝\n╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║\n╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝\n  └──▶║║                    ▲ \n      ╚╝────────────────────┘\n\n\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n"
+      "sha256": "fda3ed5f76f581959b460173770397e937aa28008f5ae375cbe417598cec96cf",
+      "bytes": 185,
+      "head": "---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
