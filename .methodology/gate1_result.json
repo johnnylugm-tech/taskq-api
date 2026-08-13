@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 7,
-  "fr_id": "FR-03",
+  "fr_id": "FR-04",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786606743105\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.055}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786606929614\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.045}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 161,
+      "tests_passed": 114,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=4 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 161 items\n\n03-development/tests/test_fr03.py ................................       [ 19%]\n03-development/tests/test_fr02.py .......................                [ 34%]\n03-development/tests/test_fr04.py ......................                 [ 47%]\n03-development/tests/test_fr05.py .........................              [ 63%]\n03-development/tests/test_fr06.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 161 passed in 1.33s ==============================\ncoverage totals: percent_covered=100.0, num_statements=192, covered_lines=192, missing_lines=0 (FR-03 modules: api/deps.py 100%, service/auth.py 100%, repository/key_repo.py 100%, models/orm.py 100%)"
+      "tool_evidence": "collected 114 items\n03-development/tests/test_fr04.py ......................                 [ 19%]\n03-development/tests/test_fr03.py ................................       [ 47%]\n03-development/tests/test_fr05.py .........................              [ 69%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 114 passed in 1.02s ==============================\ncoverage totals: percent_covered=100.0, num_statements=103, covered_lines=103, missing_lines=0 (FR-04 modules: api/deps.py 100%, service/auth.py 100%)"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
+      "tool_evidence": "Analyzed 47 files, 95 dependencies.\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "0290922627493d9b71ba48587221d3ec1152699629e8775e73094d9ab9550675",
+      "sha256": "aa9603fcbb3cece2830fa8207f44ebbcfc504163ad63e3082591fe440476512d",
       "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786606743105\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.055}}"
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786606929614\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.045}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "82bacaa0f7474ed2d35ea34ffc56d2b0a711168df5296a313d917d1ff8d2eeda",
-      "bytes": 1375,
-      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=4 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 161 items\n\n03-development/tests/test_fr03.py ................................       [ 19%]\n03-development/tests/test_fr02.py .......................                [ 34%]\n03-development/tests/test_fr04.py ......................                 [ 47%]\n03-development/tests/test_fr05.py .........................              [ 63%]\n03-development/tests/test_fr06.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 161 passed in 1.33s ==============================\ncoverage totals: percent_covered=100.0, num_statements=192, covered_lines=192, missing_lines=0 (FR-03 modules: api/deps.py 100%, service/auth.py 100%, repository/key_repo.py 100%, models/orm.py 100%)"
+      "sha256": "a725fc702c47a47cd64730dd3d1b20b77c745ba83cc134ddc013cd3a7576daa0",
+      "bytes": 572,
+      "head": "collected 114 items\n03-development/tests/test_fr04.py ......................                 [ 19%]\n03-development/tests/test_fr03.py ................................       [ 47%]\n03-development/tests/test_fr05.py .........................              [ 69%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 114 passed in 1.02s ==============================\ncoverage totals: percent_covered=100.0, num_statements=103, covered_lines=103, missing_lines=0 (FR-04 modules: api/deps.py 100%, service/auth.py 100%)"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "cd29f6046b33227a36a856297a15e26c597eda73e3e6442959507f2749f3d711",
+      "sha256": "720042ae2b9e60e7c9cc37f2ca7beb3aec2c19791e2d0a9ce5799195374c1cbc",
       "bytes": 118,
-      "head": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
+      "head": "Analyzed 47 files, 95 dependencies.\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
