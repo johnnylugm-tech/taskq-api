@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-06",
+  "fr_id": "FR-07",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.056}}\n(errorCount=0 -> score 100)"
+      "tool_evidence": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\": \"1.1.409\", \"time\": \"1786598674050\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.052}}\n(errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 127,
+      "tests_passed": 11,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr06.py 03-development/tests/test_fr01.py 03-development/tests/test_fr02.py 03-development/tests/test_fr03.py 03-development/tests/test_fr05.py && python3 -m coverage json --include=... -o -\ncollected 127 items\n============================== 127 passed in 1.38s ==============================\nPer-module coverage (FR-06):\n  taskq_api/repository/session.py: 100.0%\n  taskq_api/repository/task_repo.py: 100.0%\n  taskq_api/service/tasks.py:       100.0%\n  taskq_api/models/orm.py:         100.0%\ntotals: 170/170 statements covered (100.0%)\nSPEC COVERAGE: 4/4 required FR-06 tests present and PASSED -> spec_cov_pct=100\ncoverage_pct=100, spec_cov_pct=100 -> score = min(100,100) = 100"
+      "tool_evidence": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr07.py && python3 -m coverage json --include=<FR-07 migration versions> -o -\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 11 items\n03-development/tests/test_fr07.py ...........                            [100%]\n============================== 11 passed in 2.21s ==============================\nPer-file coverage (FR-07):\n  migrations/versions/v1_initial.py:      100.0% (23/23)\n  migrations/versions/v2_tags.py:         100.0% (23/23)\n  migrations/versions/v3_split_results.py:100.0% (32/32)\ntotals: 78/78 statements covered (100.0%), missing_lines=0\nSPEC COVERAGE: 4/4 required FR-07 tests present and PASSED -> spec_cov_pct=100\n  test_fr07_alembic_round_trip_byte_identical (L107) PASS\n  test_fr07_alembic_downgrade_base_clean (L263) PASS\n  test_fr07_readyz_503_when_migration_behind (L328) PASS\n  test_fr07_make_verify_system_exit_zero (L404) PASS\ncoverage_pct=100, spec_cov_pct=100 -> score = min(100,100) = 100"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: the documented `PYTHONPATH=src lint-imports` form errored with \"Could not find package 'taskq_api' in your Python path\" because the src layout lives at 03-development/src; re-invoked with the correct root."
+      "tool_evidence": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: the documented `PYTHONPATH=src lint-imports` form failed to execute with \"Could not find package 'taskq_api' in your Python path\" -- a harness path-config bug, not a contract verdict (the src layout lives at 03-development/src; no contracts were evaluated on that invocation). Re-invoked once with the correct root, matching the documented FR-06 Gate 1 precedent."
     }
   },
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "f94bc8b88cb127b6e5e7805393344aa2fb3a5563ddde736f3785435b31ad5963",
-      "bytes": 229,
-      "head": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.056}}\n(errorCount=0 -> score 100)"
+      "sha256": "35dc72e988aff56fb975175a02ca2c2192e192bfea1396ed331e4452c7ecbb77",
+      "bytes": 268,
+      "head": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\": \"1.1.409\", \"time\": \"1786598674050\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.052}}\n(errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "59bd160a69e2d2111586c8f2fd7ddf5716885e3ac9704e1dbdc1fe8e2cb0ca50",
-      "bytes": 742,
-      "head": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr06.py 03-development/tests/test_fr01.py 03-development/tests/test_fr02.py 03-development/tests/test_fr03.py 03-development/tests/test_fr05.py && python3 -m coverage json --include=... -o -\ncollected 127 items\n============================== 127 passed in 1.38s ==============================\nPer-module coverage (FR-06):\n  taskq_api/repository/session.py: 100.0%\n  taskq_api/repository/task_repo.py: 100.0%\n  taskq_api/service/tasks.py:       100.0%\n  taskq_api/models/orm.py:         100.0%\ntotals: 170/170 statements covered (100.0%)\nSPEC COVERAGE: 4/4 required FR-06 tests present and PASSED -> spec_cov_pct=100\ncoverage_pct=100, spec_cov_pct=100 -> score = min(100,100) = 100"
+      "sha256": "41b880a3ce2f0ad4bdcdafd6ec533d5c940246d2745b915b84769b78f6d0ffd7",
+      "bytes": 1003,
+      "head": "$ python3 -m coverage run -m pytest 03-development/tests/test_fr07.py && python3 -m coverage json --include=<FR-07 migration versions> -o -\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 11 items\n03-development/tests/test_fr07.py ...........                            [100%]\n============================== 11 passed in 2.21s ==============================\nPer-file coverage (FR-07):\n  migrations/versions/v1_initial.py:      100.0% (23/23)\n  migrations/versions/v2_tags.py:         100.0% (23/23)\n  migrations/versions/v3_split_results.py:100.0% (32/32)\ntotals: 78/78 statements covered (100.0%), missing_lines=0\nSPEC COVERAGE: 4/4 required FR-07 tests present and PASSED -> spec_cov_pct=100\n  test_fr07_alembic_round_trip_byte_identical (L107) PASS\n  test_fr07_alembic_downgrade_base_clean (L263) PASS\n  test_fr07_readyz_503_when_migration_behind (L328) PASS\n  test_fr07_make_verify_system_exit_zero (L404) PASS\ncoverage_pct=100, spec_cov_pct=100 -> score = min(100,100) = 100"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "d85e9458e54a4de7e577c08d48d3df9a0f49b0da41d3aa6019bb82390d7b52a7",
-      "bytes": 395,
-      "head": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: the documented `PYTHONPATH=src lint-imports` form errored with \"Could not find package 'taskq_api' in your Python path\" because the src layout lives at 03-development/src; re-invoked with the correct root."
+      "sha256": "addb6ad037ec91ec308731968ba32163f50618ba47be3d67c18d0429a7e3aa3d",
+      "bytes": 553,
+      "head": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: the documented `PYTHONPATH=src lint-imports` form failed to execute with \"Could not find package 'taskq_api' in your Python path\" -- a harness path-config bug, not a contract verdict (the src layout lives at 03-development/src; no contracts were evaluated on that invocation). Re-invoked once with the correct root, matching the documented FR-06 Gate 1 precedent."
     }
   },
   "composite_score": 100.0,
