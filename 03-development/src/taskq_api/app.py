@@ -100,7 +100,9 @@ def _check_migration_state() -> Tuple[bool, str]:
 
     The ``create_engine`` reference is resolved at call time, so the
     TDD suite can monkey-patch ``taskq_api.app.create_engine`` to
-    simulate a DB outage.
+    simulate a DB outage. Bug-hunt HIGH-5: the engine is cached at
+    module scope so a k8s /readyz probe does not leak one engine +
+    pool per call.
     """
     db_url = os.environ.get("TASKQ_DB_URL", "")
     if not db_url:
@@ -108,7 +110,7 @@ def _check_migration_state() -> Tuple[bool, str]:
         return False, _readyz_detail(_UNKNOWN_PREFIX, "no TASKQ_DB_URL configured")
 
     try:
-        engine = create_engine(db_url)
+        engine = _get_or_create_probe_engine(db_url)
         with engine.connect() as conn:
             row = conn.execute(
                 sql_text("SELECT version_num FROM alembic_version")
@@ -141,6 +143,32 @@ def _check_migration_state() -> Tuple[bool, str]:
             ),
         )
     return True, f"migration at head ({_MIGRATION_HEAD})"
+
+
+# Module-level probe-engine cache (bug-hunt HIGH-5). k8s /readyz probes
+# fire every couple of seconds; without this cache every probe creates
+# a fresh SQLAlchemy Engine + connection pool, leaking memory + fds.
+# The cache is keyed by URL so a TASKQ_DB_URL change rebuilds the engine.
+_PROBE_ENGINES: dict[str, object] = {}
+
+
+def _get_or_create_probe_engine(db_url: str) -> object:
+    cached = _PROBE_ENGINES.get(db_url)
+    if cached is not None:
+        return cached
+    engine = create_engine(db_url)
+    _PROBE_ENGINES[db_url] = engine
+    return engine
+
+
+def dispose_probe_engines() -> None:
+    """Dispose every cached probe engine — called from the lifespan teardown."""
+    for engine in list(_PROBE_ENGINES.values()):
+        try:
+            engine.dispose()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    _PROBE_ENGINES.clear()
 
 
 def _build_metrics_body() -> str:
@@ -213,6 +241,9 @@ def _build_lifespan() -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
             result = runner.shutdown(drain_timeout_seconds=drain_timeout_seconds)
             if asyncio.iscoroutine(result):
                 await result
+            # Bug-hunt HIGH-5 — release the cached readyz probe engine
+            # so the process exits without lingering pool resources.
+            dispose_probe_engines()
 
     # ``@asynccontextmanager`` wraps the async generator so the
     # returned callable takes ``FastAPI`` and yields an
