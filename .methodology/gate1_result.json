@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-01",
+  "fr_id": "FR-02",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,22 +14,23 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\n  \"version\": \"1.1.409\",\n  \"time\": \"1786597394692\",\n  \"generalDiagnostics\": [],\n  \"summary\": {\n    \"filesAnalyzed\": 28,\n    \"errorCount\": 0,\n    \"warningCount\": 0,\n    \"informationCount\": 0,\n    \"timeInSec\": 1.049\n  }\n}"
+      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786597488067\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.05}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 105,
+      "tests_passed": 172,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 105 items\n03-development/tests/test_fr01.py ....................... [ 21%]\n03-development/tests/test_fr02.py ....................... [ 43%]\n03-development/tests/test_fr06.py ........................ [ 66%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 105 passed in 0.97s ==============================\nFR-01 coverage totals: covered_lines=166, num_statements=166, percent_covered=100.0 (api/tasks.py 100%, service/tasks.py 100%, repository/task_repo.py 100%, models/schemas.py 100%). All 9 required tests present: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant"
+      "tool_evidence": "============================= test session starts ==============================\ncollected 172 items\n03-development/tests/test_fr02.py ....................... [ 13%]\n03-development/tests/test_fr01.py ....................... [ 26%]\n03-development/tests/test_fr03.py ....................... [ 40%]\n03-development/tests/test_fr05.py .................... [ 51%]\n03-development/tests/test_fr06.py ........................ [ 65%]\n03-development/tests/test_fr08.py ........................ [ 79%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 172 passed in 1.83s ==============================\nFR-02 source coverage 100%: api/tasks.py 53/53, service/runner.py 99/99, repository/task_repo.py 66/66, models/orm.py 39/39. All 7 required tests present: test_fr02_run_task_202, test_fr02_runner_uses_shlex_split, test_fr02_result_written_to_task_results, test_fr02_timeout_kills_subprocess, test_fr02_graceful_drain_interrupted, test_fr02_no_shell_true_in_codebase, test_fr02_run_unknown_task_404."
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "lint-imports: Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
+      "tool_evidence": "PYTHONPATH=03-development/src lint-imports: Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
     }
   },
+  "failing_dimensions": [],
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
   "enforcer_surface": {
     "core/quality_gate": "a3055987f6ff9300815a71ced09c7dc2320b9eef",
@@ -75,23 +76,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "467c8d67ec2cafaaa073a35ec23134e971f4054d3e7d8eb5bdeeb8bc5ae43b35",
-      "bytes": 220,
-      "head": "{\n  \"version\": \"1.1.409\",\n  \"time\": \"1786597394692\",\n  \"generalDiagnostics\": [],\n  \"summary\": {\n    \"filesAnalyzed\": 28,\n    \"errorCount\": 0,\n    \"warningCount\": 0,\n    \"informationCount\": 0,\n    \"timeInSec\": 1.049\n  }\n}"
+      "sha256": "c8e834ebe29dc0c3db0d73355ffbcf77bbb0e2c5f61df4a1851804561d4211b2",
+      "bytes": 169,
+      "head": "{\"version\":\"1.1.409\",\"time\":\"1786597488067\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.05}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "88a9a035aee44e78c3f9a7b854f63309d813591742614abf77a3b227ced01959",
-      "bytes": 1037,
-      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 105 items\n03-development/tests/test_fr01.py ....................... [ 21%]\n03-development/tests/test_fr02.py ....................... [ 43%]\n03-development/tests/test_fr06.py ........................ [ 66%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 105 passed in 0.97s ==============================\nFR-01 coverage totals: covered_lines=166, num_statements=166, percent_covered=100.0 (api/tasks.py 100%, service/tasks.py 100%, repository/task_repo.py 100%, models/schemas.py 100%). All 9 required tests present: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant"
+      "sha256": "81c0076b90f20559e969e15c644c1700762ba447233d00af276925162bdf91e2",
+      "bytes": 1046,
+      "head": "============================= test session starts ==============================\ncollected 172 items\n03-development/tests/test_fr02.py ....................... [ 13%]\n03-development/tests/test_fr01.py ....................... [ 26%]\n03-development/tests/test_fr03.py ....................... [ 40%]\n03-development/tests/test_fr05.py .................... [ 51%]\n03-development/tests/test_fr06.py ........................ [ 65%]\n03-development/tests/test_fr08.py ........................ [ 79%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 172 passed in 1.83s ==============================\nFR-02 source coverage 100%: api/tasks.py 53/53, service/runner.py 99/99, repository/task_repo.py 66/66, models/orm.py 39/39. All 7 required tests present: test_fr02_run_task_202, test_fr02_runner_uses_shlex_split, test_fr02_result_written_to_task_results, test_fr02_timeout_kills_subprocess, test_fr02_graceful_drain_interrupted, test_fr02_no_shell_true_in_codebase, test_fr02_run_unknown_task_404."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "1a6842d367383758574b73f4de142ca052d6ff6dbb62be4228c3a4088c05d6ea",
-      "bytes": 132,
-      "head": "lint-imports: Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
+      "sha256": "a74482db27a050e4103910354315e3f93ab801537d7e2234a3fdf1bbd0ca848c",
+      "bytes": 162,
+      "head": "PYTHONPATH=03-development/src lint-imports: Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
     }
   },
   "composite_score": 100.0,
