@@ -79,7 +79,7 @@ def test_key_repo_revoke_handles_attribute_error(monkeypatch) -> None:
     class _FakeRow:
         pass
 
-    key_repo.KeyRepo._registry["abc"] = _FakeRow()
+    key_repo.KeyRepo._registry["abc"] = _FakeRow()  # type: ignore[assignment]
     repo = key_repo.KeyRepo()
     # Missing 'revoked_at' attribute should yield False.
     assert repo.revoke("abc", revoked_at="now") is False
@@ -249,7 +249,7 @@ def test_key_repo_revoke_returns_false_on_keyerror(monkeypatch) -> None:
         def __getitem__(self, key):
             raise KeyError("cannot read")
 
-    key_repo.KeyRepo._registry["xyz"] = _Row()
+    key_repo.KeyRepo._registry["xyz"] = _Row()  # type: ignore[assignment]
     repo = key_repo.KeyRepo()
     assert repo.revoke("xyz", revoked_at="now") is False
 
@@ -263,7 +263,7 @@ def test_key_repo_revoke_handles_registry_attribute_error(monkeypatch) -> None:
             raise AttributeError("simulated")
 
     original_registry = key_repo.KeyRepo._registry
-    key_repo.KeyRepo._registry = _RaisingRegistry()
+    key_repo.KeyRepo._registry = _RaisingRegistry()  # type: ignore[assignment]
     repo = key_repo.KeyRepo()
     assert repo.revoke("anything", revoked_at="now") is False
     key_repo.KeyRepo._registry = original_registry
@@ -281,7 +281,7 @@ def test_rate_repo_upsert_swallows_errors(monkeypatch) -> None:
         def pop(self, *args, **kwargs):
             raise TypeError("simulated")
 
-    rate_repo.RateRepo._buckets = _RaisingList()
+    rate_repo.RateRepo._buckets = _RaisingList()  # type: ignore[assignment]
     rate_repo.RateRepo.upsert_bucket(None, "tok", tokens=1.0, last_refill_at=0.0)
     rate_repo.RateRepo._buckets = original
 
@@ -320,7 +320,7 @@ def test_service_tasks_create_wraps_repository_error(monkeypatch) -> None:
         def rollback(self):
             pass
 
-    svc = tasks_service.TaskService(_Repo())
+    svc = tasks_service.TaskService(_Repo())  # type: ignore[arg-type]
     with pytest.raises(ConflictProblem):
         svc.create(name="n", command="c")
 

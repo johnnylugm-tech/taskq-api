@@ -111,7 +111,7 @@ def _check_migration_state() -> Tuple[bool, str]:
 
     try:
         engine = _get_or_create_probe_engine(db_url)
-        with engine.connect() as conn:
+        with engine.connect() as conn:  # type: ignore[attr-defined]
             row = conn.execute(
                 sql_text("SELECT version_num FROM alembic_version")
             ).first()
