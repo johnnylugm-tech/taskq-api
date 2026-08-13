@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 6,
-  "fr_id": "FR-08",
+  "fr_id": "FR-09",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,15 +14,15 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.052}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.047}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 47,
+      "tests_passed": 45,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "[FR-08] tests: 47 passed, 0 failed, 0 skipped\ncoverage: 100.0% for FR-08 source files\nfull suite: 402 passed, 0 failed, 4 skipped"
+      "tool_evidence": "[FR-09] tests: 45 passed, 0 failed, 0 skipped\ncoverage: 100.0% for FR-09 source files\nfull suite: 402 passed, 0 failed, 4 skipped"
     },
     "architecture_constraints": {
       "score": 100.0,
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "a26473c21d6c32164bbd64ddc781ead2a9ab2cca96dfd37b3d6c74f7f86ee0c3",
+      "sha256": "dfc88659825cc57c76334d511ea4319c193e843edf3e69226ca757d43d7323e9",
       "bytes": 161,
-      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.052}}"
+      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.047}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "c4408bb26833f0744d2899582ee45da526c76e5a41754bc0bf739eeca9291fd5",
+      "sha256": "abba51d803620c8862fe191c27f7279108a51797d815ecf6ab154c56e1400320",
       "bytes": 129,
-      "head": "[FR-08] tests: 47 passed, 0 failed, 0 skipped\ncoverage: 100.0% for FR-08 source files\nfull suite: 402 passed, 0 failed, 4 skipped"
+      "head": "[FR-09] tests: 45 passed, 0 failed, 0 skipped\ncoverage: 100.0% for FR-09 source files\nfull suite: 402 passed, 0 failed, 4 skipped"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
