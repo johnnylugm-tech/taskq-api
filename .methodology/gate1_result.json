@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 8,
-  "fr_id": "FR-07",
+  "fr_id": "FR-08",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786611284111\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.082}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 11,
+      "tests_passed": 68,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "11 passed in 2.38s. Coverage 100% on all 3 FR-07 source files (v1_initial.py 23/23, v2_tags.py 23/23, v3_split_results.py 32/32). All 4 required spec tests present: test_fr07_alembic_round_trip_byte_identical, test_fr07_alembic_downgrade_base_clean, test_fr07_readyz_503_when_migration_behind, test_fr07_make_verify_system_exit_zero."
+      "tool_evidence": "68 passed in 1.01s. test_fr08.py:24, test_fr02.py:23, test_fr09.py:21 collected. coverage percent_covered: 100.0 (runner.py+app.py totals 184/184 statements). All 4 required FR-08 spec tests present."
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 95 dependencies. layered-architecture KEPT, sqlalchemy-isolation KEPT. Contracts: 2 kept, 0 broken. exit=0"
+      "tool_evidence": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. (layered-architecture KEPT, sqlalchemy-isolation KEPT)"
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "5dda1d2e197692f9ce6953851ce0d107903940492a2c763cfe71e5011e4bd520",
-      "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786611284111\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.082}}"
+      "sha256": "6d2ee311aa4151f1397a646e3c4a2290b0b5dee9d21a5271d847d69b275a3cb5",
+      "bytes": 115,
+      "head": "{\"version\": \"1.1.409\", \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "5f5ed054cb97a28e19d7114240b4231d305717971f31efcb11021941fe317b07",
-      "bytes": 333,
-      "head": "11 passed in 2.38s. Coverage 100% on all 3 FR-07 source files (v1_initial.py 23/23, v2_tags.py 23/23, v3_split_results.py 32/32). All 4 required spec tests present: test_fr07_alembic_round_trip_byte_identical, test_fr07_alembic_downgrade_base_clean, test_fr07_readyz_503_when_migration_behind, test_fr07_make_verify_system_exit_zero."
+      "sha256": "04a06b203920c2dbb132c15a23f3412a3bffefd8ee76b509916eee45b6d87f06",
+      "bytes": 199,
+      "head": "68 passed in 1.01s. test_fr08.py:24, test_fr02.py:23, test_fr09.py:21 collected. coverage percent_covered: 100.0 (runner.py+app.py totals 184/184 statements). All 4 required FR-08 spec tests present."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "53cff0cd1c4f7c907bbad0fe941841cc02e99dcd0c9e9c84173da0ae9b9d7c9d",
-      "bytes": 125,
-      "head": "Analyzed 47 files, 95 dependencies. layered-architecture KEPT, sqlalchemy-isolation KEPT. Contracts: 2 kept, 0 broken. exit=0"
+      "sha256": "6cd9fe833390c17a82cf7334cfac605a604281a927121c245956fbf1aa8cf65c",
+      "bytes": 119,
+      "head": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. (layered-architecture KEPT, sqlalchemy-isolation KEPT)"
     }
   },
   "composite_score": 100.0,
