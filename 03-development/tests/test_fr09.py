@@ -515,3 +515,185 @@ def test_fr09_lifespan_awaits_async_shutdown(monkeypatch):
     asyncio.run(_enter_then_exit())
 
     assert await_count_holder["count"] == 1
+
+
+# NFR-03
+def test_fr09_readyz_response_handles_probe_runtime_error():
+    """Coverage — health.py:64-65. When the probe raises an exception
+    caught by ``except (OSError, RuntimeError, ConnectionError)``, the
+    ``_readyz_response`` materialises it as a 503
+    ``application/problem+json`` envelope whose ``detail`` includes the
+    exception class name (SPEC §8 #10 — fail closed with which-check
+    info). The fixture probe raises ``RuntimeError`` so the branch
+    is exercised deterministically without touching SQLAlchemy.
+    """
+    from taskq_api.api.health import _readyz_response
+
+    def _raising_probe():
+        raise RuntimeError("simulated DB outage")
+
+    response = _readyz_response(_raising_probe)
+
+    # The probe-raised path returns a ``Response`` (not a dict).
+    assert response.status_code == 503
+    assert "application/problem+json" in response.media_type
+    import json as _json
+    body = _json.loads(response.body)
+    assert body["status"] == 503
+    assert "RuntimeError" in body["detail"]
+    assert "simulated DB outage" in body["detail"]
+    assert body["instance"] == "/readyz"
+
+
+# NFR-03
+def test_fr09_readyz_response_handles_probe_oserror():
+    """Coverage — health.py:64-65. ``OSError`` is the second arm of the
+    ``except`` tuple. Distinct from the ``RuntimeError`` test above so
+    branch coverage is satisfied across the union type.
+    """
+    from taskq_api.api.health import _readyz_response
+
+    def _oserr_probe():
+        raise OSError("connection refused")
+
+    response = _readyz_response(_oserr_probe)
+
+    assert response.status_code == 503
+    assert "application/problem+json" in response.media_type
+    import json as _json
+    body = _json.loads(response.body)
+    assert "OSError" in body["detail"]
+    assert "connection refused" in body["detail"]
+
+
+# NFR-03
+def test_fr09_readyz_response_handles_probe_connection_error():
+    """Coverage — health.py:64-65. ``ConnectionError`` is the third arm
+    of the ``except`` tuple. Covers the full
+    ``(OSError, RuntimeError, ConnectionError)`` union so branch
+    coverage of the exception handler is complete.
+    """
+    from taskq_api.api.health import _readyz_response
+
+    def _conn_probe():
+        raise ConnectionError("db link down")
+
+    response = _readyz_response(_conn_probe)
+
+    assert response.status_code == 503
+    assert "application/problem+json" in response.media_type
+    import json as _json
+    body = _json.loads(response.body)
+    assert "ConnectionError" in body["detail"]
+
+
+# NFR-03
+def test_fr09_get_or_create_probe_engine_caches_engine(monkeypatch):
+    """Coverage — app.py:158. ``_get_or_create_probe_engine`` must
+    return the cached engine on a second call with the same URL — the
+    cache-hit branch (``return cached``) is what the bug-hunt HIGH-5
+    audit called out: every k8s ``/readyz`` probe must reuse one
+    engine + pool rather than leak a fresh one.
+    """
+    from sqlalchemy import create_engine as _real_create_engine
+
+    import taskq_api.app as _app_module
+
+    create_count_holder = {"count": 0}
+
+    def _counting_create_engine(url, *args, **kwargs):
+        create_count_holder["count"] += 1
+        return _real_create_engine(url, *args, **kwargs)
+
+    monkeypatch.setattr(_app_module, "create_engine", _counting_create_engine)
+    # Clear the module cache so the test is deterministic.
+    _app_module._PROBE_ENGINES.clear()
+
+    try:
+        engine_first = _app_module._get_or_create_probe_engine("sqlite:///:memory:")
+        engine_second = _app_module._get_or_create_probe_engine("sqlite:///:memory:")
+        # Same cached object returned on the second call.
+        assert engine_first is engine_second
+        # ``create_engine`` was invoked exactly once — the second call
+        # hit the cache branch (line 158) rather than re-constructing.
+        assert create_count_holder["count"] == 1
+    finally:
+        _app_module.dispose_probe_engines()
+        _app_module._PROBE_ENGINES.clear()
+
+
+# NFR-03
+def test_fr09_dispose_probe_engines_swallows_dispose_exception(monkeypatch):
+    """Coverage — app.py:169-173. ``dispose_probe_engines`` must
+    tolerate a ``dispose()`` that raises ``RuntimeError`` (the kind of
+    failure that surfaces during shutdown when the connection pool
+    has already been torn down by the runtime). The ``except
+    (OSError, ConnectionError, RuntimeError)`` swallow is the
+    best-effort cleanup the SPEC §3 FR-08 graceful-drain audit
+    requires so the process can exit cleanly.
+    """
+    import taskq_api.app as _app_module
+
+    _app_module._PROBE_ENGINES.clear()
+
+    class _ExplodingDisposeEngine:
+        def dispose(self) -> None:
+            raise RuntimeError("pool already torn down")
+
+    # Plant the exploding engine in the cache directly so the test
+    # does not need a real SQLAlchemy connection.
+    _app_module._PROBE_ENGINES["explode-key"] = _ExplodingDisposeEngine()
+
+    try:
+        # Must NOT raise — the except branch swallows the failure.
+        _app_module.dispose_probe_engines()
+        # The cache is cleared regardless of the per-engine failure.
+        assert _app_module._PROBE_ENGINES == {}
+    finally:
+        _app_module._PROBE_ENGINES.clear()
+
+
+# NFR-03
+def test_fr09_dispose_probe_engines_swallows_oserror(monkeypatch):
+    """Coverage — app.py:169-173. The ``OSError`` arm of the
+    ``except`` tuple is also reachable (engine disposal on a closed
+    fd can surface as ``OSError``). Distinct from the ``RuntimeError``
+    test above so branch coverage is complete across the union.
+    """
+    import taskq_api.app as _app_module
+
+    _app_module._PROBE_ENGINES.clear()
+
+    class _OserrDisposeEngine:
+        def dispose(self) -> None:
+            raise OSError("bad file descriptor")
+
+    _app_module._PROBE_ENGINES["oserr-key"] = _OserrDisposeEngine()
+
+    try:
+        _app_module.dispose_probe_engines()
+        assert _app_module._PROBE_ENGINES == {}
+    finally:
+        _app_module._PROBE_ENGINES.clear()
+
+
+# NFR-03
+def test_fr09_dispose_probe_engines_swallows_connection_error(monkeypatch):
+    """Coverage — app.py:169-173. The ``ConnectionError`` arm of the
+    ``except`` tuple — completes branch coverage of the union.
+    """
+    import taskq_api.app as _app_module
+
+    _app_module._PROBE_ENGINES.clear()
+
+    class _ConnErrDisposeEngine:
+        def dispose(self) -> None:
+            raise ConnectionError("db link torn down")
+
+    _app_module._PROBE_ENGINES["conn-key"] = _ConnErrDisposeEngine()
+
+    try:
+        _app_module.dispose_probe_engines()
+        assert _app_module._PROBE_ENGINES == {}
+    finally:
+        _app_module._PROBE_ENGINES.clear()
