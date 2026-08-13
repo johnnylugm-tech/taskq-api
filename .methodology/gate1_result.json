@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 4,
-  "fr_id": "FR-02",
+  "fr_id": "FR-03",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,20 +9,20 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "All checks passed!"
+      "tool_evidence": "All checks passed!\n"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786589680555\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.032}}"
+      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786589828381\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.026}}\n"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 166,
+      "tests_passed": 147,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\ncollected 166 items\n03-development/tests/test_fr02.py .......................                [ 13%]\n03-development/tests/test_fr01.py .................                      [ 24%]\n03-development/tests/test_fr03.py .......................                [ 37%]\n03-development/tests/test_fr05.py ....................                   [ 50%]\n03-development/tests/test_fr06.py ........................               [ 64%]\n03-development/tests/test_fr08.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n============================= 166 passed in 1.69s ============================== coverage totals: percent_covered=100.0, covered_lines=246, num_statements=246"
+      "tool_evidence": "============================= test session starts ==============================\ncollected 147 items\n03-development/tests/test_fr03.py .......................                [ 15%]\n03-development/tests/test_fr02.py .......................                [ 31%]\n03-development/tests/test_fr04.py ......................                 [ 46%]\n03-development/tests/test_fr05.py ....................                   [ 59%]\n03-development/tests/test_fr06.py ........................               [ 76%]\n03-development/tests/test_fr10.py ...................................   [100%]\n============================= 147 passed in 1.30s ============================== coverage totals: percent_covered=100.0, covered_lines=180, num_statements=180. Files: src/taskq_api/api/deps.py=100%, src/taskq_api/models/orm.py=100%, src/taskq_api/repository/key_repo.py=100%, src/taskq_api/service/auth.py=100%."
     },
     "architecture_constraints": {
       "score": 100.0,
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "09cdeeae1548c16314f999ffa1df2256b17e16db866fb134beaa886d3facfa2b",
-      "bytes": 186,
-      "head": "{\"version\": \"1.1.409\", \"time\": \"1786589680555\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.032}}"
+      "sha256": "ab2e4d2cee7b63f9fd655e93d3af164fbf1e4bc2c976bd1c46af4363dacfe1ad",
+      "bytes": 170,
+      "head": "{\"version\":\"1.1.409\",\"time\":\"1786589828381\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.026}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "6f146419a9ded49ea731ab8dd08d13bf78abf9fa7319d847127594c296561095",
-      "bytes": 819,
-      "head": "============================= test session starts ==============================\ncollected 166 items\n03-development/tests/test_fr02.py .......................                [ 13%]\n03-development/tests/test_fr01.py .................                      [ 24%]\n03-development/tests/test_fr03.py .......................                [ 37%]\n03-development/tests/test_fr05.py ....................                   [ 50%]\n03-development/tests/test_fr06.py ........................               [ 64%]\n03-development/tests/test_fr08.py ........................               [ 78%]\n03-development/tests/test_fr10.py ...................................    [100%]\n============================= 166 passed in 1.69s ============================== coverage totals: percent_covered=100.0, covered_lines=246, num_statements=246"
+      "sha256": "5c5889019eeb360d2dd76ec3ff442d83fa7fff60c7f5dc968f2cd2b220eb79f3",
+      "bytes": 891,
+      "head": "============================= test session starts ==============================\ncollected 147 items\n03-development/tests/test_fr03.py .......................                [ 15%]\n03-development/tests/test_fr02.py .......................                [ 31%]\n03-development/tests/test_fr04.py ......................                 [ 46%]\n03-development/tests/test_fr05.py ....................                   [ 59%]\n03-development/tests/test_fr06.py ........................               [ 76%]\n03-development/tests/test_fr10.py ...................................   [100%]\n============================= 147 passed in 1.30s ============================== coverage totals: percent_covered=100.0, covered_lines=180, num_statements=180. Files: src/taskq_api/api/deps.py=100%, src/taskq_api/models/orm.py=100%, src/taskq_api/repository/key_repo.py=100%, src/taskq_api/service/auth.py=100%."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
