@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 4,
-  "fr_id": "FR-03",
+  "fr_id": "FR-04",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,20 +9,20 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "All checks passed!\n"
+      "tool_evidence": "All checks passed!"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786589828381\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.026}}\n"
+      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786590039243\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.051}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 147,
+      "tests_passed": 100,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\ncollected 147 items\n03-development/tests/test_fr03.py .......................                [ 15%]\n03-development/tests/test_fr02.py .......................                [ 31%]\n03-development/tests/test_fr04.py ......................                 [ 46%]\n03-development/tests/test_fr05.py ....................                   [ 59%]\n03-development/tests/test_fr06.py ........................               [ 76%]\n03-development/tests/test_fr10.py ...................................   [100%]\n============================= 147 passed in 1.30s ============================== coverage totals: percent_covered=100.0, covered_lines=180, num_statements=180. Files: src/taskq_api/api/deps.py=100%, src/taskq_api/models/orm.py=100%, src/taskq_api/repository/key_repo.py=100%, src/taskq_api/service/auth.py=100%."
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 100 items\n\n03-development/tests/test_fr04.py ......................                 [ 22%]\n03-development/tests/test_fr03.py .......................                [ 45%]\n03-development/tests/test_fr05.py ....................                   [ 65%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 100 passed in 0.99s =============================="
     },
     "architecture_constraints": {
       "score": 100.0,
@@ -75,16 +75,16 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "ab2e4d2cee7b63f9fd655e93d3af164fbf1e4bc2c976bd1c46af4363dacfe1ad",
+      "sha256": "a66304f4c06649bb311f01eaff33a67aa63bdae03389ff37d730e71145194154",
       "bytes": 170,
-      "head": "{\"version\":\"1.1.409\",\"time\":\"1786589828381\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.026}}"
+      "head": "{\"version\":\"1.1.409\",\"time\":\"1786590039243\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.051}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "5c5889019eeb360d2dd76ec3ff442d83fa7fff60c7f5dc968f2cd2b220eb79f3",
-      "bytes": 891,
-      "head": "============================= test session starts ==============================\ncollected 147 items\n03-development/tests/test_fr03.py .......................                [ 15%]\n03-development/tests/test_fr02.py .......................                [ 31%]\n03-development/tests/test_fr04.py ......................                 [ 46%]\n03-development/tests/test_fr05.py ....................                   [ 59%]\n03-development/tests/test_fr06.py ........................               [ 76%]\n03-development/tests/test_fr10.py ...................................   [100%]\n============================= 147 passed in 1.30s ============================== coverage totals: percent_covered=100.0, covered_lines=180, num_statements=180. Files: src/taskq_api/api/deps.py=100%, src/taskq_api/models/orm.py=100%, src/taskq_api/repository/key_repo.py=100%, src/taskq_api/service/auth.py=100%."
+      "sha256": "70b761d56ac4057659a5082dd765ea4584362cd0a7ad9078a017c4267b717604",
+      "bytes": 999,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: cov-7.1.0, asyncio-1.4.0, anyio-4.14.2, hypothesis-6.165.4\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 100 items\n\n03-development/tests/test_fr04.py ......................                 [ 22%]\n03-development/tests/test_fr03.py .......................                [ 45%]\n03-development/tests/test_fr05.py ....................                   [ 65%]\n03-development/tests/test_fr10.py ...................................    [100%]\n\n============================= 100 passed in 0.99s =============================="
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
