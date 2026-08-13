@@ -1,7 +1,7 @@
 {
   "gate": 1,
-  "phase": 6,
-  "fr_id": "FR-09",
+  "phase": 7,
+  "fr_id": "FR-01",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.047}}"
+      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786606299934\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.047}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 45,
+      "tests_passed": 105,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "[FR-09] tests: 45 passed, 0 failed, 0 skipped\ncoverage: 100.0% for FR-09 source files\nfull suite: 402 passed, 0 failed, 4 skipped"
+      "tool_evidence": "collected 105 items\n03-development/tests/test_fr01.py ....................... [21%]\n03-development/tests/test_fr02.py ....................... [43%]\n03-development/tests/test_fr06.py ........................ [66%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 105 passed in 0.97s ==============================\nCoverage 100% on all 4 FR-01 source files (tasks.py, schemas.py, task_repo.py, service/tasks.py). All 9 required test functions present and passing: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant. 0 failed, 0 skipped. spec_cov_pct=100%, coverage_pct=100% => score=min(100,100)=100."
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "/Users/johnny/projects/taskq-api/.venv/bin/python: No module named lint-imports\n"
+      "tool_evidence": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "dfc88659825cc57c76334d511ea4319c193e843edf3e69226ca757d43d7323e9",
-      "bytes": 161,
-      "head": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.047}}"
+      "sha256": "668c3daf14419ab62a70dece204272a4381dd55c7a8a37cb199d40a5867a9277",
+      "bytes": 170,
+      "head": "{\"version\":\"1.1.409\",\"time\":\"1786606299934\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.047}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "abba51d803620c8862fe191c27f7279108a51797d815ecf6ab154c56e1400320",
-      "bytes": 129,
-      "head": "[FR-09] tests: 45 passed, 0 failed, 0 skipped\ncoverage: 100.0% for FR-09 source files\nfull suite: 402 passed, 0 failed, 4 skipped"
+      "sha256": "56fe69e5824888bc61facebe8006376fa942696a973c6da0f04b67bbfa3b6751",
+      "bytes": 928,
+      "head": "collected 105 items\n03-development/tests/test_fr01.py ....................... [21%]\n03-development/tests/test_fr02.py ....................... [43%]\n03-development/tests/test_fr06.py ........................ [66%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 105 passed in 0.97s ==============================\nCoverage 100% on all 4 FR-01 source files (tasks.py, schemas.py, task_repo.py, service/tasks.py). All 9 required test functions present and passing: test_fr01_create_task_201, test_fr01_create_task_no_key_401, test_fr01_get_task_unknown_404, test_fr01_create_task_duplicate_409, test_fr01_pydantic_validation_422, test_fr01_pydantic_validation_oversize_422, test_fr01_pagination_cursor_default, test_fr01_pagination_cursor_overbound_422, test_fr01_list_sql_count_constant. 0 failed, 0 skipped. spec_cov_pct=100%, coverage_pct=100% => score=min(100,100)=100."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "c006867fad5491ce6ab013c94a57c124c496e9609fb2cce758715233ec053e8a",
-      "bytes": 79,
-      "head": "/Users/johnny/projects/taskq-api/.venv/bin/python: No module named lint-imports"
+      "sha256": "1b78c26ad338744ae255aa6cac551937f897e05c4a9ea6b80fe2d77b6f7f3834",
+      "bytes": 116,
+      "head": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
