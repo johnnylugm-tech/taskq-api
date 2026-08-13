@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-02",
+  "fr_id": "FR-03",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,28 +9,27 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003 → All checks passed!"
+      "tool_evidence": "$ python3 -m ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003\nAll checks passed!\n(exit 0, 0 violations -> score 100)"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786597488067\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.05}}"
+      "tool_evidence": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786597834275\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.041}}\n(errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 172,
+      "tests_passed": 156,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\ncollected 172 items\n03-development/tests/test_fr02.py ....................... [ 13%]\n03-development/tests/test_fr01.py ....................... [ 26%]\n03-development/tests/test_fr03.py ....................... [ 40%]\n03-development/tests/test_fr05.py .................... [ 51%]\n03-development/tests/test_fr06.py ........................ [ 65%]\n03-development/tests/test_fr08.py ........................ [ 79%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 172 passed in 1.83s ==============================\nFR-02 source coverage 100%: api/tasks.py 53/53, service/runner.py 99/99, repository/task_repo.py 66/66, models/orm.py 39/39. All 7 required tests present: test_fr02_run_task_202, test_fr02_runner_uses_shlex_split, test_fr02_result_written_to_task_results, test_fr02_timeout_kills_subprocess, test_fr02_graceful_drain_interrupted, test_fr02_no_shell_true_in_codebase, test_fr02_run_unknown_task_404."
+      "tool_evidence": "$ python3 -m coverage run -m pytest test_fr03,fr02,fr04,fr05,fr06,fr10 && coverage json --include=<FR-03 files>\ncollected 156 items\n============================== 156 passed in 1.29s ==============================\nCoverage totals: percent_covered=100.0, percent_covered_display=100 (192/192 statements, 0 missing) over deps.py, auth.py, key_repo.py, orm.py\nSPEC COVERAGE: 6/6 required FR-03 tests present and PASSED (verified individually) -> spec_cov_pct=100\nscore = min(coverage_pct=100, spec_cov_pct=100) = 100"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "PYTHONPATH=03-development/src lint-imports: Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
+      "tool_evidence": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: generic 'PYTHONPATH=src' errored 'Could not find package taskq_api' -- env/path issue only; real package root is 03-development/src per run-gate FR source paths."
     }
   },
-  "failing_dimensions": [],
   "enforcer_sha": "da5aa961d05cb405d1dc2c0c397f89d8fab5587d",
   "enforcer_surface": {
     "core/quality_gate": "a3055987f6ff9300815a71ced09c7dc2320b9eef",
@@ -69,30 +68,30 @@
     "linting": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "acfbd22288fab25b419a11ebb311b6d6a2c9904521407da739ae053c8193a843",
-      "bytes": 90,
-      "head": "ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003 → All checks passed!"
+      "sha256": "f530c6950b5e8443a72fbe926be28ebecc310007de041b1c4059f16b00885c68",
+      "bytes": 135,
+      "head": "$ python3 -m ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003\nAll checks passed!\n(exit 0, 0 violations -> score 100)"
     },
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "c8e834ebe29dc0c3db0d73355ffbcf77bbb0e2c5f61df4a1851804561d4211b2",
-      "bytes": 169,
-      "head": "{\"version\":\"1.1.409\",\"time\":\"1786597488067\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.05}}"
+      "sha256": "7508991d924fdd457b2c64efcb767a39965bf69a82d5984f4df3306686242d08",
+      "bytes": 252,
+      "head": "$ python3 -m pyright 03-development/src/ --outputjson\n{\"version\":\"1.1.409\",\"time\":\"1786597834275\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.041}}\n(errorCount=0 -> score 100)"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "81c0076b90f20559e969e15c644c1700762ba447233d00af276925162bdf91e2",
-      "bytes": 1046,
-      "head": "============================= test session starts ==============================\ncollected 172 items\n03-development/tests/test_fr02.py ....................... [ 13%]\n03-development/tests/test_fr01.py ....................... [ 26%]\n03-development/tests/test_fr03.py ....................... [ 40%]\n03-development/tests/test_fr05.py .................... [ 51%]\n03-development/tests/test_fr06.py ........................ [ 65%]\n03-development/tests/test_fr08.py ........................ [ 79%]\n03-development/tests/test_fr10.py ................................... [100%]\n============================= 172 passed in 1.83s ==============================\nFR-02 source coverage 100%: api/tasks.py 53/53, service/runner.py 99/99, repository/task_repo.py 66/66, models/orm.py 39/39. All 7 required tests present: test_fr02_run_task_202, test_fr02_runner_uses_shlex_split, test_fr02_result_written_to_task_results, test_fr02_timeout_kills_subprocess, test_fr02_graceful_drain_interrupted, test_fr02_no_shell_true_in_codebase, test_fr02_run_unknown_task_404."
+      "sha256": "5a05859ed9720d79c49e1754d1642c0ee526f820a515fca5f10da04669a86154",
+      "bytes": 513,
+      "head": "$ python3 -m coverage run -m pytest test_fr03,fr02,fr04,fr05,fr06,fr10 && coverage json --include=<FR-03 files>\ncollected 156 items\n============================== 156 passed in 1.29s ==============================\nCoverage totals: percent_covered=100.0, percent_covered_display=100 (192/192 statements, 0 missing) over deps.py, auth.py, key_repo.py, orm.py\nSPEC COVERAGE: 6/6 required FR-03 tests present and PASSED (verified individually) -> spec_cov_pct=100\nscore = min(coverage_pct=100, spec_cov_pct=100) = 100"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "a74482db27a050e4103910354315e3f93ab801537d7e2234a3fdf1bbd0ca848c",
-      "bytes": 162,
-      "head": "PYTHONPATH=03-development/src lint-imports: Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. layered-architecture KEPT, sqlalchemy-isolation KEPT."
+      "sha256": "6754d31d463654bbebaa46e90ea7655b7e0cf8a3f13783171fc0372c6173e094",
+      "bytes": 351,
+      "head": "$ PYTHONPATH=03-development/src lint-imports\nAnalyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken.\n(exit 0 -> score 100)\nNOTE: generic 'PYTHONPATH=src' errored 'Could not find package taskq_api' -- env/path issue only; real package root is 03-development/src per run-gate FR source paths."
     }
   },
   "composite_score": 100.0,
