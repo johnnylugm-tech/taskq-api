@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 7,
-  "fr_id": "FR-09",
+  "fr_id": "FR-10",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786608154133\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.062\n    }\n}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786608354799\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.06}}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 45,
+      "tests_passed": 160,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================== 45 passed in 0.82s ==============================\n============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-"
+      "tool_evidence": "collected 160 items\n03-development/tests/test_fr10.py ...................................    [ 21%]\n03-development/tests/test_fr01.py .......................                [ 36%]\n03-development/tests/test_fr02.py .......................                [ 50%]\n03-development/tests/test_fr03.py ................................       [ 70%]\n03-development/tests/test_fr04.py ......................                 [ 84%]\n03-development/tests/test_fr05.py .........................              [100%]\n160 passed in 1.42s. Coverage: 100% (208/208 lines covered on errors.py, api/tasks.py, api/deps.py)."
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "[cmd: PYTHONPATH=03-development/src lint-imports; exit 0] Contracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+      "tool_evidence": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "115ceb4b76d27950d6951f61392153aeb57b3d13c63b9800a5f6671bb08403a3",
-      "bytes": 250,
-      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786608154133\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.062\n    }\n}"
+      "sha256": "fd18cc8f2a4ef9e876ddfb578a3c4ae11cebe42aa6ce2efdbca945ba6fc254c7",
+      "bytes": 185,
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786608354799\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.06}}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "3f3cab2c9f674dbec69ff72b3308b282fb118895624c92015be0604f9990c8cf",
-      "bytes": 500,
-      "head": "============================== 45 passed in 0.82s ==============================\n============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-"
+      "sha256": "aa1688b44dc19f9051419280b067699ef0993dd56804e787ad25ffab7d44a702",
+      "bytes": 600,
+      "head": "collected 160 items\n03-development/tests/test_fr10.py ...................................    [ 21%]\n03-development/tests/test_fr01.py .......................                [ 36%]\n03-development/tests/test_fr02.py .......................                [ 50%]\n03-development/tests/test_fr03.py ................................       [ 70%]\n03-development/tests/test_fr04.py ......................                 [ 84%]\n03-development/tests/test_fr05.py .........................              [100%]\n160 passed in 1.42s. Coverage: 100% (208/208 lines covered on errors.py, api/tasks.py, api/deps.py)."
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "af8de4c272a32fdf71d69e5a955448ea20d4095c251c408fe6d8b590c7bc5e46",
-      "bytes": 233,
-      "head": "[cmd: PYTHONPATH=03-development/src lint-imports; exit 0] Contracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+      "sha256": "1b78c26ad338744ae255aa6cac551937f897e05c4a9ea6b80fe2d77b6f7f3834",
+      "bytes": 116,
+      "head": "Analyzed 47 files, 95 dependencies.\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
