@@ -924,3 +924,203 @@ def test_fr03_require_scope_inner_dep_raises_on_bad_verify(monkeypatch):
         dep(request=request, key="some-key")
     assert excinfo.value.status == 403
     assert excinfo.value.detail == "forbidden"
+
+
+# ---------------------------------------------------------------------------
+# FR-03 — Coverage tests for reachable source lines
+# ---------------------------------------------------------------------------
+
+
+def test_fr03_scope_allows_rejects_empty_raw():
+    """[FR-03] scope_allows returns False for an empty raw key.
+
+    Covers service/auth.py line 83 (`if not raw: return None` branch in
+    `_resolve_active_key_row`).
+    """
+    from taskq_api.service.auth import scope_allows
+
+    # Empty plaintext — the function bails out before consulting the
+    # registry (line 83), so no KeyRepo state is consulted.
+    assert scope_allows("", frozenset({"write"})) is False
+    # Empty raw with admin scope is still rejected.
+    assert scope_allows("", frozenset({"admin"})) is False
+
+
+def test_fr03_scope_allows_rejects_missing_registry_entry():
+    """[FR-03] scope_allows returns False when _by_key maps but _registry misses.
+
+    Covers service/auth.py line 89 (`if row is None: return None` branch
+    in `_resolve_active_key_row`).
+    """
+    KeyRepo._registry.clear()
+    KeyRepo._by_key.clear()
+
+    # _by_key resolves the raw to an id, but _registry has no entry —
+    # the lookup at line 87 returns None, triggering the line 89 guard.
+    KeyRepo._by_key["dangling-raw"] = "missing-id"
+
+    from taskq_api.service.auth import scope_allows
+
+    assert scope_allows("dangling-raw", frozenset({"write"})) is False
+
+
+def test_fr03_scope_allows_rejects_revoked_row():
+    """[FR-03] scope_allows returns False when the row is revoked.
+
+    Covers service/auth.py line 91 (`if row.get("revoked_at") is not
+    None: return None` branch in `_resolve_active_key_row`).
+    """
+    KeyRepo._registry.clear()
+    KeyRepo._by_key.clear()
+
+    row = {
+        "id": "key-rev",
+        "scope": "write",
+        "key_hash": "a" * 64,
+        "revoked_at": "2026-08-01T00:00:00Z",  # non-null
+    }
+    KeyRepo._registry["key-rev"] = row
+    KeyRepo._by_key["revoked-raw"] = "key-rev"
+
+    from taskq_api.service.auth import scope_allows
+
+    # Even though the row's scope is "write" and "write" is allowed, the
+    # revoked-at check at line 91 short-circuits to False.
+    assert scope_allows("revoked-raw", frozenset({"write"})) is False
+
+
+def test_fr03_redact_db_url_non_string_input():
+    """[FR-03] redact_db_url survives non-string input.
+
+    Covers service/auth.py lines 146-149 (`except (re.error,
+    TypeError, ValueError): return text` branch).
+    """
+    from taskq_api.service.auth import redact_db_url
+
+    # None / int / list are not str — `re.sub` would raise TypeError,
+    # the except clause catches it and returns the original object.
+    assert redact_db_url(None) is None
+    assert redact_db_url(12345) == 12345
+    assert redact_db_url([1, 2, 3]) == [1, 2, 3]
+
+
+def test_fr03_read_rate_config_with_valid_env(monkeypatch):
+    """[FR-03] _read_rate_config parses TASKQ_RATE_BURST / TASKQ_RATE_PER_SEC.
+
+    Covers api/deps.py lines 76-79 (the success branch of
+    `_read_rate_config`).
+    """
+    monkeypatch.setenv("TASKQ_RATE_BURST", "10")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "1.5")
+
+    from taskq_api.api.deps import _read_rate_config
+
+    config = _read_rate_config()
+    assert config is not None
+    assert config.burst == 10
+    assert config.rate_per_sec == 1.5
+
+
+def test_fr03_read_rate_config_handles_value_error(monkeypatch):
+    """[FR-03] _read_rate_config returns None on malformed env vars.
+
+    Covers api/deps.py lines 80-83 (`except ValueError: return None`
+    branch — non-numeric TASKQ_RATE_BURST).
+    """
+    monkeypatch.setenv("TASKQ_RATE_BURST", "not-a-number")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "also-bad")
+
+    from taskq_api.api.deps import _read_rate_config
+
+    # Malformed values: int()/float() raise ValueError, the except
+    # branch returns None so the rate limiter is disabled rather than
+    # crashing the API.
+    config = _read_rate_config()
+    assert config is None
+
+
+def test_fr03_enforce_rate_limit_exhausts_bucket(monkeypatch):
+    """[FR-03] _enforce_rate_limit raises 429 when the bucket is empty.
+
+    Covers api/deps.py lines 104-117 (the body of
+    `_enforce_rate_limit` — `check_and_consume` decision + 429 raise).
+    """
+    from fastapi import HTTPException
+
+    from taskq_api.api import deps as _deps
+
+    # Reset the in-process rate-limit registry so the bucket starts
+    # full (TASKQ_RATE_BURST=1, refill=1.0/s → exactly one token).
+    from taskq_api.repository.rate_repo import RateRepo
+
+    RateRepo._buckets.clear()
+
+    monkeypatch.setenv("TASKQ_RATE_BURST", "1")
+    monkeypatch.setenv("TASKQ_RATE_PER_SEC", "1.0")
+
+    # First consume: allowed (bucket had one token, now zero).
+    _deps._enforce_rate_limit("rl-test-token")
+
+    # Second consume on the same token: bucket exhausted → 429 + Retry-After.
+    with pytest.raises(HTTPException) as excinfo:
+        _deps._enforce_rate_limit("rl-test-token")
+    assert excinfo.value.status_code == 429
+    assert excinfo.value.detail == "rate limit exceeded"
+    # RFC 9110 §10.2.3 delta-seconds form — always an integer.
+    assert int(excinfo.value.headers["Retry-After"]) >= 1
+
+    # Cleanup
+    RateRepo._buckets.clear()
+
+
+def test_fr03_keyrepo_revoke_attribute_error_fallback():
+    """[FR-03] KeyRepo.revoke returns False on AttributeError from _registry.get.
+
+    Covers repository/key_repo.py lines 125-126
+    (`except (KeyError, AttributeError): return False`).
+    """
+    # Subclass dict so `.get()` raises AttributeError instead of the
+    # usual KeyError fallback. The first except branch in `revoke`
+    # catches it and returns False.
+    class _RaisingRegistry(dict):
+        def get(self, key, default=None):
+            raise AttributeError("synthetic AttributeError on lookup")
+
+    saved_registry = KeyRepo._registry
+    KeyRepo._registry = _RaisingRegistry()  # type: ignore[assignment]
+    try:
+        result = KeyRepo().revoke("any-id", revoked_at="2026-08-13")
+        assert result is False
+    finally:
+        KeyRepo._registry = saved_registry
+
+
+def test_fr03_keyrepo_revoke_type_error_on_assignment():
+    """[FR-03] KeyRepo.revoke returns False when row assignment raises TypeError.
+
+    Covers repository/key_repo.py lines 131-135
+    (`except (KeyError, TypeError): return False` for read-only rows).
+    """
+    import types
+
+    KeyRepo._registry.clear()
+    KeyRepo._by_key.clear()
+
+    # MappingProxyType wraps a dict but is read-only — `row["x"] = y`
+    # raises TypeError. The second except branch in `revoke` catches it.
+    base = {
+        "id": "frozen-id",
+        "scope": "write",
+        "key_hash": "b" * 64,
+        "revoked_at": None,
+    }
+    frozen_row = types.MappingProxyType(base)
+    KeyRepo._registry["frozen-id"] = frozen_row  # type: ignore[assignment]
+
+    try:
+        result = KeyRepo().revoke("frozen-id", revoked_at="2026-08-13")
+        assert result is False
+        # The frozen row's `revoked_at` stays None — assignment was rejected.
+        assert frozen_row["revoked_at"] is None
+    finally:
+        KeyRepo._registry.pop("frozen-id", None)
