@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 7,
-  "fr_id": "FR-08",
+  "fr_id": "FR-09",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,20 +14,20 @@
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786607995761\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.057}}"
+      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786608154133\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.062\n    }\n}"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 68,
+      "tests_passed": 45,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "68 passed in 1.01s\n03-development/tests/test_fr08.py ........................ [35%]\n03-development/tests/test_fr02.py ....................... [69%]\n03-development/tests/test_fr09.py ..................... [100%]\nrunner.py: 100% covered; app.py: 100% covered; total 184/184 statements"
+      "tool_evidence": "============================== 45 passed in 0.82s ==============================\n============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 95 dependencies. layered-architecture KEPT, sqlalchemy-isolation KEPT. Contracts: 2 kept, 0 broken."
+      "tool_evidence": "[cmd: PYTHONPATH=03-development/src lint-imports; exit 0] Contracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "766300b74b1f4cfd0eb8a8d2d658e4d8f98121147bd418342f24c59d16df6c0a",
-      "bytes": 170,
-      "head": "{\"version\":\"1.1.409\",\"time\":\"1786607995761\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":28,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":1.057}}"
+      "sha256": "115ceb4b76d27950d6951f61392153aeb57b3d13c63b9800a5f6671bb08403a3",
+      "bytes": 250,
+      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786608154133\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.062\n    }\n}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "91d72ca2601df97d6fdee957f3ce3b8163df15a4d22b3d59d4e120f50b14860c",
-      "bytes": 282,
-      "head": "68 passed in 1.01s\n03-development/tests/test_fr08.py ........................ [35%]\n03-development/tests/test_fr02.py ....................... [69%]\n03-development/tests/test_fr09.py ..................... [100%]\nrunner.py: 100% covered; app.py: 100% covered; total 184/184 statements"
+      "sha256": "3f3cab2c9f674dbec69ff72b3308b282fb118895624c92015be0604f9990c8cf",
+      "bytes": 500,
+      "head": "============================== 45 passed in 0.82s ==============================\n============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: benchmark-5.2.3, cov-"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "f1369ff52bbe228c6d7f85e84276a50d0c6a82910bd94e223e773a880e63131b",
-      "bytes": 118,
-      "head": "Analyzed 47 files, 95 dependencies. layered-architecture KEPT, sqlalchemy-isolation KEPT. Contracts: 2 kept, 0 broken."
+      "sha256": "af8de4c272a32fdf71d69e5a955448ea20d4095c251c408fe6d8b590c7bc5e46",
+      "bytes": 233,
+      "head": "[cmd: PYTHONPATH=03-development/src lint-imports; exit 0] Contracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
     }
   },
   "composite_score": 100.0,
