@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 8,
-  "fr_id": "FR-09",
+  "fr_id": "FR-10",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -9,25 +9,25 @@
     "linting": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "All checks passed!"
+      "tool_evidence": "All checks passed!\n"
     },
     "type_safety": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0}}"
+      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786611912365\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.079\n    }\n}\n\n"
     },
     "test_coverage": {
       "score": 100.0,
       "threshold": 100,
-      "tests_passed": 45,
+      "tests_passed": 160,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "45 passed. test_fr09.py:21 + test_fr08.py:24 collected. coverage percent_covered: 100.0 (health.py+app.py totals 111/111 statements). All 4 required FR-09 spec tests present (test_fr09_healthz_no_auth, test_fr09_readyz_200_when_ok, test_fr09_readyz_503_when_db_down, test_fr09_readyz_503_when_alembic_not_head)."
+      "tool_evidence": " 70%]\n03-development/tests/test_fr04.py ......................                 [ 84%]\n03-development/tests/test_fr05.py .........................              [100%]\n\n================================ tests coverage ================================\n______________ coverage: platform darwin, python 3.11.15-final-0 _______________\n\nName                                                         Stmts   Miss  Cover   Missing\n-------------------------------------------------------------------------------"
     },
     "architecture_constraints": {
       "score": 100.0,
       "threshold": 100,
-      "tool_evidence": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. (layered-architecture KEPT, sqlalchemy-isolation KEPT)"
+      "tool_evidence": "\n╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐\n╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │\n ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗\n ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝\n╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║\n╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝\n  └──▶║║                    ▲ \n      ╚╝────────────────────┘\n\n\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken.\n"
     }
   },
   "enforcer_sha": "11c4eafd2bc29b102df7c02f041d0ec18b27c7e7",
@@ -75,23 +75,23 @@
     "type_safety": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "6d2ee311aa4151f1397a646e3c4a2290b0b5dee9d21a5271d847d69b275a3cb5",
-      "bytes": 115,
-      "head": "{\"version\": \"1.1.409\", \"summary\": {\"filesAnalyzed\": 28, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0}}"
+      "sha256": "f429aa5429928c157f3720535c7dd86bd7b604923b435515fcc4cdd5521ecd2f",
+      "bytes": 250,
+      "head": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1786611912365\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 28,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 1.079\n    }\n}"
     },
     "test_coverage": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "59b1abfa4fde59391e09a686696cf1638d6725e6cd65420b057df24a76a8a74b",
-      "bytes": 311,
-      "head": "45 passed. test_fr09.py:21 + test_fr08.py:24 collected. coverage percent_covered: 100.0 (health.py+app.py totals 111/111 statements). All 4 required FR-09 spec tests present (test_fr09_healthz_no_auth, test_fr09_readyz_200_when_ok, test_fr09_readyz_503_when_db_down, test_fr09_readyz_503_when_alembic_not_head)."
+      "sha256": "af0e9409bb20792a862f6c3a46502039df5de0b5d3c6920461eb3bfdd77bc310",
+      "bytes": 499,
+      "head": "70%]\n03-development/tests/test_fr04.py ......................                 [ 84%]\n03-development/tests/test_fr05.py .........................              [100%]\n\n================================ tests coverage ================================\n______________ coverage: platform darwin, python 3.11.15-final-0 _______________\n\nName                                                         Stmts   Miss  Cover   Missing\n-------------------------------------------------------------------------------"
     },
     "architecture_constraints": {
       "source": "tool_evidence (inline)",
       "kind": "inline",
-      "sha256": "6cd9fe833390c17a82cf7334cfac605a604281a927121c245956fbf1aa8cf65c",
-      "bytes": 119,
-      "head": "Analyzed 47 files, 95 dependencies. Contracts: 2 kept, 0 broken. (layered-architecture KEPT, sqlalchemy-isolation KEPT)"
+      "sha256": "fff823bb4002a1677f23180697f4ca968072284c8ba8fbd37010d461a611c92e",
+      "bytes": 858,
+      "head": "╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐\n╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │\n ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗\n ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝\n╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║\n╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝\n  └──▶║║                    ▲ \n      ╚╝────────────────────┘\n\n\n---------\nContracts\n---------\n\nAnalyzed 47 files, 95 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n"
     }
   },
   "composite_score": 100.0,
