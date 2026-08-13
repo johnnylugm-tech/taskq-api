@@ -1,0 +1,5 @@
+{
+  "project_score": 95.3,
+  "project_avg_cc": 1.89,
+  "total_lloc": 1162
+}

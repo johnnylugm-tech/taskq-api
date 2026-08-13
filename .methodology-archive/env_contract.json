@@ -1,0 +1,57 @@
+{
+  "classified_at": "2026-08-12T13:46:32Z",
+  "cli_tools": [
+    "alembic",
+    "bandit",
+    "fastapi",
+    "git",
+    "httpx",
+    "importlinter",
+    "make",
+    "mutmut",
+    "pip3",
+    "pip_licenses",
+    "pydantic",
+    "pytest",
+    "pytest_benchmark",
+    "pytest_cov",
+    "python3",
+    "radon",
+    "sqlalchemy",
+    "sqlite3",
+    "uvicorn"
+  ],
+  "enforcer_sha": "3dad94110f366eb0ee2b573c1fd7016dd34e2335",
+  "env_vars": {
+    "dev_opt_in": [],
+    "has_default": [
+      "TASKQ_CORS_ORIGINS",
+      "TASKQ_DB_POOL_SIZE",
+      "TASKQ_DB_URL",
+      "TASKQ_DRAIN_TIMEOUT",
+      "TASKQ_HOST",
+      "TASKQ_LOG_FORMAT",
+      "TASKQ_LOG_LEVEL",
+      "TASKQ_MAX_CONCURRENT",
+      "TASKQ_PORT",
+      "TASKQ_RATE_BURST",
+      "TASKQ_RATE_PER_SEC",
+      "TASKQ_TASK_TIMEOUT"
+    ],
+    "mandatory": []
+  },
+  "infra_services": {
+    "docker_compose_services": [],
+    "required": [
+      {
+        "checked_via": "python3 -c 'import sqlite3; ... SELECT 1' (round-trip succeeded)",
+        "fix": "",
+        "name": "sqlite",
+        "reachable": true,
+        "type": "SQLite 3 (stdlib)"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "source_sha256": "8f2107e8f5da6a366e427fa4c0cfd242218aec874e0ec91fc8559f109a74936c"
+}

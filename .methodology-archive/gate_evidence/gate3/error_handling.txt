@@ -1,0 +1,2 @@
+OUT: {"total": 14, "with_handler": 14, "no_handler": [], "exempt_count": 7, "exempt_files": ["03-development/src/migrations/env.py", "03-development/src/migrations/versions/v2_tags.py", "03-development/src/migrations/versions/v1_initial.py", "03-development/src/taskq_api/config.py", "03-development/src/taskq_api/__main__.py", "03-development/src/taskq_api/models/orm.py", "03-development/src/taskq_api/models/schemas.py"], "anti_patterns": []}
+SCORE: 100.0

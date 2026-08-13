@@ -1,0 +1,93 @@
+{
+  "gate": 1,
+  "phase": 3,
+  "fr_id": "FR-03",
+  "overall_score": 100.0,
+  "quality_complete": true,
+  "rounds_used": 1,
+  "breakdown": {
+    "linting": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "All checks passed!\n\n(ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003 — exit 0, no violations)"
+    },
+    "type_safety": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786549007212\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 18, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.64}}\n\n(pyright 03-development/src/ --outputjson — errorCount=0, warningCount=0)"
+    },
+    "test_coverage": {
+      "score": 100.0,
+      "threshold": 100,
+      "tests_passed": 46,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "tool_evidence": "============================== test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 46 items\n\n03-development/tests/test_fr03.py .......................                [ 50%]\n03-development/tests/test_fr02.py .......................                [100%]\n\n============================== 46 passed in 0.54s ==============================\n\nCoverage JSON totals: covered_lines=141, num_statements=141, percent_covered=100.0, missing_lines=0\nFR-03 source files: deps.py 25/25, auth.py 33/33, key_repo.py 44/44, orm.py 39/39. All 6 required FR-03 tests present and passing (test_fr03_missing_or_invalid_key_401, test_fr03_api_keys_no_plaintext_hash_64hex, test_fr03_constant_time_compare, test_fr03_plaintext_only_at_creation, test_fr03_logs_metrics_no_password, test_fr03_revoked_key_rejected_401). spec_cov_pct=100, coverage_pct=100, score=min(100,100)=100"
+    },
+    "architecture_constraints": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "Analyzed 18 files, 19 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\n\nContracts: 1 kept, 0 broken.\n\n(lint-imports — exit 0, layered-architecture contract KEPT, 0 broken)"
+    }
+  },
+  "enforcer_sha": "3b4d5aea33bd9a15fc23bc06c04af116b82de322",
+  "enforcer_surface": {
+    "core/quality_gate": "a3055987f6ff9300815a71ced09c7dc2320b9eef",
+    "harness/harness_bridge.py": "e688d20655f8f758d36a817bfab218f4996307a9",
+    "harness/gate_configs": "92d5728b783841baed6e1beeb57d5e7fbe56c71e"
+  },
+  "evidence_digest": {
+    "test_coverage::pyproject.toml": {
+      "source": "pyproject.toml (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "cdc4e1a3b3777a58783b12fce4e0cf8296789b6e136075de5784c36ade1f8622",
+      "bytes": 1094,
+      "head": "[build-system]\nrequires = [\"setuptools>=68\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"taskq-api\"\nversion = \"0.1.0\"\ndescription = \"HTTP task-queue service (taskq-api round 2/3 test-bed)\"\nrequires-python = \">=3.11\"\n# Phase 3 will flesh this out — only the manifest's PRESENCE unlocks\n# `run-env-check` so P3's per-FR TDD can install deps. Agent A in P3 owns\n# the dep list (Pydantic models, SQLAlchemy 2.x, Alembic, FastAPI,\n# uvicorn, httpx, import-linter for NFR-06, ... per SAD.md / SPEC.md).\ndependencies = []\n\n[project.optional-dependencies]\ndev = []\n\n[tool.pytest.ini_options]\n# `auto` makes `@pytest.mark.asyncio`-decorated async tests AND their"
+    },
+    "linting": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "b08366666dbfe9ca210fef586d5f57808f735696fb4a6552ec82f5c20f9486bf",
+      "bytes": 115,
+      "head": "All checks passed!\n\n(ruff check 03-development/src/ --extend-ignore RUF001,RUF002,RUF003 — exit 0, no violations)"
+    },
+    "type_safety": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "c122463d12f0dd30b173474fe172ddc6f08076a13df1c5513a619c7130576008",
+      "bytes": 262,
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786549007212\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 18, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.64}}\n\n(pyright 03-development/src/ --outputjson — errorCount=0, warningCount=0)"
+    },
+    "test_coverage": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "8cb964a8726f0a6c4c4b76b3783dceb13d619f1dee4ba490e0eb728e4fe88aa2",
+      "bytes": 908,
+      "head": "============================== test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollected 46 items\n\n03-development/tests/test_fr03.py .......................                [ 50%]\n03-development/tests/test_fr02.py .......................                [100%]\n\n============================== 46 passed in 0.54s ==============================\n\nCoverage JSON totals: covered_lines=141, num_statements=141, percent_covered=100.0, missing_lines=0\nFR-03 source files: deps.py 25/25, auth.py 33/33, key_repo.py 44/44, orm.py 39/39. All 6 required FR-03 tests present and passing (test_fr03_missing_or_invalid_key_401, test_fr03_api_keys_no_plaintext_hash_64hex, test_fr03_constant_time_compare, test_fr03_plaintext_only_at_creation, test_fr03_logs_metrics_no_password, test_fr03_revoked_key_rejected_401). spec_cov_pct=100, coverage_pct=100, score=min(100,100)=100"
+    },
+    "architecture_constraints": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "e014b740f35c172e9b800268d359c7d4e78c523f5cfdbd5160a6efe2dc4f4f67",
+      "bytes": 201,
+      "head": "Analyzed 18 files, 19 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\n\nContracts: 1 kept, 0 broken.\n\n(lint-imports — exit 0, layered-architecture contract KEPT, 0 broken)"
+    }
+  },
+  "composite_score": 100.0,
+  "verdict": "PASS",
+  "passed": true,
+  "spec_undelivered": [],
+  "spec_declared": 0,
+  "measurement_scope": {
+    "weight_covered": 1.0,
+    "weight_total": 1.0,
+    "dimensions_scored": [
+      "architecture_constraints",
+      "linting",
+      "test_coverage",
+      "type_safety"
+    ],
+    "dimensions_unscored": [],
+    "dimensions_disabled": []
+  }
+}

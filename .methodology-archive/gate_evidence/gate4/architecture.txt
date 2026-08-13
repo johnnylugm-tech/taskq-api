@@ -1,0 +1,64 @@
+{
+  "framework": "code-review-graph (crg_independent)",
+  "project_root": "/Users/johnny/projects/taskq-api",
+  "community_cohesion": {
+    "score": 90.0,
+    "threshold": 80,
+    "crg_cohesion_healthy": 0.24,
+    "crg_excludes": [],
+    "product_communities": [
+      {
+        "name": "taskq-api-problem",
+        "size": 47,
+        "cohesion": 0.3333
+      },
+      {
+        "name": "service-task",
+        "size": 33,
+        "cohesion": 0.2614
+      },
+      {
+        "name": "repository-key",
+        "size": 21,
+        "cohesion": 0.4677
+      },
+      {
+        "name": "repository-list",
+        "size": 13,
+        "cohesion": 0.4667
+      },
+      {
+        "name": "service-metrics",
+        "size": 6,
+        "cohesion": 0.2593
+      },
+      {
+        "name": "repository-session",
+        "size": 3,
+        "cohesion": 0.4,
+        "note": "exempt (size<5)"
+      },
+      {
+        "name": "migrations-migrations",
+        "size": 3,
+        "cohesion": 0.1111,
+        "note": "exempt (size<5)"
+      },
+      {
+        "name": "service-resolve",
+        "size": 2,
+        "cohesion": 0.125,
+        "note": "exempt (size<5)"
+      },
+      {
+        "name": "api-readyz",
+        "size": 4,
+        "cohesion": 0.2308,
+        "note": "exempt (size<5)"
+      }
+    ],
+    "cross_community_edges": 3
+  },
+  "drift_vs_p4": 0.04,
+  "crg_arch_check": "OK"
+}

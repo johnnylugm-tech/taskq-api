@@ -1,0 +1,93 @@
+{
+  "gate": 1,
+  "phase": 3,
+  "fr_id": "FR-07",
+  "overall_score": 100,
+  "quality_complete": true,
+  "rounds_used": 1,
+  "breakdown": {
+    "linting": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "All checks passed!"
+    },
+    "type_safety": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786556649976\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 26, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.032}}"
+    },
+    "test_coverage": {
+      "score": 100.0,
+      "threshold": 100,
+      "tests_passed": 11,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 11 items\n\n03-development/tests/test_fr07.py ...........                            [100%]\n\n============================== 11 passed in 2.15s ===============================\n{\"meta\": {\"format\": 3, \"version\": \"7.15.4\", \"timestamp\": \"2026-08-13T01:44:12.568998\", \"branch_coverage\": false, \"show_contexts\": false}, \"files\": {\"03-development/src/migrations/versions/v1_initial.py\": {\"summary\": {\"percent_covered\": 100.0, \"covered_lines\": 23, \"num_statements\": 23, \"missing_lines\": 0}}, \"03-development/src/migrations/versions/v2_tags.py\": {\"summary\": {\"percent_covered\": 100.0, \"covered_lines\": 23, \"num_statements\": 23, \"missing_lines\": 0}}, \"03-development/src/migrations/versions/v3_split_results.py\": {\"summary\": {\"percent_covered\": 100.0, \"covered_lines\": 32, \"num_statements\": 32, \"missing_lines\": 0}}}, \"totals\": {\"percent_covered\": 100.0, \"covered_lines\": 78, \"num_statements\": 78, \"missing_lines\": 0}}"
+    },
+    "architecture_constraints": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "Contracts\n---------\n\nAnalyzed 41 files, 78 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+    }
+  },
+  "enforcer_sha": "3b4d5aea33bd9a15fc23bc06c04af116b82de322",
+  "enforcer_surface": {
+    "core/quality_gate": "a3055987f6ff9300815a71ced09c7dc2320b9eef",
+    "harness/harness_bridge.py": "e688d20655f8f758d36a817bfab218f4996307a9",
+    "harness/gate_configs": "92d5728b783841baed6e1beeb57d5e7fbe56c71e"
+  },
+  "evidence_digest": {
+    "test_coverage::pyproject.toml": {
+      "source": "pyproject.toml (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "cdc4e1a3b3777a58783b12fce4e0cf8296789b6e136075de5784c36ade1f8622",
+      "bytes": 1094,
+      "head": "[build-system]\nrequires = [\"setuptools>=68\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"taskq-api\"\nversion = \"0.1.0\"\ndescription = \"HTTP task-queue service (taskq-api round 2/3 test-bed)\"\nrequires-python = \">=3.11\"\n# Phase 3 will flesh this out — only the manifest's PRESENCE unlocks\n# `run-env-check` so P3's per-FR TDD can install deps. Agent A in P3 owns\n# the dep list (Pydantic models, SQLAlchemy 2.x, Alembic, FastAPI,\n# uvicorn, httpx, import-linter for NFR-06, ... per SAD.md / SPEC.md).\ndependencies = []\n\n[project.optional-dependencies]\ndev = []\n\n[tool.pytest.ini_options]\n# `auto` makes `@pytest.mark.asyncio`-decorated async tests AND their"
+    },
+    "linting": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "f0d0b1081d9d3ebb26c4c93543053ecdc0a58998f22c071dc4ddb26021b57645",
+      "bytes": 18,
+      "head": "All checks passed!"
+    },
+    "type_safety": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "8b43fef13ada4e6a9effea39ca964b9fc78b24ed004eaa565a4e39f92374525b",
+      "bytes": 186,
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786556649976\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 26, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 1.032}}"
+    },
+    "test_coverage": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "4b35c3732d3182188e4573a52de7ae68a9d1bba6b589850187de7de178cd681b",
+      "bytes": 1058,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 11 items\n\n03-development/tests/test_fr07.py ...........                            [100%]\n\n============================== 11 passed in 2.15s ===============================\n{\"meta\": {\"format\": 3, \"version\": \"7.15.4\", \"timestamp\": \"2026-08-13T01:44:12.568998\", \"branch_coverage\": false, \"show_contexts\": false}, \"files\": {\"03-development/src/migrations/versions/v1_initial.py\": {\"summary\": {\"percent_covered\": 100.0, \"covered_lines\": 23, \"num_statements\": 23, \"missing_lines\": 0}}, \"03-development/src/migrations/versions/v2_tags.py\": {\"summary\": {\"percent_covered\": 100.0, \"covered_lines\": 23, \"num_statements\": 23, \"missing_lines\": 0}}, \"03-development/src/migrations/versions/v3_split_results.py\": {\"summary\": {\"percent_covered\": 100.0, \"covered_lines\": 32, \"num_statements\": 32, \"missing_lines\": 0}}}, \"totals\": {\"percent_covered\": 100.0, \"covered_lines\": 78, \"num_statements\": 78, \"missing_lines\": 0}}"
+    },
+    "architecture_constraints": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "7ecca355b65b0f198a2f113319527126f9597928f2559d45d180057cd7a9a348",
+      "bytes": 175,
+      "head": "Contracts\n---------\n\nAnalyzed 41 files, 78 dependencies.\n-----------------------------------\n\nlayered-architecture KEPT\nsqlalchemy-isolation KEPT\n\nContracts: 2 kept, 0 broken."
+    }
+  },
+  "composite_score": 100.0,
+  "verdict": "PASS",
+  "passed": true,
+  "spec_undelivered": [],
+  "spec_declared": 0,
+  "measurement_scope": {
+    "weight_covered": 1.0,
+    "weight_total": 1.0,
+    "dimensions_scored": [
+      "architecture_constraints",
+      "linting",
+      "test_coverage",
+      "type_safety"
+    ],
+    "dimensions_unscored": [],
+    "dimensions_disabled": []
+  }
+}

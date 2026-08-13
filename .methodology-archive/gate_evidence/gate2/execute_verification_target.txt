@@ -1,0 +1,4 @@
+$ make verify-system
+INFO  [alembic.runtime.migration] Running upgrade v2_tags -> v3_split_results
+verify-system: PASS
+EXIT=0

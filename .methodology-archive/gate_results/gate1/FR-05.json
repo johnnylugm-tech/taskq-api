@@ -1,0 +1,93 @@
+{
+  "gate": 1,
+  "phase": 3,
+  "fr_id": "FR-05",
+  "overall_score": 100.0,
+  "quality_complete": true,
+  "rounds_used": 1,
+  "breakdown": {
+    "linting": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "All checks passed!"
+    },
+    "type_safety": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1786552608895\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 20, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.623}}"
+    },
+    "test_coverage": {
+      "score": 100.0,
+      "threshold": 100,
+      "tests_passed": 88,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=2 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: cov-7.1.0, asyncio-1.4.0, anyio-4.14.2\ncollected 88 items\n\n03-development/tests/test_fr05.py ....................                   [ 22%]\n03-development/tests/test_fr02.py .......................                [ 48%]\n03-development/tests/test_fr03.py .......................                [ 75%]\n03-development/tests/test_fr04.py ......................                 [100%]\n\n============================== 88 passed in 0.92s =============================="
+    },
+    "architecture_constraints": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "Analyzed 20 files, 22 dependencies. Contracts: 1 kept, 0 broken. layered-architecture KEPT"
+    }
+  },
+  "enforcer_sha": "3b4d5aea33bd9a15fc23bc06c04af116b82de322",
+  "enforcer_surface": {
+    "core/quality_gate": "a3055987f6ff9300815a71ced09c7dc2320b9eef",
+    "harness/harness_bridge.py": "e688d20655f8f758d36a817bfab218f4996307a9",
+    "harness/gate_configs": "92d5728b783841baed6e1beeb57d5e7fbe56c71e"
+  },
+  "evidence_digest": {
+    "test_coverage::pyproject.toml": {
+      "source": "pyproject.toml (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "cdc4e1a3b3777a58783b12fce4e0cf8296789b6e136075de5784c36ade1f8622",
+      "bytes": 1094,
+      "head": "[build-system]\nrequires = [\"setuptools>=68\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"taskq-api\"\nversion = \"0.1.0\"\ndescription = \"HTTP task-queue service (taskq-api round 2/3 test-bed)\"\nrequires-python = \">=3.11\"\n# Phase 3 will flesh this out — only the manifest's PRESENCE unlocks\n# `run-env-check` so P3's per-FR TDD can install deps. Agent A in P3 owns\n# the dep list (Pydantic models, SQLAlchemy 2.x, Alembic, FastAPI,\n# uvicorn, httpx, import-linter for NFR-06, ... per SAD.md / SPEC.md).\ndependencies = []\n\n[project.optional-dependencies]\ndev = []\n\n[tool.pytest.ini_options]\n# `auto` makes `@pytest.mark.asyncio`-decorated async tests AND their"
+    },
+    "linting": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "f0d0b1081d9d3ebb26c4c93543053ecdc0a58998f22c071dc4ddb26021b57645",
+      "bytes": 18,
+      "head": "All checks passed!"
+    },
+    "type_safety": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "ca4aa2023b74360eb886c296a1dc129187ee1e1a5cfdd91ed9b3e17cef044924",
+      "bytes": 186,
+      "head": "{\"version\": \"1.1.409\", \"time\": \"1786552608895\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 20, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.623}}"
+    },
+    "test_coverage": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "cfe42dbcd04befe297358b5a01eb3ac732404dd0d0775f8171ab63d3ecd18c6a",
+      "bytes": 857,
+      "head": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=2 warmup=False warmup_iterations=100000)\nrootdir: /Users/johnny/projects/taskq-api\nconfigfile: pyproject.toml\nplugins: cov-7.1.0, asyncio-1.4.0, anyio-4.14.2\ncollected 88 items\n\n03-development/tests/test_fr05.py ....................                   [ 22%]\n03-development/tests/test_fr02.py .......................                [ 48%]\n03-development/tests/test_fr03.py .......................                [ 75%]\n03-development/tests/test_fr04.py ......................                 [100%]\n\n============================== 88 passed in 0.92s =============================="
+    },
+    "architecture_constraints": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "64aedc5a14d460e07d0402685a4d59550d8a3555869913e2c8c503796d414f41",
+      "bytes": 90,
+      "head": "Analyzed 20 files, 22 dependencies. Contracts: 1 kept, 0 broken. layered-architecture KEPT"
+    }
+  },
+  "composite_score": 100.0,
+  "verdict": "PASS",
+  "passed": true,
+  "spec_undelivered": [],
+  "spec_declared": 0,
+  "measurement_scope": {
+    "weight_covered": 1.0,
+    "weight_total": 1.0,
+    "dimensions_scored": [
+      "architecture_constraints",
+      "linting",
+      "test_coverage",
+      "type_safety"
+    ],
+    "dimensions_unscored": [],
+    "dimensions_disabled": []
+  }
+}

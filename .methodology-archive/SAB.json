@@ -1,0 +1,337 @@
+{
+  "version": "1.0",
+  "created_at": "2026-08-12",
+  "phase": 2,
+  "project": "taskq-api",
+  "layers": [
+    {
+      "name": "api",
+      "modules": [
+        {
+          "name": "taskq_api.api.tasks"
+        },
+        {
+          "name": "taskq_api.api.health"
+        },
+        {
+          "name": "taskq_api.api.deps"
+        },
+        {
+          "name": "taskq_api.app"
+        },
+        {
+          "name": "taskq_api.__main__"
+        },
+        "taskq_api.api"
+      ],
+      "allowed_dependencies": [
+        "service",
+        "errors",
+        "config",
+        "models"
+      ]
+    },
+    {
+      "name": "service",
+      "modules": [
+        {
+          "name": "taskq_api.service.tasks"
+        },
+        {
+          "name": "taskq_api.service.runner"
+        },
+        {
+          "name": "taskq_api.service.auth"
+        },
+        {
+          "name": "taskq_api.service.ratelimit"
+        },
+        "taskq_api.service"
+      ],
+      "allowed_dependencies": [
+        "repository",
+        "models",
+        "errors",
+        "config"
+      ]
+    },
+    {
+      "name": "repository",
+      "modules": [
+        {
+          "name": "taskq_api.repository.session"
+        },
+        {
+          "name": "taskq_api.repository.task_repo"
+        },
+        {
+          "name": "taskq_api.repository.key_repo"
+        },
+        {
+          "name": "taskq_api.repository.rate_repo"
+        },
+        "taskq_api.repository"
+      ],
+      "allowed_dependencies": [
+        "models",
+        "config"
+      ]
+    },
+    {
+      "name": "models",
+      "modules": [
+        {
+          "name": "taskq_api.models.orm"
+        },
+        {
+          "name": "taskq_api.models.schemas"
+        },
+        "taskq_api.models"
+      ],
+      "allowed_dependencies": []
+    },
+    {
+      "name": "config",
+      "modules": [
+        {
+          "name": "taskq_api.config"
+        }
+      ],
+      "allowed_dependencies": []
+    },
+    {
+      "name": "errors",
+      "modules": [
+        {
+          "name": "taskq_api.errors"
+        },
+        "taskq_api"
+      ],
+      "allowed_dependencies": []
+    },
+    {
+      "name": "migrations",
+      "modules": [
+        {
+          "name": "migrations"
+        },
+        {
+          "name": "migrations.env"
+        },
+        {
+          "name": "migrations.versions"
+        },
+        {
+          "name": "migrations.versions.v1_initial"
+        },
+        {
+          "name": "migrations.versions.v2_tags"
+        },
+        {
+          "name": "migrations.versions.v3_split_results"
+        }
+      ],
+      "allowed_dependencies": [
+        "repository",
+        "models"
+      ]
+    }
+  ],
+  "dependencies": {
+    "api": [
+      "service",
+      "errors",
+      "config",
+      "models"
+    ],
+    "service": [
+      "repository",
+      "models",
+      "errors",
+      "config"
+    ],
+    "repository": [
+      "models",
+      "config"
+    ]
+  },
+  "quality_targets": {
+    "max_complexity": 10,
+    "min_coverage": 100,
+    "max_coupling": 0.3
+  },
+  "nfr_dimension_mapping": {
+    "NFR-01": "performance",
+    "NFR-02": "security",
+    "NFR-03": "error_handling",
+    "NFR-04": "security",
+    "NFR-05": "documentation",
+    "NFR-06": "architecture_constraints",
+    "NFR-07": "license_compliance",
+    "NFR-08": "mutation_testing",
+    "NFR-09": "test_assertion_quality",
+    "NFR-10": "integration_coverage",
+    "NFR-11": "readability",
+    "NFR-12": "execute_verification_target"
+  },
+  "nfr_traceability": {
+    "NFR-01": {
+      "type": "performance",
+      "dimension": "performance",
+      "target": "p95 < 30ms for GET /v1/tasks/{id}; p95 < 80ms for GET /v1/tasks?limit=50",
+      "module": "taskq_api.repository.task_repo"
+    },
+    "NFR-02": {
+      "type": "security",
+      "dimension": "security",
+      "target": "bandit 0 HIGH/0 MEDIUM; 0 SQL string concat hits; 0 shell=True hits",
+      "module": "taskq_api.api.deps"
+    },
+    "NFR-03": {
+      "type": "reliability",
+      "dimension": "error_handling",
+      "target": "no bare except; CancelledError re-raised; subprocess killed on timeout",
+      "module": "taskq_api.repository.session"
+    },
+    "NFR-04": {
+      "type": "security",
+      "dimension": "security",
+      "target": "0 leakage of DB URL password, API key plaintext, or Bearer token in logs/responses",
+      "module": "taskq_api.service.runner"
+    },
+    "NFR-05": {
+      "type": "documentation",
+      "dimension": "documentation",
+      "target": "100% public symbol docstring coverage with [FR-XX]/[NFR-XX] reference",
+      "module": "taskq_api.api.tasks"
+    },
+    "NFR-06": {
+      "type": "layering",
+      "dimension": "architecture_constraints",
+      "target": "lint-imports exit 0; 0 sqlalchemy imports outside repository/",
+      "module": "taskq_api.api.tasks"
+    },
+    "NFR-07": {
+      "type": "licensing",
+      "dimension": "license_compliance",
+      "target": "every dependency (direct + transitive) license in allowlist; SBOM.json present",
+      "module": "taskq_api.app"
+    },
+    "NFR-08": {
+      "type": "mutation",
+      "dimension": "mutation_testing",
+      "target": ">=70",
+      "scope_layers": [
+        "service",
+        "repository"
+      ],
+      "module": "taskq_api.service.runner"
+    },
+    "NFR-09": {
+      "type": "testability",
+      "dimension": "test_assertion_quality",
+      "target": "0 skipped tests; 0 zero-assertion tests; FR-07 round-trip verified on real SQLite",
+      "module": "taskq_api.repository.session"
+    },
+    "NFR-10": {
+      "type": "integration",
+      "dimension": "integration_coverage",
+      "target": ">=80% integration line coverage; httpx ASGITransport end-to-end",
+      "module": "taskq_api.api.tasks"
+    },
+    "NFR-11": {
+      "type": "maintainability",
+      "dimension": "readability",
+      "target": "MI >=80; file <=400 lines; dir <=15 files; handler <=40 lines; CC <=10",
+      "module": "taskq_api.api.tasks"
+    },
+    "NFR-12": {
+      "type": "verifiability",
+      "dimension": "execute_verification_target",
+      "target": "make verify-system exits 0; stdout contains 'verify-system: PASS'",
+      "module": "taskq_api.app"
+    }
+  },
+  "advisory_only": [],
+  "gate_score_overrides": {
+    "performance": 75.0,
+    "security": 80.0,
+    "error_handling": 80.0,
+    "documentation": 75.0,
+    "architecture_constraints": 100.0,
+    "license_compliance": 100.0,
+    "mutation_testing": 70.0,
+    "test_assertion_quality": 70.0,
+    "integration_coverage": 80.0,
+    "readability": 80.0,
+    "execute_verification_target": 100.0
+  },
+  "fr_module_traceability": {
+    "FR-01": [
+      "taskq_api.api.tasks",
+      "taskq_api.service.tasks",
+      "taskq_api.repository.task_repo",
+      "taskq_api.models.schemas"
+    ],
+    "FR-02": [
+      "taskq_api.api.tasks",
+      "taskq_api.service.runner",
+      "taskq_api.repository.task_repo",
+      "taskq_api.models.orm"
+    ],
+    "FR-03": [
+      "taskq_api.api.deps",
+      "taskq_api.service.auth",
+      "taskq_api.repository.key_repo",
+      "taskq_api.models.orm"
+    ],
+    "FR-04": [
+      "taskq_api.api.deps",
+      "taskq_api.service.auth"
+    ],
+    "FR-05": [
+      "taskq_api.api.deps",
+      "taskq_api.service.ratelimit",
+      "taskq_api.repository.rate_repo",
+      "taskq_api.models.orm"
+    ],
+    "FR-06": [
+      "taskq_api.repository.session",
+      "taskq_api.repository.task_repo",
+      "taskq_api.service.tasks",
+      "taskq_api.models.orm"
+    ],
+    "FR-07": [
+      "migrations.versions.v1_initial",
+      "migrations.versions.v2_tags",
+      "migrations.versions.v3_split_results"
+    ],
+    "FR-08": [
+      "taskq_api.service.runner",
+      "taskq_api.app"
+    ],
+    "FR-09": [
+      "taskq_api.api.health",
+      "taskq_api.app"
+    ],
+    "FR-10": [
+      "taskq_api.errors",
+      "taskq_api.api.tasks",
+      "taskq_api.api.deps"
+    ]
+  },
+  "architecture_constraints": [
+    "no_circular_dependencies",
+    "sqlalchemy_only_in_repository",
+    "single_auth_dependency_at_api_layer",
+    "errors_and_config_are_independence_modules",
+    "fr07_round_trip_must_preserve_data",
+    "rate_limit_update_in_single_transaction_with_row_lock"
+  ],
+  "high_risk_modules": [
+    "taskq_api.service.runner",
+    "taskq_api.service.auth",
+    "taskq_api.repository.session",
+    "migrations.versions.v3_split_results"
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "gate": 1,
+  "phase": 3,
+  "fr_id": "FR-04",
+  "overall_score": 100.0,
+  "quality_complete": true,
+  "rounds_used": 1,
+  "breakdown": {
+    "linting": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "All checks passed!"
+    },
+    "type_safety": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1786551549594\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":18,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":0.643}}"
+    },
+    "test_coverage": {
+      "score": 100.0,
+      "threshold": 100,
+      "tests_passed": 45,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "tool_evidence": "45 passed in 0.40s. Coverage 100% on deps.py (23/23 stmts) and auth.py (51/51 stmts). All 4 required FR-04 tests exist and pass: test_fr04_delete_forbidden_403_opaque, test_fr04_delete_forbidden_403_existence_opaque, test_fr04_single_scope_dependency, test_fr04_admin_delete_succeeds_204."
+    },
+    "architecture_constraints": {
+      "score": 100.0,
+      "threshold": 100,
+      "tool_evidence": "Analyzed 18 files, 20 dependencies. Contracts: 1 kept, 0 broken. layered-architecture KEPT"
+    }
+  },
+  "enforcer_sha": "3b4d5aea33bd9a15fc23bc06c04af116b82de322",
+  "enforcer_surface": {
+    "core/quality_gate": "a3055987f6ff9300815a71ced09c7dc2320b9eef",
+    "harness/harness_bridge.py": "e688d20655f8f758d36a817bfab218f4996307a9",
+    "harness/gate_configs": "92d5728b783841baed6e1beeb57d5e7fbe56c71e"
+  },
+  "evidence_digest": {
+    "test_coverage::pyproject.toml": {
+      "source": "pyproject.toml (score-altering exclusions)",
+      "kind": "file",
+      "sha256": "cdc4e1a3b3777a58783b12fce4e0cf8296789b6e136075de5784c36ade1f8622",
+      "bytes": 1094,
+      "head": "[build-system]\nrequires = [\"setuptools>=68\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"taskq-api\"\nversion = \"0.1.0\"\ndescription = \"HTTP task-queue service (taskq-api round 2/3 test-bed)\"\nrequires-python = \">=3.11\"\n# Phase 3 will flesh this out — only the manifest's PRESENCE unlocks\n# `run-env-check` so P3's per-FR TDD can install deps. Agent A in P3 owns\n# the dep list (Pydantic models, SQLAlchemy 2.x, Alembic, FastAPI,\n# uvicorn, httpx, import-linter for NFR-06, ... per SAD.md / SPEC.md).\ndependencies = []\n\n[project.optional-dependencies]\ndev = []\n\n[tool.pytest.ini_options]\n# `auto` makes `@pytest.mark.asyncio`-decorated async tests AND their"
+    },
+    "linting": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "f0d0b1081d9d3ebb26c4c93543053ecdc0a58998f22c071dc4ddb26021b57645",
+      "bytes": 18,
+      "head": "All checks passed!"
+    },
+    "type_safety": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "c439da2801dbeea0aee10cdf7caf455e8140617eb9a2935b8cc32ffbfc7a3912",
+      "bytes": 170,
+      "head": "{\"version\":\"1.1.409\",\"time\":\"1786551549594\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":18,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":0.643}}"
+    },
+    "test_coverage": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "828ebf80809c9d43a28d77e7dc6d37d0b7f5595ebc2c0ef92c929e3b5a253fc5",
+      "bytes": 288,
+      "head": "45 passed in 0.40s. Coverage 100% on deps.py (23/23 stmts) and auth.py (51/51 stmts). All 4 required FR-04 tests exist and pass: test_fr04_delete_forbidden_403_opaque, test_fr04_delete_forbidden_403_existence_opaque, test_fr04_single_scope_dependency, test_fr04_admin_delete_succeeds_204."
+    },
+    "architecture_constraints": {
+      "source": "tool_evidence (inline)",
+      "kind": "inline",
+      "sha256": "9f5d4439701830710f0774fa238ce92fb9394dd05941cc77efe2764774226ba1",
+      "bytes": 90,
+      "head": "Analyzed 18 files, 20 dependencies. Contracts: 1 kept, 0 broken. layered-architecture KEPT"
+    }
+  },
+  "composite_score": 100.0,
+  "verdict": "PASS",
+  "passed": true,
+  "spec_undelivered": [],
+  "spec_declared": 0,
+  "measurement_scope": {
+    "weight_covered": 1.0,
+    "weight_total": 1.0,
+    "dimensions_scored": [
+      "architecture_constraints",
+      "linting",
+      "test_coverage",
+      "type_safety"
+    ],
+    "dimensions_unscored": [],
+    "dimensions_disabled": []
+  }
+}

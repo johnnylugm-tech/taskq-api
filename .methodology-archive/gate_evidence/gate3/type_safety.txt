@@ -1,0 +1,30 @@
+{
+    "version": "1.1.409",
+    "time": "1786593609436",
+    "generalDiagnostics": [
+        {
+            "file": "/Users/johnny/projects/taskq-api/03-development/src/taskq_api/app.py",
+            "severity": "error",
+            "message": "Cannot access attribute \"connect\" for class \"object\"\n  Attribute \"connect\" is unknown",
+            "range": {
+                "start": {
+                    "line": 113,
+                    "character": 20
+                },
+                "end": {
+                    "line": 113,
+                    "character": 27
+                }
+            },
+            "rule": "reportAttributeAccessIssue"
+        }
+    ],
+    "summary": {
+        "filesAnalyzed": 28,
+        "errorCount": 1,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 1.09
+    }
+}
+
